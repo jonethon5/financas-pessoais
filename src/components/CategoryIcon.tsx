@@ -17,12 +17,15 @@ export function iconFor(name: string | null | undefined): LucideIcon {
   return ICONS[name ?? ''] ?? Receipt
 }
 
-/** Ícone da categoria num quadradinho cinza (numa cor só, como nos apps do iPhone). */
-export function CategoryIcon({ category, size = 'md' }: { category: Pick<Category, 'icon'> | null | undefined; size?: 'sm' | 'md' | 'lg' }) {
+/**
+ * Ícone da categoria: desenho de linha na cor da categoria (a mesma da fatia no gráfico),
+ * sobre um quadradinho cinza-claro. Sem emoji e sem fundo colorido.
+ */
+export function CategoryIcon({ category, size = 'md' }: { category: Pick<Category, 'icon' | 'color'> | null | undefined; size?: 'sm' | 'md' | 'lg' }) {
   const Icon = iconFor(category?.icon)
   return (
     <IconTile size={size}>
-      <Icon strokeWidth={1.8} />
+      <Icon strokeWidth={1.9} style={{ color: category?.color ?? '#5B6B7A' }} />
     </IconTile>
   )
 }

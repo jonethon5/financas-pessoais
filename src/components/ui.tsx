@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { formatBRL } from '../lib/money'
+import { useCountUp, useGrow } from '../lib/motion'
 
 const variants = {
   primary: 'bg-primary text-on-primary active:bg-primary-strong disabled:opacity-40',
@@ -185,10 +186,11 @@ export function ProgressBar({
   className?: string
 }) {
   const pct = Math.max(0, Math.min(1, value)) * 100
+  const shown = useGrow(pct)
   const fill = { grow: 'bg-grow', warn: 'bg-warn', danger: 'bg-danger', coral: 'bg-coral', ai: 'bg-ai', ink: 'bg-ink' }[tone]
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} className={`relative h-2 overflow-hidden rounded-full bg-surface-2 ${className}`}>
-      <div className={`bar-fill absolute inset-y-0 left-0 rounded-full ${fill}`} style={{ width: `${pct}%` }} />
+      <div className={`bar-fill absolute inset-y-0 left-0 rounded-full ${fill}`} style={{ width: `${shown}%` }} />
       {milestones?.map((m) => (
         <span key={m} aria-hidden className="absolute inset-y-0 w-[2px] bg-surface" style={{ left: `calc(${m * 100}% - 1px)` }} />
       ))}
@@ -271,6 +273,12 @@ export function IconTile({ children, size = 'md', className = '' }: { children: 
       {children}
     </span>
   )
+}
+
+/** Valor que "conta" até o número ao aparecer ou mudar. */
+export function AnimatedMoney({ cents, className = '' }: { cents: number; className?: string }) {
+  const v = useCountUp(cents)
+  return <span className={`num whitespace-nowrap ${className}`}>{formatBRL(v)}</span>
 }
 
 /** Valor em reais com números alinhados. */

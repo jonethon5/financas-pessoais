@@ -1,12 +1,15 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { iconFor } from '../components/CategoryIcon'
+import { haptic } from '../lib/motion'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmSheet } from '../components/ConfirmSheet'
 import { useToast } from '../components/Toast'
 import { Button, Chip, ErrorBox, Field, List, NavBar, NavButton, Notice, Row, Segmented, Spinner, Switch } from '../components/ui'
 import { useBackend } from '../data/backend'
 import { tkey, useCategories, useHistory, useWrite } from '../data/finance'
-import { addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, todayISO } from '../lib/dates'
+import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, relativeDay, todayISO } from '../lib/dates'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
 import { friendlyError } from '../lib/supabase'
@@ -50,7 +53,8 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const [params] = useSearchParams()
   const history = useHistory(3)
 
-  const mode: Mode = tx ? (tx.kind === 'income' ? 'renda' : tx.type === 'fixo' ? 'fixo' : tx.type === 'parcela' ? 'parcelado' : 'dia') : ((params.get('tipo') as Mode) ?? 'dia')
+  const [pickedMode, setPickedMode] = useState<Mode>((params.get('tipo') as Mode) ?? 'dia')
+  const mode: Mode = tx ? (tx.kind === 'income' ? 'renda' : tx.type === 'fixo' ? 'fixo' : tx.type === 'parcela' ? 'parcelado' : 'dia') : pickedMode
   const income = mode === 'renda'
   const today = todayISO()
 
@@ -200,6 +204,20 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         }
       />
       <form id="lancamento" onSubmit={onSubmit} noValidate className="flex flex-col gap-5 pt-3">
+        {!tx && (mode === 'dia' || mode === 'renda') && (
+          <Segmented
+            label="Tipo"
+            value={mode}
+            onChange={(m) => {
+              setPickedMode(m)
+              setCategoryId(null)
+            }}
+            options={[
+              { value: 'dia', label: 'Gasto' },
+              { value: 'renda', label: 'Renda' },
+            ]}
+          />
+        )}
         {error && <ErrorBox message={error} />}
 
         <Field
@@ -225,13 +243,32 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         </div>
 
         <div>
-          <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">Categoria</p>
-          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {cats.map((c) => (
-              <Chip key={c.id} selected={categoryId === c.id} onClick={() => setCategoryId(categoryId === c.id ? null : c.id)}>
-                {c.name}
-              </Chip>
-            ))}
+          <div className="mb-1.5 flex items-baseline justify-between px-1">
+            <p className="text-[0.875rem] font-medium text-muted">Categoria</p>
+            <Link to="/voce/categorias" className="text-[0.875rem] font-semibold text-primary">
+              Editar
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {cats.map((c) => {
+              const Icon = iconFor(c.icon)
+              const on = categoryId === c.id
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    haptic(8)
+                    setCategoryId(on ? null : c.id)
+                  }}
+                  className={`press flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-[1rem] border-2 bg-surface px-1.5 py-2.5 text-center transition-colors ${on ? 'border-ink' : 'border-transparent shadow-soft'}`}
+                >
+                  <Icon className="size-7" strokeWidth={1.7} style={{ color: c.color }} aria-hidden />
+                  <span className="line-clamp-2 text-[0.8125rem] leading-tight font-semibold">{c.name}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -243,7 +280,23 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             </List>
           </>
         ) : (
-          <Field label={mode === 'parcelado' && !tx ? 'Primeira parcela em' : 'Data'} type="date" value={date} onChange={(e) => setDate(e.target.value)} error={errors.date} />
+          <div>
+            <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">{mode === 'parcelado' && !tx ? 'Primeira parcela em' : 'Data'}</p>
+            <div className="shadow-soft flex items-center gap-1 rounded-[0.875rem] bg-surface p-1">
+              <button type="button" aria-label="Dia anterior" onClick={() => isValidISODate(date) && setDate(addDaysISO(date, -1))} className="press grid size-11 place-items-center rounded-[0.7rem] text-primary active:bg-surface-2">
+                <ChevronLeft className="size-6" />
+              </button>
+              <label className="relative flex-1 text-center">
+                <span className="text-[1.0625rem] font-semibold">{isValidISODate(date) ? relativeDay(date, today) : 'Escolher data'}</span>
+                <span className="block text-[0.8125rem] text-muted">{isValidISODate(date) ? date.split('-').reverse().join('/') : ''}</span>
+                <input type="date" aria-label="Data" value={date} onChange={(e) => setDate(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
+              </label>
+              <button type="button" aria-label="Próximo dia" onClick={() => isValidISODate(date) && setDate(addDaysISO(date, 1))} className="press grid size-11 place-items-center rounded-[0.7rem] text-primary active:bg-surface-2">
+                <ChevronRight className="size-6" />
+              </button>
+            </div>
+            {errors.date && <p className="mt-1.5 px-1 text-[0.875rem] font-medium text-danger-strong">{errors.date}</p>}
+          </div>
         )}
 
         {mode === 'parcelado' && !tx && (

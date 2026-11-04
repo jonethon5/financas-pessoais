@@ -94,7 +94,12 @@ export const localBackend: Backend = {
     const col = q.order ?? 'created_at'
     return rowsOf(table)
       .filter((r) => matches(r, q))
-      .sort((a, b) => String(a[col] ?? '').localeCompare(String(b[col] ?? '')) || a.id.localeCompare(b.id)) as unknown as Tables[K][]
+      .sort((a, b) => {
+        const x = a[col]
+        const y = b[col]
+        const byValue = typeof x === 'number' && typeof y === 'number' ? x - y : String(x ?? '').localeCompare(String(y ?? ''))
+        return byValue || a.id.localeCompare(b.id)
+      }) as unknown as Tables[K][]
   },
 
   async insert(table, rows, opts) {

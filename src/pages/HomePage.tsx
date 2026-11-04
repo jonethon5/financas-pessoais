@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
-import { Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Spinner } from '../components/ui'
+import { AnimatedMoney, Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Spinner } from '../components/ui'
 import { useMonthView } from '../data/monthView'
 import { currentYearMonth, dayOf, daysBetweenISO, formatDayLong, greeting, relativeDay } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
@@ -44,7 +44,7 @@ export function HomePage() {
           </Link>
         }
       />
-      <div className="flex flex-col gap-6">
+      <div className="stagger flex flex-col gap-6">
         {needsSplit && (
           <Card className="bg-coral-soft shadow-none">
             <p className="text-[1.0625rem] font-semibold">Seu salário caiu</p>
@@ -59,7 +59,7 @@ export function HomePage() {
           <Card className="p-5">
             <p className="text-[0.9375rem] font-medium text-muted">Você pode gastar hoje</p>
             {t.leftToday >= 0 ? (
-              <p className="num mt-0.5 text-[2.5rem] leading-tight font-bold">{formatBRL(t.leftToday)}</p>
+              <AnimatedMoney cents={t.leftToday} className="mt-0.5 block text-[2.75rem] leading-tight font-extrabold tracking-[-0.03em]" />
             ) : (
               <p className="mt-1 text-[1.5rem] leading-tight font-bold text-danger-strong">▲ Passou {formatBRL(-t.leftToday)} do valor de hoje</p>
             )}

@@ -55,7 +55,7 @@ export function CategoriesPage() {
   )
 }
 
-function CategorySheet({ category, onClose }: { category: Category | 'new' | null; onClose: () => void }) {
+export function CategorySheet({ category, onClose }: { category: Category | 'new' | null; onClose: () => void }) {
   return (
     <Sheet open={category != null} onClose={onClose} title={category === 'new' ? 'Nova categoria' : 'Editar categoria'}>
       {category != null && <CategoryForm key={category === 'new' ? 'new' : category.id} category={category === 'new' ? null : category} onDone={onClose} />}
