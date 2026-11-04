@@ -110,7 +110,7 @@ export function FeedbackPage() {
         {preview ? (
           <div className="relative self-start">
             <img src={preview} alt="Imagem anexada" className="shadow-soft max-h-48 rounded-[0.875rem]" />
-            <button type="button" onClick={() => setImage(null)} aria-label="Tirar imagem" className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-ink text-white">
+            <button type="button" onClick={() => setImage(null)} aria-label="Tirar imagem" className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-ink text-on-ink">
               <X className="size-4" strokeWidth={2.5} />
             </button>
           </div>

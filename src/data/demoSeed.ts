@@ -97,17 +97,17 @@ export function buildDemoGoals(): { goals: Goal[]; goal_moves: GoalMove[] } {
   const ym = currentYearMonth()
   const goals: Goal[] = []
   const goal_moves: GoalMove[] = []
-  const add = (p: Omit<Goal, 'id' | 'user_id' | 'photo_path' | 'archived' | 'completed_at' | 'created_at'>, moves: [number, number, GoalMove['kind']?][]) => {
+  const add = (p: Omit<Goal, 'id' | 'user_id' | 'photo_path' | 'archived' | 'completed_at' | 'created_at' | 'motivation'> & { motivation?: string | null }, moves: [number, number, GoalMove['kind']?][]) => {
     const id = crypto.randomUUID()
-    goals.push({ ...p, id, user_id: 'demo', photo_path: null, archived: false, completed_at: null, created_at: now })
+    goals.push({ motivation: null, ...p, id, user_id: 'demo', photo_path: null, archived: false, completed_at: null, created_at: now })
     for (const [back, cents, kind] of moves) {
       goal_moves.push({ id: crypto.randomUUID(), user_id: 'demo', goal_id: id, kind: kind ?? 'deposito', amount_cents: cents, date: isoDate(addMonths(ym, -back), 6), note: null, created_at: now })
     }
   }
-  add({ name: 'Reserva de emergência', template: 'reserva', icon: 'lifebuoy', color: '#0B7F5A', mode: 'mensal', target_cents: 900000, target_month: null, monthly_cents: 30000, priority: 1 }, [
+  add({ motivation: 'Nunca mais entrar no cheque especial por causa de imprevisto.', name: 'Reserva de emergência', template: 'reserva', icon: 'lifebuoy', color: '#0B7F5A', mode: 'mensal', target_cents: 900000, target_month: null, monthly_cents: 30000, priority: 1 }, [
     [5, 270000, 'inicial'], [3, 30000], [2, 30000], [1, 30000],
   ])
-  add({ name: 'Viagem para a praia', template: 'viagem', icon: 'airplane', color: '#2F6F8F', mode: 'data', target_cents: 600000, target_month: monthKey(addMonths(ym, 8)), monthly_cents: null, priority: 2 }, [
+  add({ motivation: 'Ver o mar com a minha mãe, sem voltar endividada.', name: 'Viagem para a praia', template: 'viagem', icon: 'airplane', color: '#2F6F8F', mode: 'data', target_cents: 600000, target_month: monthKey(addMonths(ym, 8)), monthly_cents: null, priority: 2 }, [
     [3, 120000, 'inicial'], [2, 40000], [1, 40000],
   ])
   add({ name: 'Monitor novo', template: 'compra', icon: 'monitor', color: '#6E56F0', mode: 'data', target_cents: 90000, target_month: monthKey(addMonths(ym, 1)), monthly_cents: null, priority: 3 }, [

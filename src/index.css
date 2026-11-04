@@ -38,6 +38,10 @@
   --color-danger: var(--danger);
   --color-danger-strong: var(--danger-strong);
   --color-danger-soft: var(--danger-soft);
+  --color-on-ink: var(--on-ink);
+  --color-seg: var(--seg);
+  --color-seg-on: var(--seg-on);
+  --color-switch-off: var(--switch-off);
 }
 
 :root {
@@ -64,7 +68,48 @@
   --danger: #e5484d;
   --danger-strong: #c81e25;
   --danger-soft: #fdecec;
+  --on-ink: #ffffff;
+  --seg: #e4e7eb;
+  --seg-on: #ffffff;
+  --switch-off: #e3e5e9;
+  --card-shadow: 0 1px 2px rgb(15 36 51 / 0.03), 0 4px 16px -6px rgb(15 36 51 / 0.07);
   color-scheme: light;
+}
+
+/*
+  Modo escuro (Você › Aparência). Mesma paleta, com tons ajustados para contraste no fundo escuro:
+  o verde fica mais claro e os botões verdes ganham texto escuro.
+*/
+:root[data-theme='dark'] {
+  --bg: #0b1016;
+  --surface: #151c24;
+  --surface-2: #1f2832;
+  --ink: #e8edf2;
+  --muted: #98a4b0;
+  --faint: #6c7884;
+  --line: #26303b;
+  --primary: #34c38a;
+  --primary-strong: #5ed6a5;
+  --primary-soft: #12342a;
+  --on-primary: #05261a;
+  --grow: #2fbf83;
+  --coral: #ff7a5c;
+  --coral-strong: #ff9a80;
+  --coral-soft: #3a2019;
+  --ai: #a594ff;
+  --ai-soft: #251f44;
+  --warn: #f2b035;
+  --warn-strong: #f5c462;
+  --warn-soft: #33270f;
+  --danger: #f2555a;
+  --danger-strong: #ff8085;
+  --danger-soft: #3a1a1c;
+  --on-ink: #0b1016;
+  --seg: #1f2832;
+  --seg-on: #3a4552;
+  --switch-off: #3a4552;
+  --card-shadow: 0 0 0 1px rgb(255 255 255 / 0.05);
+  color-scheme: dark;
 }
 
 html {
@@ -106,9 +151,7 @@ h3 {
 
 /* Sombra quase invisível: os cartões se destacam pelo branco sobre o cinza */
 .shadow-soft {
-  box-shadow:
-    0 1px 2px rgb(15 36 51 / 0.03),
-    0 4px 16px -6px rgb(15 36 51 / 0.07);
+  box-shadow: var(--card-shadow);
 }
 
 .no-scrollbar {

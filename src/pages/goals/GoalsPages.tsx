@@ -7,7 +7,7 @@ import { GOAL_COLORS, GOAL_ICON_KEYS, GoalBadgeIcon, GoalCover, goalIcon } from 
 import { PhotoCropper } from '../../components/PhotoCropper'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
-import { AnimatedMoney, BackButton, Button, Card, EmptyState, ErrorBox, Field, List, Money, NavBar, NavButton, Notice, ProgressBar, Row, Segmented, Spinner } from '../../components/ui'
+import { AnimatedMoney, BackButton, Button, Card, EmptyState, ErrorBox, Field, List, Money, NavBar, NavButton, Notice, ProgressBar, Row, Segmented, Spinner, TextArea } from '../../components/ui'
 import { useBackend } from '../../data/backend'
 import { useWrite } from '../../data/finance'
 import { useMonthView } from '../../data/monthView'
@@ -76,7 +76,7 @@ export function GoalsPage() {
       <NavBar
         title="Caixinhas"
         right={
-          <button type="button" aria-label="Nova caixinha" onClick={() => setPicking(true)} className="press grid size-9 place-items-center rounded-full bg-primary text-white shadow-soft">
+          <button type="button" aria-label="Nova caixinha" onClick={() => setPicking(true)} className="press grid size-9 place-items-center rounded-full bg-primary text-on-primary shadow-soft">
             <Plus size={20} weight="bold" />
           </button>
         }
@@ -116,10 +116,10 @@ export function GoalsPage() {
               <GoalCard goal={g.goal} status={g.status} />
               {ordering && (
                 <div className="absolute top-3 right-3 flex gap-1.5">
-                  <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => move(i, -1)} className="grid size-9 place-items-center rounded-full bg-white/90 text-ink shadow-soft disabled:opacity-40">
+                  <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => move(i, -1)} className="grid size-9 place-items-center rounded-full bg-surface/90 text-ink shadow-soft disabled:opacity-40">
                     <ArrowUp size={18} weight="bold" />
                   </button>
-                  <button type="button" aria-label="Descer" disabled={i === open.length - 1} onClick={() => move(i, 1)} className="grid size-9 place-items-center rounded-full bg-white/90 text-ink shadow-soft disabled:opacity-40">
+                  <button type="button" aria-label="Descer" disabled={i === open.length - 1} onClick={() => move(i, 1)} className="grid size-9 place-items-center rounded-full bg-surface/90 text-ink shadow-soft disabled:opacity-40">
                     <ArrowDown size={18} weight="bold" />
                   </button>
                 </div>
@@ -172,6 +172,7 @@ function GoalCard({ goal, status: s }: { goal: Goal; status: GoalStatus }) {
         <p className="px-4 pt-14 text-[1.1875rem] leading-tight font-extrabold text-white drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">{goal.name}</p>
       </GoalCover>
       <div className="px-4 pt-3 pb-4">
+        {goal.motivation && <p className="mb-2 line-clamp-2 text-[0.9375rem] leading-snug text-muted italic">“{goal.motivation}”</p>}
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[1.25rem] font-bold">
             <AnimatedMoney cents={s.saved} />
@@ -231,13 +232,19 @@ export function GoalDetailPage() {
 
   return (
     <>
-      <NavBar title={goal.name} large={false} left={<BackButton label="Caixinhas" onClick={() => navigate('/caixinhas')} />} right={<NavButton onClick={() => navigate(`/caixinhas/${goal.id}/editar`)}>Editar</NavButton>} />
+      <NavBar title={goal.name} large={false} left={<BackButton label="Voltar" onClick={() => navigate("/caixinhas")} />} right={<NavButton onClick={() => navigate(`/caixinhas/${goal.id}/editar`)}>Editar</NavButton>} />
       <div className="stagger flex flex-col gap-5 pt-3">
         <div className="shadow-soft overflow-hidden rounded-[1.5rem] bg-surface">
           <GoalCover goal={goal} className="h-36" iconSize={64}>
             <p className="px-5 pt-[5.5rem] text-[1.5rem] leading-tight font-extrabold text-white drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">{goal.name}</p>
           </GoalCover>
           <div className="p-5">
+            {goal.motivation && (
+              <div className="mb-4 rounded-[1rem] border-l-4 bg-surface-2 px-4 py-3" style={{ borderColor: goal.color }}>
+                <p className="text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Seu porquê</p>
+                <p className="mt-0.5 text-[1.0625rem] leading-snug font-semibold">{goal.motivation}</p>
+              </div>
+            )}
             <AnimatedMoney cents={s.saved} className="block text-[2.25rem] leading-tight font-extrabold tracking-[-0.03em]" />
             {s.target != null && <p className="text-muted">de {formatBRL(s.target)} · faltam {formatBRL(Math.max(0, s.target - s.saved))}</p>}
             {s.progress != null && (
@@ -370,6 +377,11 @@ function MoveSheet({ kind, goal, moves, ym, onClose }: { kind: 'deposito' | 'ret
               <>A caixinha fica com {formatBRL(Math.max(0, s.saved - cents))}.</>
             )}{' '}
             Tem certeza? Às vezes vale esperar uns dias.
+            {goal.motivation && (
+              <span className="mt-2 block">
+                Lembre por que você começou: <strong>“{goal.motivation}”</strong>
+              </span>
+            )}
           </Notice>
         ) : null}
         <Field label="Observação (opcional)" value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} />
@@ -460,6 +472,7 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
   const [until, setUntil] = useState(goal?.target_month ?? monthKey(addMonths(ym, 6)))
   const [monthly, setMonthly] = useState(centsToInput(goal?.monthly_cents))
   const [initial, setInitial] = useState('')
+  const [motivation, setMotivation] = useState(goal?.motivation ?? '')
   const [photo, setPhoto] = useState<Blob | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [removePhoto, setRemovePhoto] = useState(false)
@@ -468,7 +481,7 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
   const fileInput = useRef<HTMLInputElement>(null)
 
   const draft: Goal = {
-    id: goal?.id ?? 'novo', user_id: '', name: name || template.name, template: template.key, icon, color, photo_path: removePhoto ? null : (goal?.photo_path ?? null),
+    id: goal?.id ?? 'novo', user_id: '', name: name || template.name, template: template.key, icon, color, photo_path: removePhoto ? null : (goal?.photo_path ?? null), motivation: motivation.trim() || null,
     mode, target_cents: parseBRL(target), target_month: mode === 'data' ? until : null, monthly_cents: parseBRL(monthly), priority: goal?.priority ?? nextPriority,
     archived: false, completed_at: goal?.completed_at ?? null, created_at: goal?.created_at ?? '',
   }
@@ -486,7 +499,7 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
     if (initial.trim() && !initialCents) return setError('Valor já guardado inválido.')
     setError(null)
     const id = goal?.id ?? crypto.randomUUID()
-    const row = { name: name.trim(), template: template.key, icon, color, mode, target_cents: draft.target_cents, target_month: draft.target_month, monthly_cents: mode === 'data' ? null : draft.monthly_cents }
+    const row = { name: name.trim(), motivation: motivation.trim() || null, template: template.key, icon, color, mode, target_cents: draft.target_cents, target_month: draft.target_month, monthly_cents: mode === 'data' ? null : draft.monthly_cents }
     try {
       await write.mutateAsync(async (b) => {
         if (goal) await b.update('goals', id, row)
@@ -561,6 +574,15 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
         </div>
 
         <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="ex.: Viagem para a praia" />
+        <TextArea
+          label="Por que essa caixinha importa para você?"
+          rows={2}
+          maxLength={200}
+          value={motivation}
+          onChange={(e) => setMotivation(e.target.value)}
+          placeholder={template.why}
+          hint="Uma frase para você lembrar do porquê quando der vontade de desistir. Aparece na caixinha e na hora de retirar."
+        />
 
         <div>
           <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">Ícone e cor</p>

@@ -167,6 +167,8 @@ export type Goal = {
   icon: string
   color: string
   photo_path: string | null
+  /** O porquê da pessoa (mensagem motivacional) */
+  motivation: string | null
   mode: GoalMode
   target_cents: number | null
   target_month: string | null

@@ -9,6 +9,7 @@ import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { BetaBadge, Button, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
 import { useProfile, useUpdateProfile } from '../../data/hooks'
+import { getThemePref, setThemePref, type ThemePref } from '../../lib/theme'
 import { useWrite } from '../../data/finance'
 import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
 import { stableId } from '../../lib/recurring'
@@ -39,7 +40,13 @@ const link = (to: string) => (content: ReactNode, className: string) => (
   </Link>
 )
 
-type SheetName = 'payday' | 'salary' | 'hours' | 'tone' | null
+type SheetName = 'payday' | 'salary' | 'hours' | 'tone' | 'theme' | null
+
+const THEMES: { value: ThemePref; label: string; hint: string }[] = [
+  { value: 'claro', label: 'Claro', hint: 'Fundo claro, sempre' },
+  { value: 'escuro', label: 'Escuro', hint: 'Fundo escuro, sempre' },
+  { value: 'sistema', label: 'Igual ao celular', hint: 'Segue o modo claro ou escuro do aparelho' },
+]
 
 export function YouPage() {
   const profile = useProfile()
@@ -61,6 +68,7 @@ export function YouPage() {
   const { email, mode, configured, signOut } = useAuth()
   const [sheet, setSheet] = useState<SheetName>(null)
   const [confirmExit, setConfirmExit] = useState(false)
+  const [theme, setTheme] = useState<ThemePref>(getThemePref)
 
   if (profile.isPending) return <Spinner />
   if (profile.isError) return <ErrorBox message={friendlyError(profile.error)} onRetry={() => profile.refetch()} />
@@ -98,6 +106,10 @@ export function YouPage() {
           <Row title="Horas de trabalho por semana" trailing={`${p.work_hours_week} h`} chevron onClick={() => setSheet('hours')} />
           <Row title="Gastos fixos" chevron as={link('/voce/fixos')} />
           <Row title="Categorias e limites" chevron as={link('/voce/categorias')} />
+        </List>
+
+        <List header="Aparência">
+          <Row title="Tema" trailing={THEMES.find((t) => t.value === theme)?.label} chevron onClick={() => setSheet('theme')} />
         </List>
 
         <List header="Assistente" footer="O assistente só dá dicas de orçamento e hábitos, nunca de investimento.">
@@ -149,6 +161,22 @@ export function YouPage() {
       <SalarySheet open={sheet === 'salary'} value={p.salary_cents} onClose={() => setSheet(null)} onSave={(salary_cents) => save({ salary_cents }, 'Salário salvo')} />
       <HoursSheet open={sheet === 'hours'} value={p.work_hours_week} onClose={() => setSheet(null)} onSave={(work_hours_week) => save({ work_hours_week }, 'Horas salvas')} />
       <ToneSheet open={sheet === 'tone'} value={p.ai_tone} onClose={() => setSheet(null)} onSave={(ai_tone) => save({ ai_tone }, 'Tom das dicas salvo')} />
+      <Sheet open={sheet === 'theme'} onClose={() => setSheet(null)} title="Tema">
+        <List footer="Vale só para este aparelho.">
+          {THEMES.map((t) => (
+            <Row
+              key={t.value}
+              title={t.label}
+              subtitle={t.hint}
+              onClick={() => {
+                setThemePref(t.value)
+                setTheme(t.value)
+              }}
+              trailing={theme === t.value ? <Check className="size-5 text-primary" strokeWidth={2.5} aria-label="Escolhido" /> : null}
+            />
+          ))}
+        </List>
+      </Sheet>
       <ConfirmSheet
         open={confirmExit}
         title={mode === 'demo' ? 'Sair da demonstração?' : 'Sair da conta?'}
@@ -176,7 +204,7 @@ export function PaydaySheet({ open, value, onClose, onSave }: { open: boolean; v
             type="button"
             onClick={() => onSave(d)}
             aria-pressed={value === d}
-            className={`num aspect-square rounded-full text-[1.0625rem] font-medium transition active:scale-95 ${value === d ? 'bg-primary text-white' : 'bg-surface text-ink'}`}
+            className={`num aspect-square rounded-full text-[1.0625rem] font-medium transition active:scale-95 ${value === d ? 'bg-primary text-on-primary' : 'bg-surface text-ink'}`}
           >
             {d}
           </button>

@@ -71,7 +71,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
         <div className="flex flex-col items-center gap-3">
           <button type="button" onClick={() => fileInput.current?.click()} className="relative rounded-full transition active:scale-[0.98]" aria-label="Alterar foto">
             <ProfileAvatar profile={profile} size="xl" />
-            {setAvatar.isPending && <span className="absolute inset-0 grid place-items-center rounded-full bg-white/70 text-[0.8125rem] font-medium">Enviando…</span>}
+            {setAvatar.isPending && <span className="absolute inset-0 grid place-items-center rounded-full bg-surface/70 text-[0.8125rem] font-medium">Enviando…</span>}
           </button>
           <div className="flex gap-2">
             <Button variant="soft" size="sm" onClick={() => fileInput.current?.click()} disabled={setAvatar.isPending}>

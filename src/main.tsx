@@ -8,10 +8,14 @@ import { BackendContext } from './data/backend'
 import { localBackend } from './data/localBackend'
 import { supabaseBackend } from './data/supabaseBackend'
 import { captureAuthLink } from './lib/authLink'
+import { applyTheme } from './lib/theme'
 import { ToastProvider } from './components/Toast'
 import { CelebrationProvider } from './components/Celebration'
 import { App } from './App'
 import './index.css'
+
+// Tema escolhido (claro, escuro ou igual ao celular) antes de desenhar a tela, para não piscar
+applyTheme()
 
 // Link do e-mail (confirmar cadastro, nova senha…): lê e limpa a barra de endereço antes de tudo.
 captureAuthLink()

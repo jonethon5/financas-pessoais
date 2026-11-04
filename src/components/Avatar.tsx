@@ -26,7 +26,7 @@ export function ProfileAvatar({ profile, size = 'md', preview }: { profile: Pick
   if (src) return <img src={src} alt="" className={`shrink-0 rounded-full bg-surface-2 object-cover ${SIZES[size]}`} />
   const text = initials(profile?.name ?? '')
   return (
-    <span aria-hidden className={`inline-grid shrink-0 place-items-center rounded-full bg-[#e6ebef] font-semibold text-primary-strong ${SIZES[size]}`}>
+    <span aria-hidden className={`inline-grid shrink-0 place-items-center rounded-full bg-surface-2 font-semibold text-primary-strong ${SIZES[size]}`}>
       {text || <svg viewBox="0 0 24 24" className="size-1/2 fill-current opacity-70"><circle cx="12" cy="8" r="4.2" /><path d="M4 20.5c.8-4 4-6.5 8-6.5s7.2 2.5 8 6.5" /></svg>}
     </span>
   )

@@ -40,7 +40,7 @@ function TabItem({ to, label, icon: Icon }: Tab) {
       end={to === '/'}
       className={({ isActive }) =>
         `flex h-[3.25rem] flex-col items-center justify-center gap-[3px] text-[0.625rem] font-medium tracking-wide transition active:opacity-60 ${
-          isActive ? 'text-primary' : 'text-[#8f98a3]'
+          isActive ? 'text-primary' : 'text-faint'
         }`
       }
     >
@@ -90,7 +90,7 @@ export function Layout() {
         </p>
       )}
       {!online && (
-        <div role="status" className="pt-safe flex items-center justify-center gap-2 bg-ink px-4 py-1.5 text-[0.8125rem] font-medium text-white">
+        <div role="status" className="pt-safe flex items-center justify-center gap-2 bg-ink px-4 py-1.5 text-[0.8125rem] font-medium text-on-ink">
           <WifiOff className="size-4" aria-hidden /> Sem internet · mostrando os últimos dados
         </div>
       )}
@@ -104,7 +104,7 @@ export function Layout() {
       {!fullScreen && (
         <nav
           aria-label="Principal"
-          className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 border-t border-black/[0.06] bg-white/85 backdrop-blur-xl backdrop-saturate-150"
+          className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 border-t border-line bg-surface/85 backdrop-blur-xl backdrop-saturate-150"
         >
           <ul className="grid grid-cols-5 items-center px-1">
             <li>
@@ -118,7 +118,7 @@ export function Layout() {
                 type="button"
                 onClick={() => setAddOpen(true)}
                 aria-label="Lançar"
-                className="-mt-6 grid size-[3.5rem] place-items-center rounded-full bg-primary text-white shadow-[0_8px_20px_-6px_rgb(11_127_90/0.6)] transition active:scale-95"
+                className="-mt-6 grid size-[3.5rem] place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(11_127_90/0.6)] transition active:scale-95"
               >
                 <Plus className="size-7" strokeWidth={2.4} aria-hidden />
               </button>

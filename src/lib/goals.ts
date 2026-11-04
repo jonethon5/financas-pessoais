@@ -2,16 +2,16 @@
 import type { Goal, GoalMode, GoalMove } from '../types'
 import { addMonths, compareYearMonth, monthKey, monthOf, monthsBetween, parseMonthKey, type YearMonth } from './dates'
 
-export type GoalTemplate = { key: string; name: string; icon: string; color: string; mode: GoalMode; hint: string }
+export type GoalTemplate = { key: string; name: string; icon: string; color: string; mode: GoalMode; hint: string; why: string }
 
 export const GOAL_TEMPLATES: GoalTemplate[] = [
-  { key: 'reserva', name: 'Reserva de emergência', icon: 'lifebuoy', color: '#0B7F5A', mode: 'mensal', hint: 'O ideal é juntar de 3 a 6 meses dos seus gastos.' },
-  { key: 'viagem', name: 'Viagem', icon: 'airplane', color: '#2F6F8F', mode: 'data', hint: 'Escolha o mês da viagem e veja quanto guardar por mês.' },
-  { key: 'compra', name: 'Comprar algo', icon: 'bag', color: '#6E56F0', mode: 'data', hint: 'Juntar antes de comprar sai mais barato que parcelar com juros.' },
-  { key: 'presente', name: 'Presente', icon: 'gift', color: '#D6457A', mode: 'data', hint: 'Aniversário, Natal, Dia das Mães: sem aperto na data.' },
-  { key: 'estudos', name: 'Estudos', icon: 'graduation', color: '#0F2433', mode: 'mensal', hint: 'Curso, faculdade, livros, certificação.' },
-  { key: 'carro', name: 'Carro', icon: 'car', color: '#C2410C', mode: 'mensal', hint: 'Entrada, manutenção, IPVA ou a habilitação.' },
-  { key: 'livre', name: 'Criar do zero', icon: 'piggy', color: '#0F9D6B', mode: 'livre', hint: 'Do seu jeito: com ou sem valor final.' },
+  { key: 'reserva', name: 'Reserva de emergência', icon: 'lifebuoy', color: '#0B7F5A', mode: 'mensal', hint: 'O ideal é juntar de 3 a 6 meses dos seus gastos.', why: 'Dormir tranquilo sabendo que um imprevisto não vira dívida.' },
+  { key: 'viagem', name: 'Viagem', icon: 'airplane', color: '#2F6F8F', mode: 'data', hint: 'Escolha o mês da viagem e veja quanto guardar por mês.', why: 'Ver o mar com quem eu amo, sem voltar endividado.' },
+  { key: 'compra', name: 'Comprar algo', icon: 'bag', color: '#6E56F0', mode: 'data', hint: 'Juntar antes de comprar sai mais barato que parcelar com juros.', why: 'Comprar à vista, com desconto e sem parcela me perseguindo.' },
+  { key: 'presente', name: 'Presente', icon: 'gift', color: '#D6457A', mode: 'data', hint: 'Aniversário, Natal, Dia das Mães: sem aperto na data.', why: 'Ver a cara de alegria de quem eu gosto.' },
+  { key: 'estudos', name: 'Estudos', icon: 'graduation', color: '#0F2433', mode: 'mensal', hint: 'Curso, faculdade, livros, certificação.', why: 'Investir em mim para ganhar mais e trabalhar com o que gosto.' },
+  { key: 'carro', name: 'Carro', icon: 'car', color: '#C2410C', mode: 'mensal', hint: 'Entrada, manutenção, IPVA ou a habilitação.', why: 'Ter liberdade para ir e vir e mais tempo com a família.' },
+  { key: 'livre', name: 'Criar do zero', icon: 'piggy', color: '#0F9D6B', mode: 'livre', hint: 'Do seu jeito: com ou sem valor final.', why: 'O que esse dinheiro vai mudar na sua vida?' },
 ]
 
 export const MILESTONES = [0.25, 0.5, 0.75, 1]

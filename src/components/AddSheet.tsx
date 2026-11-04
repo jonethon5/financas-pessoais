@@ -64,7 +64,7 @@ export function AddSheet({ open, onClose }: { open: boolean; onClose: () => void
             <Icon size={28} weight="duotone" className={primary ? '' : 'text-primary'} aria-hidden />
             <span>
               <span className="block text-[1rem] leading-tight font-semibold">{label}</span>
-              <span className={`block text-[0.8125rem] ${primary ? 'text-white/75' : 'text-muted'}`}>{hint}</span>
+              <span className={`block text-[0.8125rem] ${primary ? 'opacity-75' : 'text-muted'}`}>{hint}</span>
             </span>
           </button>
         ))}

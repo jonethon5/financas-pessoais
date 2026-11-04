@@ -120,7 +120,7 @@ export function Chip({ selected, onClick, children, className = '' }: { selected
       onClick={onClick}
       aria-pressed={selected}
       className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[0.9375rem] font-medium whitespace-nowrap transition select-none ${
-        selected ? 'bg-ink text-white' : 'bg-surface text-ink shadow-soft active:bg-surface-2'
+        selected ? 'bg-ink text-on-ink' : 'bg-surface text-ink shadow-soft active:bg-surface-2'
       } ${className}`}
     >
       {children}
@@ -131,7 +131,7 @@ export function Chip({ selected, onClick, children, className = '' }: { selected
 /** Controle segmentado do iPhone (ex.: Sugestão | Problema | Elogio). */
 export function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-[0.7rem] bg-[#e4e7eb] p-[3px]">
+    <div role="radiogroup" aria-label={label} className="flex rounded-[0.7rem] bg-seg p-[3px]">
       {options.map((o) => (
         <button
           key={o.value}
@@ -140,7 +140,7 @@ export function Segmented<T extends string>({ value, onChange, options, label }:
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={`min-h-9 flex-1 rounded-[0.55rem] px-2 text-[0.875rem] font-semibold transition ${
-            value === o.value ? 'bg-surface text-ink shadow-[0_1px_3px_rgb(0_0_0/0.12)]' : 'text-ink/70 active:opacity-60'
+            value === o.value ? 'bg-seg-on text-ink shadow-[0_1px_3px_rgb(0_0_0/0.12)]' : 'text-ink/70 active:opacity-60'
           }`}
         >
           {o.label}
@@ -160,7 +160,7 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-[1.9rem] w-[3.1rem] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50 ${checked ? 'bg-grow' : 'bg-[#e3e5e9]'}`}
+      className={`relative h-[1.9rem] w-[3.1rem] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50 ${checked ? 'bg-grow' : 'bg-switch-off'}`}
     >
       <span
         className={`absolute top-[0.125rem] left-[0.125rem] size-[1.65rem] rounded-full bg-white shadow-[0_2px_6px_rgb(0_0_0/0.18)] transition-transform duration-200 ${checked ? 'translate-x-[1.2rem]' : ''}`}
@@ -376,7 +376,7 @@ export function NavBar({
     <>
       <div
         className={`pt-safe sticky top-0 z-30 -mx-4 transition-colors duration-200 ${
-          compact ? 'border-b border-black/[0.06] bg-bg/80 backdrop-blur-xl backdrop-saturate-150' : 'border-b border-transparent bg-bg'
+          compact ? 'border-b border-line bg-bg/80 backdrop-blur-xl backdrop-saturate-150' : 'border-b border-transparent bg-bg'
         }`}
       >
         <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center px-4">
@@ -442,5 +442,5 @@ export function Badge({ tone, children }: { tone: 'ok' | 'warn' | 'danger' | 'ne
 
 /** Selo "Beta" ao lado do nome do app. */
 export function BetaBadge() {
-  return <span className="rounded-md bg-ink px-1.5 py-[1px] align-middle text-[0.6875rem] font-bold tracking-wider text-white uppercase">Beta</span>
+  return <span className="rounded-md bg-ink px-1.5 py-[1px] align-middle text-[0.6875rem] font-bold tracking-wider text-on-ink uppercase">Beta</span>
 }
