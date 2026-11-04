@@ -1,0 +1,187 @@
+@import 'tailwindcss';
+
+/*
+  Visual de app nativo: fonte do sistema (SF Pro no iPhone), fundo cinza bem claro, cartões brancos,
+  ícones de linha numa cor só e o verde-esmeralda como destaque.
+  Paleta "Esmeralda + coral" (contraste conferido pela WCAG 2.1):
+    - verde: botões, abas e progresso (dinheiro, crescimento, "está indo bem")
+    - azul-marinho: texto (confiança)
+    - coral: conquistas e a chamada para guardar
+    - violeta: assistente (IA) e premium
+    - âmbar: perto do limite · vermelho: só quando estourou ou venceu
+  Cor nunca aparece sozinha: alertas sempre têm texto ou ícone junto.
+*/
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-grow: var(--grow);
+  --color-coral: var(--coral);
+  --color-coral-strong: var(--coral-strong);
+  --color-coral-soft: var(--coral-soft);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --color-warn: var(--warn);
+  --color-warn-strong: var(--warn-strong);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-soft: var(--danger-soft);
+}
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --ink: #0f2433; /* 15,9:1 no branco */
+  --muted: #5b6b7a; /* 5,5:1 no branco */
+  --faint: #8a94a0; /* só para dicas e desativados */
+  --line: #e6e9ed;
+  --primary: #0b7f5a; /* 5,0:1 com texto branco */
+  --primary-strong: #096a4b;
+  --primary-soft: #e7f5ef;
+  --on-primary: #ffffff;
+  --grow: #0f9d6b; /* barras de progresso (3,5:1) */
+  --coral: #ff6b4a;
+  --coral-strong: #c2410c; /* texto coral (5,2:1) */
+  --coral-soft: #ffede8;
+  --ai: #6e56f0; /* 4,9:1 */
+  --ai-soft: #f0edff;
+  --warn: #f2a516;
+  --warn-strong: #8a5a06;
+  --warn-soft: #fdf4e3;
+  --danger: #e5484d;
+  --danger-strong: #c81e25;
+  --danger-soft: #fdecec;
+  color-scheme: light;
+}
+
+html {
+  /* 17px = tamanho do texto padrão do iPhone */
+  font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-bg font-sans text-ink antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Números de dinheiro: algarismos da mesma largura e um pouco mais justos (como no app Carteira) */
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-primary;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Sombra quase invisível: os cartões se destacam pelo branco sobre o cinza */
+.shadow-soft {
+  box-shadow:
+    0 1px 2px rgb(15 36 51 / 0.03),
+    0 4px 16px -6px rgb(15 36 51 / 0.07);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Folha subindo de baixo */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+dialog.sheet[open] {
+  animation: sheet-up 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+dialog.sheet::backdrop {
+  animation: fade-in 300ms ease-out;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Troca de tela: entra deslizando de leve, como no iPhone */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+.animate-page {
+  animation: page-in 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.animate-toast {
+  animation: toast-in 180ms ease-out;
+}
+
+/* Barra de progresso enchendo */
+.bar-fill {
+  transition: width 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Toques: sem seleção de texto nem menu de toque longo em botões */
+button,
+a {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

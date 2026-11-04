@@ -1,0 +1,16 @@
+node_modules
+dist
+dev-dist
+*.local
+.env
+.env.*
+!.env.example
+coverage
+.DS_Store
+supabase/.temp
+supabase/.branches
+supabase/functions/.env*
+.dev
+*.xlsx
+*.xls
+*.csv

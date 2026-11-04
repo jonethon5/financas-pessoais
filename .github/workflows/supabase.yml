@@ -1,0 +1,95 @@
+name: Supabase (banco, funções e login)
+
+# Aplica as migrations, publica as Edge Functions e configura o login (endereço do site, e-mails em
+# português e SMTP). Sem os secrets do Supabase, não faz nada (o site fica em modo demonstração).
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**', 'brand.json', 'scripts/auth-config.mjs', '.github/workflows/supabase.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+      ref: ${{ steps.check.outputs.ref }}
+    steps:
+      - id: check
+        env:
+          URL: ${{ secrets.VITE_SUPABASE_URL }}
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SETUP_CODE: ${{ secrets.SETUP_CODE }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TOKEN" ] || [ -z "$DB_PASSWORD" ] || [ -z "$SETUP_CODE" ]; then
+            echo "::notice::Supabase ainda não configurado (faltam secrets, veja o README). Nada a fazer."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=$(echo "$URL" | sed -E 's#https?://([^.]+)\..*#\1#')" >> "$GITHUB_OUTPUT"
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ needs.check.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.0.0
+
+      - name: Ligar ao projeto
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      - name: Aplicar o banco (migrations)
+        run: supabase db push --remote --password "$SUPABASE_DB_PASSWORD" --yes
+
+      - name: Publicar Edge Functions
+        run: supabase functions deploy --yes
+
+      - name: Secrets das funções
+        env:
+          SETUP_CODE: ${{ secrets.SETUP_CODE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          supabase secrets set SETUP_CODE="$SETUP_CODE" --yes
+          if [ -n "$GEMINI_API_KEY" ]; then
+            supabase secrets set GEMINI_API_KEY="$GEMINI_API_KEY" --yes
+          else
+            echo "::notice::Sem GEMINI_API_KEY: o assistente fica desligado."
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Configurar login e e-mails
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_SENDER: ${{ secrets.SMTP_SENDER }}
+        run: |
+          node scripts/auth-config.mjs > auth.json
+          curl --fail-with-body --silent --show-error -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data @auth.json > /dev/null
+          rm auth.json
+          echo "Login configurado para $SITE_URL"
