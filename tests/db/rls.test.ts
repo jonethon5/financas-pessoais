@@ -165,6 +165,25 @@ describe('orçamento (fase 1)', () => {
   })
 })
 
+describe('caixinhas (fase 2)', () => {
+  it('cada um só vê as próprias caixinhas e não mexe nas dos outros', async () => {
+    const { data: g, error } = await b.client.from('goals').insert({ name: 'Viagem', mode: 'data', target_cents: 600000, target_month: '2027-07' }).select().single()
+    expect(error).toBeNull()
+    expect((await b.client.from('goal_moves').insert({ goal_id: g!.id, kind: 'deposito', amount_cents: 5000, date: '2026-11-04' })).error).toBeNull()
+    expect((await a.client.from('goals').select('id')).data).toEqual([])
+    expect((await a.client.from('goal_moves').select('id')).data).toEqual([])
+    expect((await a.client.from('goal_moves').insert({ goal_id: g!.id, kind: 'deposito', amount_cents: 100, date: '2026-11-04' })).error).toBeTruthy()
+    expect((await a.client.from('goals').update({ name: 'invadida' }).eq('id', g!.id).select()).data).toEqual([])
+  })
+
+  it('regras: meta por data precisa de valor e mês; retirada é negativa', async () => {
+    expect((await b.client.from('goals').insert({ name: 'x', mode: 'data', target_cents: 1000 })).error).toBeTruthy()
+    const { data: g } = await b.client.from('goals').insert({ name: 'Livre', mode: 'livre' }).select().single()
+    expect((await b.client.from('goal_moves').insert({ goal_id: g!.id, kind: 'retirada', amount_cents: 500, date: '2026-11-04' })).error).toBeTruthy()
+    expect((await b.client.from('goal_moves').insert({ goal_id: g!.id, kind: 'retirada', amount_cents: -500, date: '2026-11-04' })).error).toBeNull()
+  })
+})
+
 describe('excluir conta', () => {
   it('apaga perfil, sugestões e fotos da pessoa, sem tocar nos outros', async () => {
     const { error } = await a.client.functions.invoke('delete-account', { body: { confirm: 'EXCLUIR' } })

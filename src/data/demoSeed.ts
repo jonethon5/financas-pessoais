@@ -4,7 +4,7 @@ import { defaultCategories } from '../lib/categories'
 import { addMonths, currentYearMonth, dayOf, isoDate, monthKey, todayISO, type YearMonth } from '../lib/dates'
 import { buildInstallments } from '../lib/installments'
 import { expectedMonthRows } from '../lib/recurring'
-import type { Category, Recurring, Tables, Transaction } from '../types'
+import type { Category, Goal, GoalMove, Recurring, Tables, Transaction } from '../types'
 
 const SALARY = 320000
 const PAYDAY = 5
@@ -88,5 +88,31 @@ export async function buildDemoData(): Promise<{ [K in keyof Tables]: Tables[K][
   transactions.push(tx({ type: 'extra', amount_cents: 40000, date: isoDate(addMonths(ym, -1), 18), description: 'Freela', category_id: byName('Renda extra') }))
 
   const month_plans = [-2, -1, 0].map((b) => ({ id: id(), user_id: 'demo', month: monthKey(addMonths(ym, b)), save_cents: 40000, split_done_at: b < 0 ? now : null, created_at: now }))
-  return { categories, recurrings, transactions, budget_moves: [], month_plans }
+  return { categories, recurrings, transactions, budget_moves: [], month_plans, ...buildDemoGoals() }
+}
+
+/** Caixinhas de exemplo (inspiradas nas linhas "Reserva" da planilha). */
+export function buildDemoGoals(): { goals: Goal[]; goal_moves: GoalMove[] } {
+  const now = new Date().toISOString()
+  const ym = currentYearMonth()
+  const goals: Goal[] = []
+  const goal_moves: GoalMove[] = []
+  const add = (p: Omit<Goal, 'id' | 'user_id' | 'photo_path' | 'archived' | 'completed_at' | 'created_at'>, moves: [number, number, GoalMove['kind']?][]) => {
+    const id = crypto.randomUUID()
+    goals.push({ ...p, id, user_id: 'demo', photo_path: null, archived: false, completed_at: null, created_at: now })
+    for (const [back, cents, kind] of moves) {
+      goal_moves.push({ id: crypto.randomUUID(), user_id: 'demo', goal_id: id, kind: kind ?? 'deposito', amount_cents: cents, date: isoDate(addMonths(ym, -back), 6), note: null, created_at: now })
+    }
+  }
+  add({ name: 'Reserva de emergência', template: 'reserva', icon: 'lifebuoy', color: '#0B7F5A', mode: 'mensal', target_cents: 900000, target_month: null, monthly_cents: 30000, priority: 1 }, [
+    [5, 270000, 'inicial'], [3, 30000], [2, 30000], [1, 30000],
+  ])
+  add({ name: 'Viagem para a praia', template: 'viagem', icon: 'airplane', color: '#2F6F8F', mode: 'data', target_cents: 600000, target_month: monthKey(addMonths(ym, 8)), monthly_cents: null, priority: 2 }, [
+    [3, 120000, 'inicial'], [2, 40000], [1, 40000],
+  ])
+  add({ name: 'Monitor novo', template: 'compra', icon: 'monitor', color: '#6E56F0', mode: 'data', target_cents: 90000, target_month: monthKey(addMonths(ym, 1)), monthly_cents: null, priority: 3 }, [
+    [4, 49700, 'inicial'], [2, 18000], [1, 13300],
+  ])
+  add({ name: 'Forro do quarto', template: 'livre', icon: 'house', color: '#C2410C', mode: 'livre', target_cents: 120000, target_month: null, monthly_cents: 10000, priority: 4 }, [[2, 25000], [1, 10000]])
+  return { goals, goal_moves }
 }

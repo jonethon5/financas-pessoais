@@ -42,6 +42,9 @@ export interface Backend {
   updateProfile(patch: ProfilePatch): Promise<Profile>
   /** Troca a foto do perfil (já recortada e reduzida). null remove a foto. */
   setAvatar(image: Blob | null): Promise<Profile>
+  /** Envia uma imagem para a pasta da pessoa (ex.: 'caixinhas/abc.jpg') e devolve o caminho guardado. */
+  uploadImage(bucket: Bucket, name: string, image: Blob): Promise<string>
+  removeFile(bucket: Bucket, path: string): Promise<void>
   /** Endereço temporário para mostrar um arquivo privado. */
   fileUrl(bucket: Bucket, path: string): Promise<string>
 

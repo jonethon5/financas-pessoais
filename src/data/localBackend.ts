@@ -3,7 +3,7 @@
 import { blobToDataUrl } from '../lib/image'
 import type { Feedback, Profile, TableName, Tables } from '../types'
 import type { Backend, ListQuery } from './backend'
-import { buildDemoData } from './demoSeed'
+import { buildDemoData, buildDemoGoals } from './demoSeed'
 
 const PREFIX = 'poupei:demo:'
 
@@ -63,10 +63,20 @@ let seeding: Promise<void> | null = null
 
 /** Na primeira vez, cria os dados de exemplo (um mês realista e o histórico). */
 async function ensureSeed() {
-  if (read('seeded', () => false)) return
+  if (read('seeded', () => false)) {
+    // Demonstração criada antes das caixinhas: completa com as de exemplo
+    if (!read('goalsSeeded', () => false)) {
+      const { goals, goal_moves } = buildDemoGoals()
+      write('t:goals', goals)
+      write('t:goal_moves', goal_moves)
+      write('goalsSeeded', true)
+    }
+    return
+  }
   seeding ??= buildDemoData().then((data) => {
     for (const [table, rows] of Object.entries(data)) write(`t:${table}`, rows)
     write('seeded', true)
+    write('goalsSeeded', true)
   })
   await seeding
   seeding = null
@@ -159,6 +169,20 @@ export const localBackend: Backend = {
     }
     write('files', files)
     return this.updateProfile({ avatar_path: path })
+  },
+
+  async uploadImage(_bucket, name, image) {
+    const files = read<Record<string, string>>('files', () => ({}))
+    const path = `demo/${name}`
+    files[path] = await blobToDataUrl(image)
+    write('files', files)
+    return path
+  },
+
+  async removeFile(_bucket, path) {
+    const files = read<Record<string, string>>('files', () => ({}))
+    delete files[path]
+    write('files', files)
   },
 
   async fileUrl(_bucket, path) {

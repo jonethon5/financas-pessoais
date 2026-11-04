@@ -26,7 +26,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
         {toast && (
-          <div className="animate-toast absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom))] left-1/2 flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full bg-ink/90 py-3 pr-3 pl-5 text-[0.9375rem] font-medium text-white shadow-lg backdrop-blur-xl">
+          <div className="absolute inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] flex justify-center px-4">
+          <div className="animate-toast flex max-w-full items-center gap-2 rounded-full bg-ink/90 py-3 pr-3 pl-5 text-[0.9375rem] font-medium text-white shadow-lg backdrop-blur-xl">
             <CheckCircle2 className="size-5 shrink-0 text-[#4ade9b]" aria-hidden />
             <span className="truncate">{toast.message}</span>
             {toast.action ? (
@@ -44,6 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             ) : (
               <span className="w-2" />
             )}
+          </div>
           </div>
         )}
       </div>

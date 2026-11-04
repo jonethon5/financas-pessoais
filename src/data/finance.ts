@@ -79,6 +79,16 @@ export function useHistory(months = 6) {
   })
 }
 
+export function useGoals() {
+  const backend = useBackend()
+  return useQuery({ queryKey: tkey('goals'), queryFn: () => backend.list('goals', { order: 'priority' }) })
+}
+
+export function useGoalMoves() {
+  const backend = useBackend()
+  return useQuery({ queryKey: tkey('goal_moves'), queryFn: () => backend.list('goal_moves', { order: 'date' }) })
+}
+
 export function useBudgetMoves(ym: YearMonth) {
   const backend = useBackend()
   const month = monthKey(ym)
@@ -101,7 +111,7 @@ export function useWrite() {
   const refresh = (...tables: TableName[]) => Promise.all(tables.map((t) => qc.invalidateQueries({ queryKey: ['t', t] })))
   return useMutation({
     mutationFn: async (fn: (b: Backend) => Promise<unknown>) => fn(backend),
-    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans'),
+    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves'),
   })
 }
 
@@ -116,7 +126,7 @@ export function useRealtime() {
   const qc = useQueryClient()
   useEffect(() => {
     if (mode !== 'supabase' || !userId) return
-    const tables: (keyof Tables)[] = ['categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans']
+    const tables: (keyof Tables)[] = ['categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves']
     let channel = supabase.channel(`dados-${userId}`)
     for (const table of tables) {
       channel = channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` }, () =>

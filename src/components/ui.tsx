@@ -380,9 +380,9 @@ export function NavBar({
         }`}
       >
         <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center px-4">
-          <div className="flex min-w-0 justify-start">{left}</div>
-          <p className={`max-w-[55vw] truncate text-[1.0625rem] font-semibold transition-opacity duration-200 ${compact ? 'opacity-100' : 'opacity-0'}`}>{title}</p>
-          <div className="flex min-w-0 items-center justify-end gap-2">{right}</div>
+          <div className="flex min-w-0 justify-start overflow-hidden">{left}</div>
+          <p className={`max-w-[42vw] truncate px-2 text-[1.0625rem] font-semibold transition-opacity duration-200 ${compact ? 'opacity-100' : 'opacity-0'}`}>{title}</p>
+          <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">{right}</div>
         </div>
       </div>
       {large && (

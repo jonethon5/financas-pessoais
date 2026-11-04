@@ -146,7 +146,44 @@ export type Tables = {
   transactions: Transaction
   budget_moves: BudgetMove
   month_plans: MonthPlan
+  goals: Goal
+  goal_moves: GoalMove
 }
 export type TableName = keyof Tables
 /** O que o app envia ao criar uma linha (id, user_id e created_at têm padrão). */
 export type NewRow<K extends TableName> = Omit<Tables[K], 'user_id' | 'created_at' | 'id'> & { id?: string }
+
+// ---------------------------------------------------------------------------
+// Fase 2: caixinhas
+// ---------------------------------------------------------------------------
+
+export type GoalMode = 'data' | 'mensal' | 'livre'
+
+export type Goal = {
+  id: string
+  user_id: string
+  name: string
+  template: string
+  icon: string
+  color: string
+  photo_path: string | null
+  mode: GoalMode
+  target_cents: number | null
+  target_month: string | null
+  monthly_cents: number | null
+  priority: number
+  archived: boolean
+  completed_at: string | null
+  created_at: string
+}
+
+export type GoalMove = {
+  id: string
+  user_id: string
+  goal_id: string
+  kind: 'deposito' | 'retirada' | 'inicial'
+  amount_cents: number
+  date: string
+  note: string | null
+  created_at: string
+}

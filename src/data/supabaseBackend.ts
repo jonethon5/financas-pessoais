@@ -85,6 +85,17 @@ export const supabaseBackend: Backend = {
     return profile
   },
 
+  async uploadImage(bucket, name, image) {
+    const path = `${await uid()}/${name}`
+    const { error } = await supabase.storage.from(bucket).upload(path, image, { contentType: 'image/jpeg', upsert: true })
+    if (error) throw error
+    return path
+  },
+
+  async removeFile(bucket, path) {
+    await supabase.storage.from(bucket).remove([path])
+  },
+
   async fileUrl(bucket, path) {
     const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60)
     if (error || !data) throw error ?? new Error('Arquivo não encontrado.')

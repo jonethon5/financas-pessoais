@@ -9,6 +9,7 @@ import { localBackend } from './data/localBackend'
 import { supabaseBackend } from './data/supabaseBackend'
 import { captureAuthLink } from './lib/authLink'
 import { ToastProvider } from './components/Toast'
+import { CelebrationProvider } from './components/Celebration'
 import { App } from './App'
 import './index.css'
 
@@ -42,7 +43,9 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <BackendProvider>
             <ToastProvider>
-              <App />
+              <CelebrationProvider>
+                <App />
+              </CelebrationProvider>
             </ToastProvider>
           </BackendProvider>
         </AuthProvider>

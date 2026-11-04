@@ -11,7 +11,7 @@ import { SetupAdminPage } from './pages/auth/SetupAdminPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
 import { HomePage } from './pages/HomePage'
 import { PrivacyPage, TermsPage } from './pages/legal/LegalPages'
-import { GoalsPage } from './pages/Placeholders'
+import { GoalDetailPage, GoalFormPage, GoalsPage } from './pages/goals/GoalsPages'
 import { MonthPage } from './pages/MonthPage'
 import { SplitPage } from './pages/SplitPage'
 import { TxFormPage } from './pages/TxFormPage'
@@ -54,6 +54,9 @@ function LoggedIn() {
         <Route index element={<HomePage />} />
         <Route path="mes" element={<MonthPage />} />
         <Route path="caixinhas" element={<GoalsPage />} />
+        <Route path="caixinhas/nova" element={<GoalFormPage />} />
+        <Route path="caixinhas/:id" element={<GoalDetailPage />} />
+        <Route path="caixinhas/:id/editar" element={<GoalFormPage />} />
         <Route path="lancar" element={<TxFormPage />} />
         <Route path="lancamento/:id" element={<TxFormPage />} />
         <Route path="separar" element={<SplitPage />} />

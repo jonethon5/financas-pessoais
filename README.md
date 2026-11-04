@@ -15,7 +15,8 @@ O nome do app fica num lugar só: [`brand.json`](brand.json). Trocou lá, trocou
       perfil com foto, excluir conta, termos e privacidade, sugestões, painel do beta, deploy
 - [x] 1. Base: salário e fixos automáticos, gastos do dia a dia e parcelados, lançamento em 2 toques, "quanto posso gastar hoje",
       separar o salário, orçamento por categoria (mensal e semanal, cobrir com outra categoria), 50/30/20, caçador de assinaturas
-- [ ] 2. Caixinhas
+- [x] 2. Caixinhas: modelos prontos, meta por data, por valor mensal ou sem valor final, foto ou ícone, depósitos e retiradas
+      com freio, recálculo automático, marcos 25/50/75/100% com comemoração, prioridade e sobra do mês
 - [ ] 3. Psicologia para guardar e primeiro acesso
 - [ ] 4. Gráficos
 - [ ] 5. Gamificação

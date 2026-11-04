@@ -95,7 +95,7 @@ export function HomePage() {
         <List header="Seu mês">
           <Row title="Entrou" trailing={<Money cents={s.income} className="text-[1.0625rem]" />} as={link('/mes')} />
           <Row title="Fixos e parcelas" trailing={<Money cents={s.committed} className="text-[1.0625rem] text-muted" />} as={link('/mes')} />
-          <Row title="Para guardar" trailing={<Money cents={s.save} className="text-[1.0625rem] text-muted" />} as={link('/separar')} />
+          <Row title="Para guardar" trailing={<Money cents={s.save} className="text-[1.0625rem] text-muted" />} as={link('/caixinhas')} />
           <Row title="Dia a dia" trailing={<Money cents={s.daily} className="text-[1.0625rem] text-muted" />} as={link('/mes')} />
           <Row title={<span className="font-semibold">Sobra prevista</span>} trailing={<Money cents={s.free} className={`text-[1.0625rem] font-semibold ${s.free < 0 ? 'text-danger-strong' : ''}`} />} />
         </List>
