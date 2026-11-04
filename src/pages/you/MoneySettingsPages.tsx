@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Check, Plus } from 'lucide-react'
-import { CategoryIcon, iconFor } from '../../components/CategoryIcon'
+import { CategoryIcon, DuoIcon } from '../../components/CategoryIcon'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { BackButton, Button, Chip, ErrorBox, Field, List, NavBar, Row, Segmented, Spinner, Switch } from '../../components/ui'
@@ -110,14 +110,11 @@ function CategoryForm({ category, onDone }: { category: Category | null; onDone:
       <div>
         <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">Ícone</p>
         <div className="grid grid-cols-8 gap-1.5">
-          {CATEGORY_ICONS.map((name) => {
-            const Icon = iconFor(name)
-            return (
-              <button key={name} type="button" aria-label={name} aria-pressed={icon === name} onClick={() => setIcon(name)} className={`grid aspect-square place-items-center rounded-[0.7rem] transition ${icon === name ? 'bg-ink text-white' : 'bg-surface text-ink/80'}`}>
-                <Icon className="size-5" strokeWidth={1.8} />
-              </button>
-            )
-          })}
+          {CATEGORY_ICONS.map((name) => (
+            <button key={name} type="button" aria-label={name} aria-pressed={icon === name} onClick={() => setIcon(name)} className={`grid aspect-square place-items-center rounded-[0.7rem] border-2 bg-surface transition ${icon === name ? 'border-ink' : 'border-transparent'}`}>
+              <DuoIcon name={name} color={color} size={22} />
+            </button>
+          ))}
         </div>
       </div>
       <div>

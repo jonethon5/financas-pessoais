@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { CalendarClock, Layers, ShoppingBag, TrendingUp, type LucideIcon } from 'lucide-react'
+import { CalendarCheck, Receipt, Stack, TrendUp, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useBackend } from '../data/backend'
 import { useCategories, useHistory, useWrite } from '../data/finance'
 import { quickPicks } from '../lib/budget'
@@ -11,11 +11,11 @@ import { Sheet } from './Sheet'
 import { useToast } from './Toast'
 import { List, Row } from './ui'
 
-const OPTIONS: { tipo: string; label: string; hint: string; icon: LucideIcon; primary?: boolean }[] = [
-  { tipo: 'dia', label: 'Gasto', hint: 'do dia a dia', icon: ShoppingBag, primary: true },
-  { tipo: 'renda', label: 'Renda', hint: 'extra, freela, 13º', icon: TrendingUp },
-  { tipo: 'fixo', label: 'Gasto fixo', hint: 'repete todo mês', icon: CalendarClock },
-  { tipo: 'parcelado', label: 'Parcelado', hint: 'em vezes', icon: Layers },
+const OPTIONS: { tipo: string; label: string; hint: string; icon: PhosphorIcon; primary?: boolean }[] = [
+  { tipo: 'dia', label: 'Gasto', hint: 'do dia a dia', icon: Receipt, primary: true },
+  { tipo: 'renda', label: 'Renda', hint: 'extra, freela, 13º', icon: TrendUp },
+  { tipo: 'fixo', label: 'Gasto fixo', hint: 'repete todo mês', icon: CalendarCheck },
+  { tipo: 'parcelado', label: 'Parcelado', hint: 'em vezes', icon: Stack },
 ]
 
 /**
@@ -59,9 +59,9 @@ export function AddSheet({ open, onClose }: { open: boolean; onClose: () => void
             key={tipo}
             type="button"
             onClick={() => go(`/lancar?tipo=${tipo}`)}
-            className={`shadow-soft flex flex-col items-start gap-4 rounded-[1.25rem] p-3.5 text-left transition active:scale-[0.98] ${primary ? 'bg-primary text-on-primary' : 'bg-surface'}`}
+            className={`press shadow-soft flex flex-col items-start gap-4 rounded-[1.25rem] p-3.5 text-left transition active:scale-[0.98] ${primary ? 'bg-primary text-on-primary' : 'bg-surface'}`}
           >
-            <Icon className={`size-6 ${primary ? '' : 'text-ink/80'}`} strokeWidth={1.8} aria-hidden />
+            <Icon size={28} weight="duotone" className={primary ? '' : 'text-primary'} aria-hidden />
             <span>
               <span className="block text-[1rem] leading-tight font-semibold">{label}</span>
               <span className={`block text-[0.8125rem] ${primary ? 'text-white/75' : 'text-muted'}`}>{hint}</span>

@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { iconFor } from '../components/CategoryIcon'
+import { DuoIcon } from '../components/CategoryIcon'
 import { haptic } from '../lib/motion'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmSheet } from '../components/ConfirmSheet'
@@ -251,7 +251,6 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           </div>
           <div className="grid grid-cols-3 gap-2">
             {cats.map((c) => {
-              const Icon = iconFor(c.icon)
               const on = categoryId === c.id
               return (
                 <button
@@ -264,7 +263,9 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
                   }}
                   className={`press flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-[1rem] border-2 bg-surface px-1.5 py-2.5 text-center transition-colors ${on ? 'border-ink' : 'border-transparent shadow-soft'}`}
                 >
-                  <Icon className="size-7" strokeWidth={1.7} style={{ color: c.color }} aria-hidden />
+                  <span className="grid size-11 place-items-center rounded-[0.8rem]" style={{ background: `linear-gradient(145deg, ${c.color}24, ${c.color}0F)` }}>
+                    <DuoIcon name={c.icon} color={c.color} size={26} />
+                  </span>
                   <span className="line-clamp-2 text-[0.8125rem] leading-tight font-semibold">{c.name}</span>
                 </button>
               )

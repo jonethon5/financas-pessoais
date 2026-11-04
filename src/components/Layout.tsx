@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
-import { CalendarDays, CircleUserRound, House, PiggyBank, Plus, WifiOff, type LucideIcon } from 'lucide-react'
+import { Plus, WifiOff } from 'lucide-react'
+import { CalendarDots, House, PiggyBank, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useAuth } from '../auth/AuthProvider'
 import { useRealtime } from '../data/finance'
 import { AddSheet } from './AddSheet'
 
-type Tab = { to: string; label: string; icon: LucideIcon }
+type Tab = { to: string; label: string; icon: PhosphorIcon }
 
 const TABS: Tab[] = [
   { to: '/', label: 'Início', icon: House },
-  { to: '/mes', label: 'Mês', icon: CalendarDays },
+  { to: '/mes', label: 'Mês', icon: CalendarDots },
   { to: '/caixinhas', label: 'Caixinhas', icon: PiggyBank },
-  { to: '/voce', label: 'Você', icon: CircleUserRound },
+  { to: '/voce', label: 'Você', icon: UserCircle },
 ]
 
 /** Telas de formulário ocupam a tela toda, sem a barra de abas (como as telas de "Novo" do iPhone). */
@@ -45,7 +46,7 @@ function TabItem({ to, label, icon: Icon }: Tab) {
     >
       {({ isActive }) => (
         <>
-          <Icon className="size-[1.5rem]" strokeWidth={isActive ? 2.1 : 1.8} aria-hidden />
+          <Icon size={26} weight={isActive ? 'fill' : 'regular'} aria-hidden />
           {label}
         </>
       )}
