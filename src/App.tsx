@@ -11,7 +11,11 @@ import { SetupAdminPage } from './pages/auth/SetupAdminPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
 import { HomePage } from './pages/HomePage'
 import { PrivacyPage, TermsPage } from './pages/legal/LegalPages'
-import { GoalsPage, MonthPage } from './pages/Placeholders'
+import { GoalsPage } from './pages/Placeholders'
+import { MonthPage } from './pages/MonthPage'
+import { SplitPage } from './pages/SplitPage'
+import { TxFormPage } from './pages/TxFormPage'
+import { CategoriesPage, FixedPage } from './pages/you/MoneySettingsPages'
 import { DeleteAccountPage, EmailPage, PasswordPage } from './pages/you/AccountPages'
 import { AdminPage } from './pages/you/AdminPage'
 import { FeedbackPage } from './pages/you/FeedbackPage'
@@ -50,6 +54,11 @@ function LoggedIn() {
         <Route index element={<HomePage />} />
         <Route path="mes" element={<MonthPage />} />
         <Route path="caixinhas" element={<GoalsPage />} />
+        <Route path="lancar" element={<TxFormPage />} />
+        <Route path="lancamento/:id" element={<TxFormPage />} />
+        <Route path="separar" element={<SplitPage />} />
+        <Route path="voce/categorias" element={<CategoriesPage />} />
+        <Route path="voce/fixos" element={<FixedPage />} />
         <Route path="voce" element={<YouPage />} />
         <Route path="voce/perfil" element={<ProfileEditPage />} />
         <Route path="voce/senha" element={<PasswordPage />} />

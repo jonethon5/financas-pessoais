@@ -132,6 +132,39 @@ describe('administrador', () => {
   })
 })
 
+describe('orçamento (fase 1)', () => {
+  it('lançamentos, categorias, fixos e plano: cada um só vê os seus', async () => {
+    const { data: cat } = await b.client.from('categories').insert({ name: 'Mercado do Bruno' }).select().single()
+    const { error: e1 } = await b.client.from('transactions').insert({ kind: 'expense', type: 'dia', amount_cents: 5000, date: '2026-11-04', description: 'Mercado', category_id: cat!.id })
+    expect(e1).toBeNull()
+    expect((await b.client.from('recurrings').insert({ description: 'Aluguel', amount_cents: 90000, day: 10, start_month: '2026-11', category_id: cat!.id })).error).toBeNull()
+    await b.client.from('month_plans').upsert({ month: '2026-11', save_cents: 30000 }, { onConflict: 'user_id,month' })
+
+    expect((await b.client.from('recurrings').select('id')).data).toHaveLength(1)
+    for (const table of ['categories', 'transactions', 'recurrings', 'month_plans', 'budget_moves']) {
+      expect((await a.client.from(table).select('id')).data, table).toEqual([])
+      expect((await anon.from(table).select('id')).data ?? [], table).toEqual([])
+    }
+    expect((await b.client.from('transactions').select('description')).data).toEqual([{ description: 'Mercado' }])
+  })
+
+  it('não usa a categoria de outra pessoa nem grava em nome dela', async () => {
+    const { data: catB } = await b.client.from('categories').select('id').limit(1).single()
+    const usarCategoria = await a.client.from('transactions').insert({ kind: 'expense', type: 'dia', amount_cents: 100, date: '2026-11-04', description: 'x', category_id: catB!.id })
+    expect(usarCategoria.error).toBeTruthy()
+    const emNomeDoOutro = await a.client.from('transactions').insert({ kind: 'expense', type: 'dia', amount_cents: 100, date: '2026-11-04', description: 'x', user_id: b.id })
+    expect(emNomeDoOutro.error).toBeTruthy()
+    const apagar = await a.client.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000').select()
+    expect(apagar.data ?? []).toEqual([])
+    expect((await admin.from('transactions').select('id').eq('user_id', b.id)).data).toHaveLength(1)
+  })
+
+  it('valores em centavos inteiros e tipos coerentes', async () => {
+    expect((await b.client.from('transactions').insert({ kind: 'expense', type: 'dia', amount_cents: 0, date: '2026-11-04', description: 'zero' })).error).toBeTruthy()
+    expect((await b.client.from('transactions').insert({ kind: 'income', type: 'dia', amount_cents: 100, date: '2026-11-04', description: 'renda com tipo de gasto' })).error).toBeTruthy()
+  })
+})
+
 describe('excluir conta', () => {
   it('apaga perfil, sugestões e fotos da pessoa, sem tocar nos outros', async () => {
     const { error } = await a.client.functions.invoke('delete-account', { body: { confirm: 'EXCLUIR' } })

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { AdminFeedback, AdminStats, BetaCode, Bucket, Feedback, FeedbackKind, FeedbackStatus, Profile, ProfilePatch } from '../types'
+import type { AdminFeedback, AdminStats, BetaCode, Bucket, Feedback, FeedbackKind, FeedbackStatus, NewRow, Profile, ProfilePatch, TableName, Tables } from '../types'
 
 export type FeedbackInput = {
   kind: FeedbackKind
@@ -11,6 +11,16 @@ export type FeedbackInput = {
 
 export type NewBetaCode = { code: string; note: string | null; max_uses: number }
 
+/** Filtros simples, iguais no Supabase e na demonstração. */
+export type ListQuery = {
+  eq?: Record<string, string | number | boolean>
+  /** coluna >= valor */
+  gte?: [string, string]
+  /** coluna <= valor */
+  lte?: [string, string]
+  order?: string
+}
+
 /**
  * Tudo que o app lê e grava passa por aqui. Duas implementações:
  *  - supabaseBackend: conta de verdade (dados no Supabase, protegidos por RLS)
@@ -18,6 +28,15 @@ export type NewBetaCode = { code: string; note: string | null; max_uses: number 
  */
 export interface Backend {
   readonly kind: 'supabase' | 'local'
+
+  // Tabelas do orçamento (leitura e gravação genéricas; o RLS garante que só vêm as linhas da pessoa)
+  list<K extends TableName>(table: K, query?: ListQuery): Promise<Tables[K][]>
+  /** ignoreDuplicates: linhas com id que já existe são ignoradas (salário e fixos do mês) */
+  insert<K extends TableName>(table: K, rows: NewRow<K>[], opts?: { ignoreDuplicates?: boolean }): Promise<void>
+  update<K extends TableName>(table: K, id: string, patch: Partial<Tables[K]>): Promise<void>
+  remove<K extends TableName>(table: K, ids: string[]): Promise<void>
+  /** Cria ou atualiza pela combinação única de colunas (ex.: 'user_id,month') */
+  upsert<K extends TableName>(table: K, row: NewRow<K>, onConflict: string): Promise<void>
 
   getProfile(): Promise<Profile>
   updateProfile(patch: ProfilePatch): Promise<Profile>

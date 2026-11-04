@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { CalendarDays, CircleUserRound, House, PiggyBank, Plus, WifiOff, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
+import { useRealtime } from '../data/finance'
 import { AddSheet } from './AddSheet'
 
 type Tab = { to: string; label: string; icon: LucideIcon }
@@ -14,7 +15,7 @@ const TABS: Tab[] = [
 ]
 
 /** Telas de formulário ocupam a tela toda, sem a barra de abas (como as telas de "Novo" do iPhone). */
-const FULL_SCREEN = [/^\/voce\/(perfil|senha|email|excluir|sugestao)$/, /^\/lancar/, /\/editar$/, /^\/(termos|privacidade)$/]
+const FULL_SCREEN = [/^\/voce\/(perfil|senha|email|excluir|sugestao)$/, /^\/lancar/, /^\/lancamento\//, /^\/separar/, /^\/(termos|privacidade)$/]
 
 function useOnline() {
   const [online, setOnline] = useState(navigator.onLine)
@@ -62,6 +63,7 @@ export function Layout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [addOpen, setAddOpen] = useState(false)
+  useRealtime()
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
 
   return (

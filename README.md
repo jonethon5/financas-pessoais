@@ -13,7 +13,8 @@ O nome do app fica num lugar só: [`brand.json`](brand.json). Trocou lá, trocou
 
 - [x] 0. Fundação: visual, PWA, modo demonstração, cadastro com código do beta, confirmação de e-mail, esqueci a senha,
       perfil com foto, excluir conta, termos e privacidade, sugestões, painel do beta, deploy
-- [ ] 1. Base: renda, gastos, lançamento rápido, "quanto posso gastar hoje", separar o salário, orçamento
+- [x] 1. Base: salário e fixos automáticos, gastos do dia a dia e parcelados, lançamento em 2 toques, "quanto posso gastar hoje",
+      separar o salário, orçamento por categoria (mensal e semanal, cobrir com outra categoria), 50/30/20, caçador de assinaturas
 - [ ] 2. Caixinhas
 - [ ] 3. Psicologia para guardar e primeiro acesso
 - [ ] 4. Gráficos
@@ -73,7 +74,7 @@ src/
   pages/          telas (Início, Mês, Caixinhas, Você, entrar/criar conta, termos…)
   components/     barra de abas com "+", folhas que sobem de baixo, listas estilo Ajustes, recorte de foto
   data/           acesso a dados: supabaseBackend (conta) e localBackend (demonstração)
-  lib/            regras puras com testes: dinheiro em centavos, datas, divisão no centavo
+  lib/            regras puras com testes: dinheiro em centavos, datas, parcelas, orçamento do mês, "quanto posso gastar hoje"
 supabase/
   migrations/     banco (tabelas, RLS, storage)
   functions/      Edge Functions: setup (administrador do beta), delete-account (excluir conta)

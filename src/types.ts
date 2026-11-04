@@ -61,3 +61,92 @@ export type BetaCode = {
 export type AdminStats = { users: number; users_7d: number; onboarded: number; feedback_new: number }
 
 export type Bucket = 'fotos' | 'feedback'
+
+// ---------------------------------------------------------------------------
+// Fase 1: base do orçamento
+// ---------------------------------------------------------------------------
+
+export type CategoryGroup = 'necessidade' | 'desejo'
+
+export type Category = {
+  id: string
+  user_id: string
+  name: string
+  icon: string
+  color: string
+  kind: 'expense' | 'income'
+  grp: CategoryGroup
+  monthly_limit_cents: number | null
+  weekly_limit_cents: number | null
+  sort: number
+  archived: boolean
+  created_at: string
+}
+
+export type Recurring = {
+  id: string
+  user_id: string
+  description: string
+  category_id: string | null
+  amount_cents: number
+  day: number
+  remind: boolean
+  start_month: string
+  end_month: string | null
+  active: boolean
+  created_at: string
+}
+
+export type TxType = 'salario' | 'extra' | 'fixo' | 'dia' | 'parcela'
+export type Emotion = 'comemorando' | 'estressado' | 'entediado' | 'cansado'
+
+export type Transaction = {
+  id: string
+  user_id: string
+  kind: 'income' | 'expense'
+  type: TxType
+  amount_cents: number
+  date: string
+  description: string
+  category_id: string | null
+  recurring_id: string | null
+  installment_group: string | null
+  installment_no: number | null
+  installment_total: number | null
+  emotion: Emotion | null
+  paid: boolean
+  skipped: boolean
+  note: string | null
+  created_at: string
+}
+
+export type BudgetMove = {
+  id: string
+  user_id: string
+  month: string
+  from_category: string
+  to_category: string
+  amount_cents: number
+  created_at: string
+}
+
+export type MonthPlan = {
+  id: string
+  user_id: string
+  month: string
+  save_cents: number
+  split_done_at: string | null
+  created_at: string
+}
+
+/** Tabelas com leitura/gravação genérica (mesmo formato no Supabase e na demonstração). */
+export type Tables = {
+  categories: Category
+  recurrings: Recurring
+  transactions: Transaction
+  budget_moves: BudgetMove
+  month_plans: MonthPlan
+}
+export type TableName = keyof Tables
+/** O que o app envia ao criar uma linha (id, user_id e created_at têm padrão). */
+export type NewRow<K extends TableName> = Omit<Tables[K], 'user_id' | 'created_at' | 'id'> & { id?: string }

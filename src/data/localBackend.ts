@@ -1,8 +1,9 @@
 // Modo demonstração: dados de exemplo guardados só neste aparelho (localStorage).
 // Usado enquanto o Supabase não está configurado, ou quando a pessoa toca em "Ver demonstração".
 import { blobToDataUrl } from '../lib/image'
-import type { Feedback, Profile } from '../types'
-import type { Backend } from './backend'
+import type { Feedback, Profile, TableName, Tables } from '../types'
+import type { Backend, ListQuery } from './backend'
+import { buildDemoData } from './demoSeed'
 
 const PREFIX = 'poupei:demo:'
 
@@ -58,12 +59,79 @@ export function resetDemo() {
   }
 }
 
+let seeding: Promise<void> | null = null
+
+/** Na primeira vez, cria os dados de exemplo (um mês realista e o histórico). */
+async function ensureSeed() {
+  if (read('seeded', () => false)) return
+  seeding ??= buildDemoData().then((data) => {
+    for (const [table, rows] of Object.entries(data)) write(`t:${table}`, rows)
+    write('seeded', true)
+  })
+  await seeding
+  seeding = null
+}
+
+type AnyRow = Record<string, unknown> & { id: string }
+const rowsOf = (table: TableName) => read<AnyRow[]>(`t:${table}`, () => [])
+
+function matches(row: AnyRow, q: ListQuery): boolean {
+  for (const [col, value] of Object.entries(q.eq ?? {})) if (row[col] !== value) return false
+  if (q.gte && String(row[q.gte[0]]) < q.gte[1]) return false
+  if (q.lte && String(row[q.lte[0]]) > q.lte[1]) return false
+  return true
+}
+
 const unavailable = async (): Promise<never> => {
   throw new Error('Disponível só com uma conta de verdade.')
 }
 
 export const localBackend: Backend = {
   kind: 'local',
+
+  async list<K extends TableName>(table: K, q: ListQuery = {}) {
+    await ensureSeed()
+    const col = q.order ?? 'created_at'
+    return rowsOf(table)
+      .filter((r) => matches(r, q))
+      .sort((a, b) => String(a[col] ?? '').localeCompare(String(b[col] ?? '')) || a.id.localeCompare(b.id)) as unknown as Tables[K][]
+  },
+
+  async insert(table, rows, opts) {
+    await ensureSeed()
+    const all = rowsOf(table)
+    const ids = new Set(all.map((r) => r.id))
+    for (const row of rows) {
+      const id = row.id ?? crypto.randomUUID()
+      if (ids.has(id)) {
+        if (opts?.ignoreDuplicates) continue
+        throw new Error('Esse registro já existe.')
+      }
+      ids.add(id)
+      all.push({ ...(row as Record<string, unknown>), id, user_id: 'demo', created_at: now() })
+    }
+    write(`t:${table}`, all)
+  },
+
+  async update(table, id, patch) {
+    write(`t:${table}`, rowsOf(table).map((r) => (r.id === id ? { ...r, ...(patch as Record<string, unknown>), id } : r)))
+  },
+
+  async remove(table, ids) {
+    const gone = new Set(ids)
+    write(`t:${table}`, rowsOf(table).filter((r) => !gone.has(r.id)))
+  },
+
+  async upsert(table, row, onConflict) {
+    await ensureSeed()
+    const cols = onConflict.split(',').map((c) => c.trim())
+    const data: Record<string, unknown> = { ...(row as Record<string, unknown>), user_id: 'demo' }
+    const all = rowsOf(table)
+    const found = all.find((r) => cols.every((c) => r[c] === data[c]))
+    if (found) Object.assign(found, data, { id: found.id })
+    else all.push({ ...data, id: (data.id as string) ?? crypto.randomUUID(), created_at: now() })
+    write(`t:${table}`, all)
+  },
 
   async getProfile() {
     return read('profile', seedProfile)

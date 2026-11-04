@@ -1,6 +1,6 @@
 // Conta de verdade: dados no Supabase. O RLS do banco garante que cada pessoa só acessa o que é dela.
 import { callFunction, supabase } from '../lib/supabase'
-import type { AdminFeedback, AdminStats, BetaCode, Feedback, Profile } from '../types'
+import type { AdminFeedback, AdminStats, BetaCode, Feedback, Profile, TableName, Tables } from '../types'
 import type { Backend } from './backend'
 
 async function uid(): Promise<string> {
@@ -15,8 +15,50 @@ function check<T>(result: { data: T | null; error: unknown }): T {
   return result.data as T
 }
 
+const PAGE = 1000
+
 export const supabaseBackend: Backend = {
   kind: 'supabase',
+
+  async list(table, query = {}) {
+    const all: Tables[TableName][] = []
+    // O Supabase devolve no máximo 1000 linhas por vez: busca em páginas
+    for (let from = 0; ; from += PAGE) {
+      let q = supabase.from(table).select('*')
+      for (const [col, value] of Object.entries(query.eq ?? {})) q = q.eq(col, value)
+      if (query.gte) q = q.gte(query.gte[0], query.gte[1])
+      if (query.lte) q = q.lte(query.lte[0], query.lte[1])
+      const { data, error } = await q.order(query.order ?? 'created_at').order('id').range(from, from + PAGE - 1)
+      if (error) throw error
+      all.push(...(data as Tables[TableName][]))
+      if (data.length < PAGE) break
+    }
+    return all as never
+  },
+
+  async insert(table, rows, opts) {
+    if (!rows.length) return
+    const { error } = opts?.ignoreDuplicates
+      ? await supabase.from(table).upsert(rows as never, { onConflict: 'id', ignoreDuplicates: true })
+      : await supabase.from(table).insert(rows as never)
+    if (error) throw error
+  },
+
+  async update(table, id, patch) {
+    const { error } = await supabase.from(table).update(patch as never).eq('id', id)
+    if (error) throw error
+  },
+
+  async remove(table, ids) {
+    if (!ids.length) return
+    const { error } = await supabase.from(table).delete().in('id', ids)
+    if (error) throw error
+  },
+
+  async upsert(table, row, onConflict) {
+    const { error } = await supabase.from(table).upsert(row as never, { onConflict })
+    if (error) throw error
+  },
 
   async getProfile() {
     const id = await uid()

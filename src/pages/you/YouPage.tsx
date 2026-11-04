@@ -9,6 +9,9 @@ import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { BetaBadge, Button, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
 import { useProfile, useUpdateProfile } from '../../data/hooks'
+import { useWrite } from '../../data/finance'
+import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
+import { stableId } from '../../lib/recurring'
 import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
 import { friendlyError } from '../../lib/supabase'
 import type { AiTone, NotifyKind, Profile } from '../../types'
@@ -42,6 +45,19 @@ export function YouPage() {
   const profile = useProfile()
   const update = useUpdateProfile()
   const toast = useToast()
+  const write = useWrite()
+  const { userId } = useAuth()
+
+  /** Salário ou dia do pagamento mudou: corrige o salário já lançado neste mês. */
+  async function syncSalary(next: Profile) {
+    if (!userId) return
+    const ym = currentYearMonth()
+    const id = await stableId(`salario:${userId}:${monthKey(ym)}`)
+    await write.mutateAsync(async (b) => {
+      if (next.salary_cents && next.payday) await b.update('transactions', id, { amount_cents: next.salary_cents, date: isoDate(ym, next.payday) })
+      else await b.remove('transactions', [id])
+    })
+  }
   const { email, mode, configured, signOut } = useAuth()
   const [sheet, setSheet] = useState<SheetName>(null)
   const [confirmExit, setConfirmExit] = useState(false)
@@ -53,7 +69,8 @@ export function YouPage() {
 
   async function save(patch: Parameters<typeof update.mutateAsync>[0], message?: string) {
     try {
-      await update.mutateAsync(patch)
+      const next = await update.mutateAsync(patch)
+      if ('salary_cents' in patch || 'payday' in patch) await syncSalary(next)
       setSheet(null)
       if (message) toast(message)
     } catch (err) {
@@ -79,6 +96,8 @@ export function YouPage() {
           <Row title="Dia do pagamento" trailing={p.payday ? `Dia ${p.payday}` : 'Definir'} chevron onClick={() => setSheet('payday')} />
           <Row title="Salário" trailing={p.salary_cents != null ? formatBRL(p.salary_cents) : 'Definir'} chevron onClick={() => setSheet('salary')} />
           <Row title="Horas de trabalho por semana" trailing={`${p.work_hours_week} h`} chevron onClick={() => setSheet('hours')} />
+          <Row title="Gastos fixos" chevron as={link('/voce/fixos')} />
+          <Row title="Categorias e limites" chevron as={link('/voce/categorias')} />
         </List>
 
         <List header="Assistente" footer="O assistente só dá dicas de orçamento e hábitos, nunca de investimento.">
