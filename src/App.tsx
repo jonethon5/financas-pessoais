@@ -10,6 +10,10 @@ import { NewPasswordPage } from './pages/auth/NewPasswordPage'
 import { SetupAdminPage } from './pages/auth/SetupAdminPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
 import { HomePage } from './pages/HomePage'
+import { OnboardingPage } from './pages/OnboardingPage'
+import { HabitsPage } from './pages/HabitsPage'
+import { StoriesPage } from './pages/StoriesPage'
+import { useProfile } from './data/hooks'
 import { PrivacyPage, TermsPage } from './pages/legal/LegalPages'
 import { GoalDetailPage, GoalFormPage, GoalsPage } from './pages/goals/GoalsPages'
 import { MonthPage } from './pages/MonthPage'
@@ -37,8 +41,9 @@ function LoggedOut() {
 }
 
 function LoggedIn() {
-  const { linkEvent, clearLinkEvent } = useAuth()
+  const { linkEvent, clearLinkEvent, mode } = useAuth()
   const toast = useToast()
+  const profile = useProfile()
 
   // Voltou de um link do e-mail: avisa o que aconteceu
   useEffect(() => {
@@ -48,8 +53,14 @@ function LoggedIn() {
     clearLinkEvent()
   }, [linkEvent, clearLinkEvent, toast])
 
+  // Primeiro acesso: perguntas, teste de perfil, salário, fixos e primeira caixinha
+  if (mode === 'supabase' && profile.data && !profile.data.onboarded_at) return <OnboardingPage />
+
   return (
     <Routes>
+      <Route path="boas-vindas" element={<OnboardingPage />} />
+      <Route path="revisao" element={<StoriesPage kind="semana" />} />
+      <Route path="retrospectiva" element={<StoriesPage kind="mes" />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="mes" element={<MonthPage />} />
@@ -60,6 +71,7 @@ function LoggedIn() {
         <Route path="lancar" element={<TxFormPage />} />
         <Route path="lancamento/:id" element={<TxFormPage />} />
         <Route path="separar" element={<SplitPage />} />
+        <Route path="habitos" element={<HabitsPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />
         <Route path="voce" element={<YouPage />} />

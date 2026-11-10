@@ -12,6 +12,7 @@ import { useBackend } from '../../data/backend'
 import { useWrite } from '../../data/finance'
 import { useMonthView } from '../../data/monthView'
 import { addMonths, currentYearMonth, formatDateShort, monthKey, monthLabel, parseMonthKey, todayISO, type YearMonth } from '../../lib/dates'
+import { projection } from '../../lib/psych'
 import { GOAL_TEMPLATES, MILESTONES, crossedMilestones, distribute, emergencySuggestion, goalStatus, withdrawImpact, type GoalStatus } from '../../lib/goals'
 import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
 import { friendlyError } from '../../lib/supabase'
@@ -56,6 +57,7 @@ export function GoalsPage() {
   const total = items.reduce((a, g) => a + g.status.saved, 0)
   const planned = open.reduce((a, g) => a + (g.status.perMonth ?? 0), 0)
   const thisMonth = items.reduce((a, g) => a + Math.max(0, g.status.savedThisMonth), 0)
+  const proj = projection(view.data.goalMoves, view.data.today)
 
   async function move(index: number, dir: -1 | 1) {
     const list = [...open]
@@ -100,6 +102,11 @@ export function GoalsPage() {
                 </div>
                 <ProgressBar className="mt-1.5" value={thisMonth / planned} tone="coral" label="Guardado este mês" />
               </>
+            )}
+            {proj.pace > 0 && (
+              <p className="mt-3 text-[0.9375rem] leading-snug">
+                Mantendo esse ritmo, em dezembro você terá <strong className="text-primary-strong">{formatBRL(proj.projected)}</strong> guardados.
+              </p>
             )}
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button size="md" onClick={() => navigate('/separar')}>
@@ -473,6 +480,8 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
   const [monthly, setMonthly] = useState(centsToInput(goal?.monthly_cents))
   const [initial, setInitial] = useState('')
   const [motivation, setMotivation] = useState(goal?.motivation ?? '')
+  const [concreteName, setConcreteName] = useState(goal?.concrete_name ?? '')
+  const [concretePrice, setConcretePrice] = useState(centsToInput(goal?.concrete_cents))
   const [photo, setPhoto] = useState<Blob | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [removePhoto, setRemovePhoto] = useState(false)
@@ -481,7 +490,7 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
   const fileInput = useRef<HTMLInputElement>(null)
 
   const draft: Goal = {
-    id: goal?.id ?? 'novo', user_id: '', name: name || template.name, template: template.key, icon, color, photo_path: removePhoto ? null : (goal?.photo_path ?? null), motivation: motivation.trim() || null,
+    id: goal?.id ?? 'novo', user_id: '', name: name || template.name, template: template.key, icon, color, photo_path: removePhoto ? null : (goal?.photo_path ?? null), motivation: motivation.trim() || null, concrete_name: concreteName.trim() || null, concrete_cents: parseBRL(concretePrice),
     mode, target_cents: parseBRL(target), target_month: mode === 'data' ? until : null, monthly_cents: parseBRL(monthly), priority: goal?.priority ?? nextPriority,
     archived: false, completed_at: goal?.completed_at ?? null, created_at: goal?.created_at ?? '',
   }
@@ -499,7 +508,7 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
     if (initial.trim() && !initialCents) return setError('Valor já guardado inválido.')
     setError(null)
     const id = goal?.id ?? crypto.randomUUID()
-    const row = { name: name.trim(), motivation: motivation.trim() || null, template: template.key, icon, color, mode, target_cents: draft.target_cents, target_month: draft.target_month, monthly_cents: mode === 'data' ? null : draft.monthly_cents }
+    const row = { name: name.trim(), motivation: motivation.trim() || null, concrete_name: concreteName.trim() || null, concrete_cents: concreteName.trim() ? parseBRL(concretePrice) : null, template: template.key, icon, color, mode, target_cents: draft.target_cents, target_month: draft.target_month, monthly_cents: mode === 'data' ? null : draft.monthly_cents }
     try {
       await write.mutateAsync(async (b) => {
         if (goal) await b.update('goals', id, row)
@@ -618,6 +627,11 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
         )}
         {mode === 'data' && <Field label="Até quando" type="month" value={until} min={monthKey(ym)} onChange={(e) => setUntil(e.target.value)} />}
         {mode !== 'data' && <Field label={mode === 'livre' ? 'Quanto por mês (opcional)' : 'Quanto vai guardar por mês'} prefix="R$" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder="0,00" />}
+        <div className="grid grid-cols-[1fr_8.5rem] gap-2">
+          <Field label="Um item da meta (opcional)" value={concreteName} onChange={(e) => setConcreteName(e.target.value)} maxLength={40} placeholder="ex.: diária do hotel" />
+          <Field label="Quanto custa" prefix="R$" inputMode="decimal" value={concretePrice} onChange={(e) => setConcretePrice(e.target.value)} placeholder="0,00" />
+        </div>
+        <p className="-mt-3 px-1 text-[0.8125rem] leading-snug text-muted">Para o app traduzir seus gastos: “esse iFood = meia diária do hotel”.</p>
         {!goal && <Field label="Já tem algo guardado para isso? (opcional)" prefix="R$" inputMode="decimal" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0,00" hint="A caixinha já começa com esse progresso." />}
 
         {preview && (

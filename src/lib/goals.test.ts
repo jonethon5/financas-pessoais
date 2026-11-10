@@ -5,7 +5,7 @@ import { crossedMilestones, distribute, emergencySuggestion, goalStatus, monthGo
 const NOV = { year: 2026, month: 11 }
 
 function goal(p: Partial<Goal>): Goal {
-  return { id: 'g', user_id: 'u', name: 'Meta', template: 'livre', icon: 'piggy', color: '#000000', photo_path: null, motivation: null, mode: 'mensal', target_cents: 100000, target_month: null, monthly_cents: 10000, priority: 1, archived: false, completed_at: null, created_at: '2026-01-01', ...p }
+  return { id: 'g', user_id: 'u', name: 'Meta', template: 'livre', icon: 'piggy', color: '#000000', photo_path: null, motivation: null, concrete_name: null, concrete_cents: null, mode: 'mensal', target_cents: 100000, target_month: null, monthly_cents: 10000, priority: 1, archived: false, completed_at: null, created_at: '2026-01-01', ...p }
 }
 let n = 0
 const move = (amount: number, date: string, kind: GoalMove['kind'] = amount < 0 ? 'retirada' : 'deposito', goalId = 'g'): GoalMove => ({ id: `m${++n}`, user_id: 'u', goal_id: goalId, kind, amount_cents: amount, date, note: null, created_at: '' })

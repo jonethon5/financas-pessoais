@@ -8,7 +8,9 @@ import { ConfirmSheet } from '../components/ConfirmSheet'
 import { useToast } from '../components/Toast'
 import { Button, Chip, ErrorBox, Field, List, NavBar, NavButton, Notice, Row, Segmented, Spinner, Switch } from '../components/ui'
 import { useBackend } from '../data/backend'
-import { tkey, useCategories, useHistory, useWrite } from '../data/finance'
+import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite } from '../data/finance'
+import { useProfile } from '../data/hooks'
+import { concreteText, workTime } from '../lib/psych'
 import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, relativeDay, todayISO } from '../lib/dates'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
@@ -52,6 +54,8 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const write = useWrite()
   const [params] = useSearchParams()
   const history = useHistory(3)
+  const profile = useProfile()
+  const goals = useGoals()
 
   const [pickedMode, setPickedMode] = useState<Mode>((params.get('tipo') as Mode) ?? 'dia')
   const mode: Mode = tx ? (tx.kind === 'income' ? 'renda' : tx.type === 'fixo' ? 'fixo' : tx.type === 'parcela' ? 'parcelado' : 'dia') : pickedMode
@@ -154,12 +158,11 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         await write.mutateAsync((b) => b.insert('transactions', rows))
         toast(`${rows.length} parcelas lançadas`)
       } else {
-        await write.mutateAsync((b) =>
-          b.insert('transactions', [
-            { ...blankTx(), kind: income ? 'income' : 'expense', type: income ? 'extra' : 'dia', amount_cents: cents!, date, description: desc, category_id: categoryId, emotion: income ? null : emotion },
-          ]),
+        const saved = await write.mutateAsync((b) =>
+          insertTxWithRules(b, { ...blankTx(), kind: income ? 'income' : 'expense', type: income ? 'extra' : 'dia', amount_cents: cents!, date, description: desc, category_id: categoryId, emotion: income ? null : emotion }),
         )
-        toast(income ? 'Renda lançada' : 'Gasto lançado')
+        const extra = typeof saved === 'number' && saved > 0 ? ` · ${formatBRL(saved)} foram para as caixinhas` : ''
+        toast(`${income ? 'Renda lançada' : 'Gasto lançado'}${extra}`)
       }
       navigate(-1)
     } catch (err) {
@@ -232,6 +235,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           error={errors.amount}
           className="[&_input]:min-h-16 [&_input]:text-[1.75rem] [&_input]:font-semibold [&_span]:text-[1.25rem]"
         />
+        {!income && cents ? <PriceHints cents={cents} hours={workTime(cents, profile.data?.salary_cents ?? null, profile.data?.work_hours_week ?? 44)} concrete={concreteText(cents, goals.data ?? [])} /> : null}
 
         <div>
           <Field label="Descrição" list="descricoes" autoComplete="off" placeholder={income ? 'ex.: Freela, 13º' : 'ex.: Mercado, Uber, iFood'} value={description} onChange={(e) => pickDescription(e.target.value)} error={errors.description} maxLength={60} />
@@ -368,5 +372,24 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         </ConfirmSheet>
       )}
     </>
+  )
+}
+
+/** Preço traduzido: horas do seu trabalho e o item concreto de uma caixinha. */
+function PriceHints({ cents, hours, concrete }: { cents: number; hours: string | null; concrete: string | null }) {
+  if (!hours && !concrete) return null
+  return (
+    <div className="-mt-2 flex flex-col gap-1 px-1 text-[0.875rem] leading-snug text-muted" aria-live="polite">
+      {hours && (
+        <p>
+          {formatBRL(cents)} = <strong className="text-ink">{hours}</strong> do seu trabalho
+        </p>
+      )}
+      {concrete && (
+        <p>
+          Isso equivale a <strong className="text-ink">{concrete}</strong>
+        </p>
+      )}
+    </div>
   )
 }

@@ -17,7 +17,9 @@ O nome do app fica num lugar só: [`brand.json`](brand.json). Trocou lá, trocou
       separar o salário, orçamento por categoria (mensal e semanal, cobrir com outra categoria), 50/30/20, caçador de assinaturas
 - [x] 2. Caixinhas: modelos prontos, meta por data, por valor mensal ou sem valor final, foto ou ícone, depósitos e retiradas
       com freio, recálculo automático, marcos 25/50/75/100% com comemoração, prioridade e sobra do mês
-- [ ] 3. Psicologia para guardar e primeiro acesso
+- [x] 3. Psicologia: primeiro acesso com perguntas e teste de perfil, horas de trabalho e "isso equivale a…", sequências,
+      dias sem gastar, desafios, regras automáticas, lista de desejos (30 dias), planos "se… então", recomeço,
+      projeção do ano, revisão da semana e retrospectiva do mês em stories
 - [ ] 4. Gráficos
 - [ ] 5. Gamificação
 - [ ] 6. Assistente (IA)

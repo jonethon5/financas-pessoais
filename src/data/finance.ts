@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { defaultCategories } from '../lib/categories'
 import { addMonths, compareYearMonth, currentYearMonth, firstDayISO, lastDayISO, monthKey, type YearMonth } from '../lib/dates'
 import { expectedMonthRows, missingRows } from '../lib/recurring'
+import { rulesForTransaction } from '../lib/psych'
 import { supabase } from '../lib/supabase'
 import type { MonthPlan, NewRow, Profile, TableName, Tables, Transaction } from '../types'
 import { useBackend, type Backend } from './backend'
@@ -89,6 +90,24 @@ export function useGoalMoves() {
   return useQuery({ queryKey: tkey('goal_moves'), queryFn: () => backend.list('goal_moves', { order: 'date' }) })
 }
 
+/** Leitura simples de uma tabela inteira da pessoa (hábitos: desafios, regras, desejos, planos). */
+export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans'>(table: K) {
+  const backend = useBackend()
+  return useQuery({ queryKey: tkey(table), queryFn: () => backend.list(table) })
+}
+
+/**
+ * Grava um lançamento novo e aplica as regras automáticas (arredondar, % da renda extra, prazer culpado),
+ * que viram depósitos nas caixinhas. Devolve o que foi guardado pelas regras.
+ */
+export async function insertTxWithRules(b: Backend, row: NewRow<'transactions'>): Promise<number> {
+  await b.insert('transactions', [row])
+  const rules = await b.list('rules')
+  const moves = rulesForTransaction(row, rules)
+  if (moves.length) await b.insert('goal_moves', moves.map((m) => ({ ...m, kind: 'deposito' as const, date: row.date })))
+  return moves.reduce((a, m) => a + m.amount_cents, 0)
+}
+
 export function useBudgetMoves(ym: YearMonth) {
   const backend = useBackend()
   const month = monthKey(ym)
@@ -111,7 +130,7 @@ export function useWrite() {
   const refresh = (...tables: TableName[]) => Promise.all(tables.map((t) => qc.invalidateQueries({ queryKey: ['t', t] })))
   return useMutation({
     mutationFn: async (fn: (b: Backend) => Promise<unknown>) => fn(backend),
-    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves'),
+    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans'),
   })
 }
 
@@ -126,7 +145,7 @@ export function useRealtime() {
   const qc = useQueryClient()
   useEffect(() => {
     if (mode !== 'supabase' || !userId) return
-    const tables: (keyof Tables)[] = ['categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves']
+    const tables: (keyof Tables)[] = ['categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans']
     let channel = supabase.channel(`dados-${userId}`)
     for (const table of tables) {
       channel = channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` }, () =>

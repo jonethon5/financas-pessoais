@@ -1,9 +1,9 @@
 // Modo demonstração: dados de exemplo guardados só neste aparelho (localStorage).
 // Usado enquanto o Supabase não está configurado, ou quando a pessoa toca em "Ver demonstração".
 import { blobToDataUrl } from '../lib/image'
-import type { Feedback, Profile, TableName, Tables } from '../types'
+import type { Feedback, Goal, Profile, TableName, Tables } from '../types'
 import type { Backend, ListQuery } from './backend'
-import { buildDemoData, buildDemoGoals } from './demoSeed'
+import { buildDemoData, buildDemoGoals, buildDemoHabits } from './demoSeed'
 
 const PREFIX = 'poupei:demo:'
 
@@ -40,7 +40,8 @@ function seedProfile(): Profile {
     salary_cents: 320000,
     work_hours_week: 44,
     ai_tone: 'equilibrado',
-    money_profile: null,
+    money_profile: 'planejador',
+    about: { goal: 'guardar', age: '25-34', work: 'clt' },
     prefs: {},
     onboarded_at: now(),
     is_admin: false,
@@ -71,12 +72,18 @@ async function ensureSeed() {
       write('t:goal_moves', goal_moves)
       write('goalsSeeded', true)
     }
+    if (!read('habitsSeeded', () => false)) {
+      const goals = read<Goal[]>('t:goals', () => [])
+      for (const [table, rows] of Object.entries(buildDemoHabits(goals))) write(`t:${table}`, rows)
+      write('habitsSeeded', true)
+    }
     return
   }
   seeding ??= buildDemoData().then((data) => {
     for (const [table, rows] of Object.entries(data)) write(`t:${table}`, rows)
     write('seeded', true)
     write('goalsSeeded', true)
+    write('habitsSeeded', true)
   })
   await seeding
   seeding = null

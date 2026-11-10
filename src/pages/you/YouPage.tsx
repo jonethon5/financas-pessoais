@@ -10,6 +10,7 @@ import { useToast } from '../../components/Toast'
 import { BetaBadge, Button, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
 import { useProfile, useUpdateProfile } from '../../data/hooks'
 import { getThemePref, setThemePref, type ThemePref } from '../../lib/theme'
+import { PROFILE_INFO } from '../../lib/psych'
 import { useWrite } from '../../data/finance'
 import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
 import { stableId } from '../../lib/recurring'
@@ -110,6 +111,10 @@ export function YouPage() {
 
         <List header="Aparência">
           <Row title="Tema" trailing={THEMES.find((t) => t.value === theme)?.label} chevron onClick={() => setSheet('theme')} />
+        </List>
+
+        <List header="Seu perfil" footer="O teste e as perguntas do primeiro acesso ajustam as dicas e as metas sugeridas.">
+          <Row title="Perfil com dinheiro" trailing={p.money_profile ? (PROFILE_INFO[p.money_profile as keyof typeof PROFILE_INFO]?.name ?? '—') : 'Fazer o teste'} chevron as={link('/boas-vindas')} />
         </List>
 
         <List header="Assistente" footer="O assistente só dá dicas de orçamento e hábitos, nunca de investimento.">

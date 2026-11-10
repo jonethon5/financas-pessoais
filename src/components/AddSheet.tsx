@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router'
 import { CalendarCheck, Receipt, Stack, TrendUp, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useBackend } from '../data/backend'
-import { useCategories, useHistory, useWrite } from '../data/finance'
+import { insertTxWithRules, useCategories, useHistory, useWrite } from '../data/finance'
 import { quickPicks } from '../lib/budget'
 import { formatBRL } from '../lib/money'
 import { friendlyError } from '../lib/supabase'
@@ -40,12 +40,10 @@ export function AddSheet({ open, onClose }: { open: boolean; onClose: () => void
     onClose()
     const id = crypto.randomUUID()
     try {
-      await write.mutateAsync((b) =>
-        b.insert('transactions', [
-          { id, kind: 'expense', type: 'dia', amount_cents: p.amountCents, date: todayISO(), description: p.description, category_id: p.categoryId, recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null, paid: true, skipped: false, note: null },
-        ]),
+      const saved = await write.mutateAsync((b) =>
+        insertTxWithRules(b, { id, kind: 'expense', type: 'dia', amount_cents: p.amountCents, date: todayISO(), description: p.description, category_id: p.categoryId, recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null, paid: true, skipped: false, note: null }),
       )
-      toast(`${p.description} · ${formatBRL(p.amountCents)}`, { label: 'Desfazer', run: () => write.mutate(() => backend.remove('transactions', [id])) })
+      toast(`${p.description} · ${formatBRL(p.amountCents)}${typeof saved === 'number' && saved > 0 ? ` (+${formatBRL(saved)} guardados)` : ''}`, { label: 'Desfazer', run: () => write.mutate(() => backend.remove('transactions', [id])) })
     } catch (err) {
       toast(friendlyError(err))
     }

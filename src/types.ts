@@ -20,6 +20,7 @@ export type Profile = {
   work_hours_week: number
   ai_tone: AiTone
   money_profile: string | null
+  about: About
   prefs: Prefs
   onboarded_at: string | null
   is_admin: boolean
@@ -29,7 +30,7 @@ export type Profile = {
 }
 
 export type ProfilePatch = Partial<
-  Pick<Profile, 'name' | 'nickname' | 'avatar_path' | 'birthday' | 'payday' | 'salary_cents' | 'work_hours_week' | 'ai_tone' | 'money_profile' | 'prefs' | 'onboarded_at'>
+  Pick<Profile, 'name' | 'nickname' | 'avatar_path' | 'birthday' | 'payday' | 'salary_cents' | 'work_hours_week' | 'ai_tone' | 'money_profile' | 'about' | 'prefs' | 'onboarded_at'>
 >
 
 export type FeedbackKind = 'sugestao' | 'problema' | 'elogio'
@@ -148,6 +149,10 @@ export type Tables = {
   month_plans: MonthPlan
   goals: Goal
   goal_moves: GoalMove
+  challenges: Challenge
+  rules: Rule
+  wishes: Wish
+  if_then_plans: IfThenPlan
 }
 export type TableName = keyof Tables
 /** O que o app envia ao criar uma linha (id, user_id e created_at têm padrão). */
@@ -169,6 +174,9 @@ export type Goal = {
   photo_path: string | null
   /** O porquê da pessoa (mensagem motivacional) */
   motivation: string | null
+  /** "isso equivale a…": item concreto e o preço dele (ex.: diária do hotel, R$ 250) */
+  concrete_name: string | null
+  concrete_cents: number | null
   mode: GoalMode
   target_cents: number | null
   target_month: string | null
@@ -187,5 +195,67 @@ export type GoalMove = {
   amount_cents: number
   date: string
   note: string | null
+  created_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Fase 3: psicologia para guardar
+// ---------------------------------------------------------------------------
+
+/** Respostas do primeiro acesso */
+export type About = {
+  goal?: string
+  age?: string
+  work?: string
+  home?: string
+  answers?: Record<string, string>
+}
+
+export type ChallengeKind = 'sem_delivery' | 'sem_shopee' | 'sem_impulso' | '52_semanas' | 'personalizado'
+
+export type Challenge = {
+  id: string
+  user_id: string
+  kind: ChallengeKind
+  title: string
+  params: { base_cents?: number; category_ids?: string[]; words?: string[] }
+  goal_id: string | null
+  started_on: string
+  ends_on: string
+  status: 'ativo' | 'concluido' | 'desistiu'
+  created_at: string
+}
+
+export type RuleKind = 'arredondar' | 'sobra_limite' | 'renda_extra' | 'prazer_culpado'
+
+export type Rule = {
+  id: string
+  user_id: string
+  kind: RuleKind
+  goal_id: string
+  params: { step_cents?: number; pct?: number; category_id?: string; amount_cents?: number }
+  active: boolean
+  created_at: string
+}
+
+export type Wish = {
+  id: string
+  user_id: string
+  name: string
+  price_cents: number
+  link: string | null
+  decide_on: string
+  status: 'esperando' | 'comprei' | 'desisti'
+  decided_at: string | null
+  created_at: string
+}
+
+export type IfThenPlan = {
+  id: string
+  user_id: string
+  trigger_text: string
+  action_text: string
+  weekday: number | null
+  active: boolean
   created_at: string
 }

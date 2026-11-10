@@ -1,5 +1,9 @@
 import { Link, useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
+import { CalendarCheck, Flame, Hourglass, PencilSimpleLine, Sun, Target } from '@phosphor-icons/react'
+import { useTable } from '../data/finance'
+import { freshStart, loggingDayStreak, savingWeekStreak, wishState } from '../lib/psych'
+import { weekdayOf } from '../lib/dates'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { AnimatedMoney, Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Spinner } from '../components/ui'
@@ -19,6 +23,9 @@ const link = (to: string) => (content: React.ReactNode, className: string) => (
 export function HomePage() {
   const navigate = useNavigate()
   const view = useMonthView(currentYearMonth())
+  const plans = useTable('if_then_plans')
+  const wishes = useTable('wishes')
+  const challenges = useTable('challenges')
   if (view.isPending) return <Spinner />
   if (view.error || !view.data) return <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
   const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today } = view.data
@@ -32,6 +39,14 @@ export function HomePage() {
   const recent = [...txs].filter((x) => !x.skipped && x.type === 'dia').sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 5)
   const salaryArrived = hasSalary && dayOf(today) >= Math.min(p.payday!, 28)
   const needsSplit = salaryArrived && !plan?.split_done_at
+  const fresh = freshStart(today, p.birthday)
+  const weekday = weekdayOf(today)
+  const todayPlan = (plans.data ?? []).find((x) => x.active && (x.weekday == null || x.weekday === weekday))
+  const readyWish = (wishes.data ?? []).find((w) => wishState(w, today).ready)
+  const allTxs = [...new Map([...view.data.history, ...txs].map((x) => [x.id, x])).values()]
+  const weeks = savingWeekStreak(view.data.goalMoves, today)
+  const days = loggingDayStreak(allTxs, today)
+  const activeChallenges = (challenges.data ?? []).filter((c) => c.status === 'ativo').length
 
   return (
     <>
@@ -52,6 +67,16 @@ export function HomePage() {
             <Button variant="primary" size="md" className="mt-3 w-full" onClick={() => navigate('/separar')}>
               Separar o salário
             </Button>
+          </Card>
+        )}
+
+        {fresh && (
+          <Card className="flex gap-3.5">
+            <Sun size={34} weight="duotone" className="shrink-0 text-coral" />
+            <div>
+              <p className="text-[1.0625rem] font-bold">{fresh.title}</p>
+              <p className="mt-0.5 leading-snug text-muted">{fresh.text}</p>
+            </div>
           </Card>
         )}
 
@@ -91,6 +116,63 @@ export function HomePage() {
             </Button>
           </Card>
         )}
+
+        {todayPlan && (
+          <Card className="flex gap-3.5">
+            <Target size={32} weight="duotone" className="shrink-0 text-ai" />
+            <div>
+              <p className="text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Seu plano para hoje</p>
+              <p className="mt-0.5 leading-snug font-semibold">
+                {todayPlan.trigger_text}, {todayPlan.action_text}.
+              </p>
+            </div>
+          </Card>
+        )}
+
+        {readyWish && (
+          <Link to="/habitos" className="press shadow-soft flex gap-3.5 rounded-[1.25rem] bg-surface p-4">
+            <Hourglass size={32} weight="duotone" className="shrink-0 text-warn" />
+            <div>
+              <p className="font-bold">Ainda quer o {readyWish.name}?</p>
+              <p className="mt-0.5 leading-snug text-muted">Os 30 dias de espera acabaram. Se ainda quiser, compre sem culpa. Se não, é {formatBRL(readyWish.price_cents)} que fica com você.</p>
+            </div>
+          </Link>
+        )}
+
+        {(weekday === 0 || weekday === 1) && (
+          <Link to="/revisao" className="press flex items-center gap-3.5 rounded-[1.25rem] bg-gradient-to-br from-[#0B7F5A] to-[#063f2d] p-4 text-white">
+            <CalendarCheck size={34} weight="duotone" className="shrink-0" />
+            <div className="flex-1">
+              <p className="font-bold">Sua semana em 2 minutos</p>
+              <p className="text-[0.9375rem] opacity-85">Veja como foi e comece a próxima melhor.</p>
+            </div>
+            <ChevronRight className="size-5 opacity-80" />
+          </Link>
+        )}
+
+        <Link to="/habitos" className="press shadow-soft flex items-center gap-4 rounded-[1.25rem] bg-surface p-4">
+          <div className="flex flex-1 items-center gap-5">
+            <span className="flex items-center gap-1.5">
+              <Flame size={26} weight="duotone" className="text-coral" />
+              <span>
+                <span className="num block text-[1.25rem] leading-none font-extrabold">{weeks}</span>
+                <span className="text-[0.75rem] font-medium text-muted">{weeks === 1 ? 'semana guardando' : 'semanas guardando'}</span>
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <PencilSimpleLine size={26} weight="duotone" className="text-ai" />
+              <span>
+                <span className="num block text-[1.25rem] leading-none font-extrabold">{days}</span>
+                <span className="text-[0.75rem] font-medium text-muted">{days === 1 ? 'dia lançando' : 'dias lançando'}</span>
+              </span>
+            </span>
+          </div>
+          <span className="text-right text-[0.875rem] font-semibold text-primary">
+            Hábitos
+            {activeChallenges > 0 && <span className="block text-[0.75rem] font-medium text-muted">{activeChallenges} desafio{activeChallenges > 1 ? 's' : ''}</span>}
+          </span>
+          <ChevronRight className="size-5 text-faint" aria-hidden />
+        </Link>
 
         <List header="Seu mês">
           <Row title="Entrou" trailing={<Money cents={s.income} className="text-[1.0625rem]" />} as={link('/mes')} />
