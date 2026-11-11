@@ -115,7 +115,7 @@ export function financialHealth(input: HealthInput): Health {
     } else {
       const months = monthly > 0 ? reserve / monthly : reserve >= 50_000 ? 1 : 0
       const score = Math.round(Math.min(1, months / 3) * 25)
-      const status = monthly > 0 ? (months >= 2 ? `A reserva cobre ${months.toFixed(1).replace('.', ',')} meses de gastos.` : `A reserva cobre uns ${Math.round(months * 30)} dias de gastos.`) : 'Reserva começada.'
+      const status = reserve <= 0 ? 'A caixinha da reserva existe, mas ainda está vazia.' : monthly > 0 ? (months >= 2 ? `A reserva cobre ${months.toFixed(1).replace('.', ',')} meses de gastos.` : `A reserva cobre uns ${Math.round(months * 30)} dias de gastos.`) : 'Reserva começada.'
       const tip = months >= 3 ? 'Reserva completa. Agora pode guardar para os sonhos.' : months >= 1 ? 'Continue a reserva até cobrir 3 meses de gastos.' : reserve < 50_000 ? 'Leve a reserva primeiro aos R$ 500.' : 'Próxima meta da reserva: 1 mês de gastos.'
       pillars.push({ id: 'reserva', title: 'Reserva para imprevistos', max: 25, score, status, tip, lesson: 'reserva', to: '/caixinhas' })
     }

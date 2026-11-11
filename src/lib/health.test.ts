@@ -66,6 +66,13 @@ describe('saúde financeira', () => {
     expect(r.status).toBe('A reserva cobre uns 45 dias de gastos.')
   })
 
+  it('reserva criada mas vazia: diz isso, sem "0 dias"', () => {
+    const reserva = goal({ id: 'r', template: 'reserva', name: 'Reserva', target_cents: 600000 })
+    const r = financialHealth(input({ history: monthOf('2026-10', 200000), goalList: [reserva] })).pillars.find((x) => x.id === 'reserva')!
+    expect(r.status).toBe('A caixinha da reserva existe, mas ainda está vazia.')
+    expect(r.tip).toBe('Leve a reserva primeiro aos R$ 500.')
+  })
+
   it('sem nenhum dado: não inventa nota', () => {
     const h = financialHealth(input({ hasSalary: false }))
     expect(h.pillars.find((x) => x.id === 'gastos')!.score).toBeNull()
