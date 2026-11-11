@@ -30,7 +30,7 @@ import { DeleteAccountPage, EmailPage, PasswordPage } from './pages/you/AccountP
 import { AdminPage } from './pages/you/AdminPage'
 import { FeedbackPage } from './pages/you/FeedbackPage'
 import { ProfileEditPage } from './pages/you/ProfileEditPage'
-import { YouPage } from './pages/you/YouPage'
+import { SettingsPage, YouPage } from './pages/you/YouPage'
 
 function LoggedOut() {
   return (
@@ -88,6 +88,7 @@ function LoggedIn() {
         <Route path="voce/fixos" element={<FixedPage />} />
         <Route path="voce/bancos" element={<BanksPage />} />
         <Route path="voce" element={<YouPage />} />
+        <Route path="ajustes" element={<SettingsPage />} />
         <Route path="voce/perfil" element={<ProfileEditPage />} />
         <Route path="voce/senha" element={<PasswordPage />} />
         <Route path="voce/email" element={<EmailPage />} />

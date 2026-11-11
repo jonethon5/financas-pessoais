@@ -41,7 +41,7 @@ function seedProfile(): Profile {
     work_hours_week: 44,
     ai_tone: 'equilibrado',
     money_profile: 'planejador',
-    about: { goal: 'guardar', age: '25-34', work: 'clt' },
+    about: { goal: 'Juntar uma reserva', age: '25 a 34', work: 'Carteira assinada' },
     prefs: {},
     onboarded_at: null,
     is_admin: false,
