@@ -72,7 +72,7 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
     setRun((r) => r + 1)
     setCard({ title, message })
     haptic([18, 40, 18])
-    timer.current = setTimeout(() => setCard(null), 3600)
+    timer.current = setTimeout(() => setCard(null), 4500)
   }, [])
 
   return (
@@ -80,11 +80,12 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
       {children}
       <ConfettiCanvas run={run} />
       {card && (
-        <div role="status" className="fixed inset-x-0 top-1/3 z-[61] flex justify-center px-6" onClick={() => setCard(null)}>
+        <div role="status" data-celebrating className="fixed inset-x-0 top-1/3 z-[61] flex justify-center px-6" onClick={() => setCard(null)}>
           <div className="animate-pop w-full max-w-xs rounded-[1.5rem] bg-surface p-6 text-center shadow-[0_24px_60px_-12px_rgb(15_36_51/0.35)]">
             <MascotArt name="meta-atingida" px={120} className="-mt-16 mb-1" />
             <p className="text-[1.25rem] leading-tight font-extrabold">{card.title}</p>
             <p className="mt-1.5 leading-snug text-muted">{card.message}</p>
+            <p className="mt-3 text-[0.8125rem] font-semibold text-primary">Toque para continuar</p>
           </div>
         </div>
       )}

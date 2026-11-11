@@ -29,7 +29,8 @@ export function planText(goal: Goal, s: GoalStatus): string {
     if (s.late) return `Passou de ${month(parseMonthKey(goal.target_month))} · faltam ${formatBRL((s.target ?? 0) - s.saved)}`
     return `${formatBRL(s.perMonth ?? 0)}/mês (${formatBRL(s.perWeek ?? 0)}/semana) até ${month(parseMonthKey(goal.target_month))}`
   }
-  if (goal.mode === 'mensal') return `${formatBRL(s.perMonth ?? 0)}/mês · chega em ${month(s.eta)}`
+  if (goal.mode === 'mensal' || (s.target != null && s.perMonth)) return `${formatBRL(s.perMonth ?? 0)}/mês · chega em ${month(s.eta)}`
+  if (s.target != null) return `Meta de ${formatBRL(s.target)} · sem valor por mês`
   return s.perMonth ? `${formatBRL(s.perMonth)}/mês · sem valor final` : 'Sem valor final'
 }
 

@@ -47,10 +47,24 @@ export function Tour({ id, steps, delay = 900 }: { id: string; steps: TourStep[]
   // Começa depois que a tela terminou de aparecer (e só se nunca foi visto)
   useEffect(() => {
     if (tourSeen(id)) return
-    const t = setTimeout(() => {
+    let t: ReturnType<typeof setTimeout>
+    let waited = false
+    // Espera a comemoração (confete) fechar e dá um respiro antes de começar a explicar
+    const tryStart = () => {
+      if (document.querySelector('[data-celebrating]') || document.querySelector('dialog[open]')) {
+        waited = true
+        t = setTimeout(tryStart, 400)
+        return
+      }
+      if (waited) {
+        waited = false
+        t = setTimeout(tryStart, 900)
+        return
+      }
       const first = steps.findIndex((_, i) => targetOf(i))
       if (first >= 0) setIndex(first)
-    }, delay)
+    }
+    t = setTimeout(tryStart, delay)
     return () => clearTimeout(t)
   }, [id, steps, delay, targetOf])
 

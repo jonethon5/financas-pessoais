@@ -115,3 +115,25 @@ describe('reserva de emergência', () => {
     expect(emergencySuggestion(150050)).toBe(900300)
   })
 })
+
+describe('exemplo do Jonethon: viagem de R$ 4.000', () => {
+  it('guardando R$ 231 por mês desde novembro/2026: 18 depósitos, chega em abril/2028', () => {
+    const viagem = goal({ mode: 'mensal', target_cents: 400000, monthly_cents: 23100 })
+    const s = goalStatus(viagem, [], NOV)
+    expect(s.perMonth).toBe(23100)
+    // 17 × 231 = 3.927 (não chega); 18 × 231 = 4.158 (chega). Novembro é o 1º depósito → o 18º é abril/2028
+    expect(s.eta).toEqual({ year: 2028, month: 4 })
+  })
+  it('em 12 meses (nov/2026 a out/2027), R$ 231 por mês juntam R$ 2.772', () => {
+    const moves = Array.from({ length: 12 }, (_, i) => move(23100, `${i < 2 ? 2026 : 2027}-${String(((10 + i) % 12) + 1).padStart(2, '0')}-05`))
+    expect(moves.reduce((a, m) => a + m.amount_cents, 0)).toBe(277200)
+  })
+  it('por data: R$ 4.000 até novembro/2027 são 13 meses (nov/2026 a nov/2027, os dois contam): R$ 308 por mês', () => {
+    const s = goalStatus(goal({ mode: 'data', target_cents: 400000, target_month: '2027-11', monthly_cents: null }), [], NOV)
+    expect(s.perMonth).toBe(30800) // 4.000 ÷ 13 = 307,69 → 308
+  })
+  it('"livre" com valor final também mostra quando chega', () => {
+    const s = goalStatus(goal({ mode: 'livre', target_cents: 400000, monthly_cents: 23100 }), [], NOV)
+    expect(s.eta).toEqual({ year: 2028, month: 4 })
+  })
+})

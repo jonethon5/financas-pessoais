@@ -58,10 +58,11 @@ export function goalStatus(goal: Goal, moves: GoalMove[], ym: YearMonth): GoalSt
     const monthsLeft = Math.max(1, monthsBetween(ym, until) + 1)
     perMonth = done ? 0 : upToReal(Math.max(0, target - savedBeforeMonth) / monthsLeft)
     eta = done ? ym : until
-  } else if (goal.mode === 'mensal' && target != null) {
-    perMonth = done ? 0 : (goal.monthly_cents ?? 0)
+  } else if ((goal.mode === 'mensal' || goal.mode === 'livre') && target != null) {
+    // Por mês (e "livre" com valor final): previsão de quando chega
+    perMonth = done ? 0 : (goal.monthly_cents ?? (goal.mode === 'mensal' ? 0 : null))
     if (done) eta = ym
-    else if (perMonth > 0) {
+    else if (perMonth != null && perMonth > 0) {
       // Conta o depósito deste mês (o que já foi ou o do plano) e vê quantos meses faltam depois dele
       const afterThisMonth = target - Math.max(saved, savedBeforeMonth + perMonth)
       eta = afterThisMonth <= 0 ? ym : addMonths(ym, Math.ceil(afterThisMonth / perMonth))

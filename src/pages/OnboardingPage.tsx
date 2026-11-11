@@ -172,7 +172,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFin
         if (wantsDream && dream && dreamCents && !existing.some((g) => g.name === dream.label)) {
           await b.insert('goals', [{
             name: dream.label, template: dream.template, icon: dream.icon, color: dream.color, photo_path: null, motivation: null,
-            concrete_name: null, concrete_cents: null, mode: 'livre', target_cents: dreamCents, target_month: null, monthly_cents: reserveMonthly, priority: 2, archived: false, completed_at: null,
+            concrete_name: null, concrete_cents: null, mode: 'mensal', target_cents: dreamCents, target_month: null, monthly_cents: reserveMonthly, priority: 2, archived: false, completed_at: null,
           }])
         }
         if (wantsReserve) {
