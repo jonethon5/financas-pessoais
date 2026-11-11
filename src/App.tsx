@@ -14,6 +14,7 @@ import { OnboardingPage } from './pages/OnboardingPage'
 import { HabitsPage } from './pages/HabitsPage'
 import { LearnPage, LessonPage } from './pages/LearnPages'
 import { HealthPage } from './pages/HealthPage'
+import { AssistantPage } from './pages/AssistantPage'
 import { BanksPage } from './pages/you/BanksPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { useProfile } from './data/hooks'
@@ -77,6 +78,7 @@ function LoggedIn() {
         <Route path="habitos" element={<HabitsPage />} />
         <Route path="aprender" element={<LearnPage />} />
         <Route path="saude" element={<HealthPage />} />
+        <Route path="assistente" element={<AssistantPage />} />
         <Route path="aprender/:id" element={<LessonPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />

@@ -22,7 +22,9 @@ O nome do app fica num lugar só: [`brand.json`](brand.json). Trocou lá, trocou
       projeção do ano, revisão da semana e retrospectiva do mês em stories
 - [ ] 4. Gráficos
 - [ ] 5. Gamificação
-- [ ] 6. Assistente (IA)
+- [x] 6. Assistente (IA): diagnóstico do mês, plano de corte com valores, "posso comprar isso?", sair das dívidas e
+      perguntas livres, em 3 tons; o app faz as contas e o Gemini só escreve, usando as lições do Aprender
+- [x] Extra: Aprender (16 métodos de livros e estudos, com exemplos para quem ganha R$ 3.000) e Saúde financeira (nota de 0 a 100)
 - [ ] 7. Importar/exportar e avisos
 - [ ] 8. Beta: revisão geral e passo a passo completo
 
@@ -53,6 +55,7 @@ Enquanto isso não for feito, o site publicado fica em modo demonstração. Tudo
 | `SUPABASE_DB_PASSWORD` | a senha do banco |
 | `SETUP_CODE` | invente um código (ex.: `poupei-2026-xyz`): ele cria a conta de administrador |
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | *(conexão com o banco, passo 2)* |
+| `GEMINI_API_KEY` | *(assistente com IA, passo 3)* |
 
 5. **Actions → Supabase (banco, funções e login) → Run workflow**, depois **Actions → Deploy no GitHub Pages → Run workflow**.
 6. Abra o app → **Configure a conta de administrador** → digite o `SETUP_CODE`, seu nome, e-mail e senha.
@@ -75,6 +78,16 @@ O que o app faz com os dados: saída da conta e compra no cartão viram gasto (c
 entrada vira renda; o salário e as contas fixas que o app já lançou são **confirmados**, não duplicados; pagamento de
 fatura, caixinhas do banco e transferências entre as suas contas são ignorados; compra parcelada vira "3/10". Corrigiu
 a categoria de um lançamento que veio do banco? O app aprende e acerta os próximos parecidos.
+
+### 3. Assistente com IA (Gemini, grátis)
+
+Sem a chave, o assistente funciona do mesmo jeito, mas quem responde é o próprio app (respostas prontas com os números).
+
+1. Entre em <https://aistudio.google.com/apikey> com uma conta Google → **Create API key** (não pede cartão).
+2. Cadastre a chave no secret `GEMINI_API_KEY` do GitHub e rode o workflow do Supabase de novo.
+
+Cada pessoa pode fazer 20 perguntas por dia. Vai para o Google só o resumo dos números (totais por categoria e caixinha),
+sem nome, e-mail, foto nem a descrição dos lançamentos. O assistente nunca recomenda investimentos.
 
 ## Desenvolvimento
 

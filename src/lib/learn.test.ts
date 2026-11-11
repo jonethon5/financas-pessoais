@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GROUPS, LESSONS, lessonOfDay } from './learn'
+import lessonsFile from '../../supabase/functions/_shared/lessons.ts?raw'
 
 // Rotas que existem no app (src/App.tsx)
 const ROUTES = [/^\/separar$/, /^\/caixinhas(\/nova)?$/, /^\/habitos$/, /^\/lancar\?tipo=dia$/, /^\/mes\?aba=orcamento$/]
@@ -23,5 +24,15 @@ describe('Aprender', () => {
     expect(lessonOfDay(1)).toBe(LESSONS[1])
     expect(lessonOfDay(-1)).toBe(LESSONS[LESSONS.length - 1])
     expect(lessonOfDay(LESSONS.length)).toBe(LESSONS[0])
+  })
+})
+
+describe('base do assistente', () => {
+  it('o arquivo gerado para a IA está em dia com as lições (rode npm run brand)', () => {
+    const text = lessonsFile
+    for (const l of LESSONS) {
+      expect(text, l.id).toContain(JSON.stringify(l.title).slice(1, -1))
+      expect(text, l.id).toContain(JSON.stringify(l.example).slice(1, -1))
+    }
   })
 })

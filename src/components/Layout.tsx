@@ -17,7 +17,7 @@ const TABS: Tab[] = [
 ]
 
 /** Telas de formulário ocupam a tela toda, sem a barra de abas (como as telas de "Novo" do iPhone). */
-const FULL_SCREEN = [/^\/voce\/(perfil|senha|email|excluir|sugestao)$/, /^\/lancar/, /^\/lancamento\//, /^\/separar/, /^\/caixinhas\/(nova|.+\/editar)$/, /^\/(termos|privacidade)$/]
+const FULL_SCREEN = [/^\/voce\/(perfil|senha|email|excluir|sugestao)$/, /^\/lancar/, /^\/lancamento\//, /^\/separar/, /^\/caixinhas\/(nova|.+\/editar)$/, /^\/(termos|privacidade)$/, /^\/assistente$/]
 
 function useOnline() {
   const [online, setOnline] = useState(navigator.onLine)

@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "brand": "node scripts/sync-brand.mjs",
-    "predev": "node scripts/sync-brand.mjs",
-    "prebuild": "node scripts/sync-brand.mjs",
+    "brand": "node scripts/sync-brand.mjs && node scripts/sync-lessons.mjs",
+    "predev": "npm run brand",
+    "prebuild": "npm run brand",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

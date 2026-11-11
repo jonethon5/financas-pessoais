@@ -132,11 +132,11 @@ export const LESSONS: Lesson[] = [
     title: 'Quantas horas de trabalho custa?',
     short: 'Traduza o preço em horas de trabalho antes de comprar.',
     body: [
-      'R$ 300 parece só um número. “22 horas de trabalho” pesa diferente. Pensar no preço em horas da sua vida ajuda a decidir o que vale a pena.',
+      'R$ 300 parece só um número. “19 horas de trabalho” pesa diferente. Pensar no preço em horas da sua vida ajuda a decidir o que vale a pena.',
       'O app já mostra isso quando você lança um gasto e tem o salário informado.',
     ],
-    steps: ['Divida o salário pelas horas que trabalha no mês (com 44 horas por semana, são umas 220).', 'Antes de comprar, pense: isso vale essas horas?'],
-    example: 'R$ 3.000 ÷ 220 horas ≈ R$ 13,60 por hora. Um celular de R$ 1.500 custa umas 110 horas: quase 3 semanas de trabalho.',
+    steps: ['Divida o salário pelas horas que trabalha no mês (com 44 horas por semana, são umas 190).', 'Antes de comprar, pense: isso vale essas horas?'],
+    example: 'R$ 3.000 ÷ 190 horas ≈ R$ 15,80 por hora. Um celular de R$ 1.500 custa umas 95 horas: mais de 2 semanas de trabalho.',
     sources: [{ kind: 'livro', text: 'Vicki Robin e Joe Dominguez, “Your Money or Your Life” (1992)' }],
   },
   {

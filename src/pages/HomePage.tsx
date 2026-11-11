@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useState } from 'react'
 import {
-  ArrowCircleDown, Bank, BookOpenText, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass, List as MenuIcon,
+  ArrowCircleDown, Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass, List as MenuIcon,
   PiggyBank, Receipt, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
@@ -35,6 +35,7 @@ const SHORTCUTS: { to: string; label: string; icon: PhosphorIcon }[] = [
   { to: '/lancar?tipo=dia', label: 'Gasto', icon: Receipt },
   { to: '/caixinhas', label: 'Guardar', icon: PiggyBank },
   { to: '/aprender', label: 'Aprender', icon: BookOpenText },
+  { to: '/assistente', label: 'Assistente', icon: ChatCircleDots },
   { to: '/lancar?tipo=renda', label: 'Renda', icon: ArrowCircleDown },
   { to: '/separar', label: 'Separar', icon: SplitHorizontal },
   { to: '/mes', label: 'Resumo', icon: ChartDonut },
