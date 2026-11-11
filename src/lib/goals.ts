@@ -11,7 +11,7 @@ export const GOAL_TEMPLATES: GoalTemplate[] = [
   { key: 'presente', name: 'Presente', icon: 'gift', color: '#D6457A', mode: 'data', hint: 'Aniversário, Natal, Dia das Mães: sem aperto na data.', why: 'Ver a cara de alegria de quem eu gosto.' },
   { key: 'estudos', name: 'Estudos', icon: 'graduation', color: '#0F2433', mode: 'mensal', hint: 'Curso, faculdade, livros, certificação.', why: 'Investir em mim para ganhar mais e trabalhar com o que gosto.' },
   { key: 'carro', name: 'Carro', icon: 'car', color: '#C2410C', mode: 'mensal', hint: 'Entrada, manutenção, IPVA ou a habilitação.', why: 'Ter liberdade para ir e vir e mais tempo com a família.' },
-  { key: 'livre', name: 'Criar do zero', icon: 'piggy', color: '#0F9D6B', mode: 'livre', hint: 'Do seu jeito: com ou sem valor final.', why: 'O que esse dinheiro vai mudar na sua vida?' },
+  { key: 'livre', name: 'Outro', icon: 'piggy', color: '#0F9D6B', mode: 'livre', hint: 'Qualquer outro objetivo: você dá o nome, com ou sem valor final.', why: 'O que esse dinheiro vai mudar na sua vida?' },
 ]
 
 export const MILESTONES = [0.25, 0.5, 0.75, 1]

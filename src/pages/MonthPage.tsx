@@ -136,7 +136,10 @@ function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string
       </div>
       <div style={i(1)}>
         <Card className="flex items-center justify-between px-4 py-3.5">
-          <p className="text-[0.9375rem] text-muted">Balanço do mês</p>
+          <p className="text-[0.9375rem] leading-tight text-muted">
+            Balanço do mês
+            <span className="block text-[0.75rem]">renda − despesas, antes das caixinhas</span>
+          </p>
           <p className={`text-[1.375rem] font-bold ${balance < 0 ? 'text-danger-strong' : ''}`}>
             {balance < 0 ? '−' : '+'}
             <AnimatedMoney cents={Math.abs(balance)} />

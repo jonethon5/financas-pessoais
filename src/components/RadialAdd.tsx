@@ -2,13 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ArrowCircleDown, CalendarCheck, PiggyBank, Receipt, Stack, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { Plus } from 'lucide-react'
-import { useBackend } from '../data/backend'
-import { insertTxWithRules, useHistory, useWrite } from '../data/finance'
-import { quickPicks } from '../lib/budget'
-import { todayISO } from '../lib/dates'
-import { formatBRL } from '../lib/money'
-import { friendlyError } from '../lib/supabase'
-import { useToast } from './Toast'
 
 type Item = { label: string; to: string; icon: PhosphorIcon; color: string }
 
@@ -25,15 +18,9 @@ const ANGLES = [168, 129, 90, 51, 12] // graus (90 = bem em cima do "+")
 
 /**
  * Menu do "+": escurece a tela e abre as opções em arco acima do botão (que vira um X).
- * Em cima, os gastos mais comuns para lançar de novo com um toque.
  */
 export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
-  const toast = useToast()
-  const backend = useBackend()
-  const write = useWrite()
-  const history = useHistory(3)
-  const picks = quickPicks(history.data ?? []).slice(0, 4)
   const [shown, setShown] = useState(false)
 
   // Monta e depois anima (abre do centro para fora)
@@ -55,38 +42,11 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
     navigate(to)
   }
 
-  async function launch(p: (typeof picks)[number]) {
-    onClose()
-    const id = crypto.randomUUID()
-    try {
-      await write.mutateAsync((b) =>
-        insertTxWithRules(b, { id, kind: 'expense', type: 'dia', amount_cents: p.amountCents, date: todayISO(), description: p.description, category_id: p.categoryId, recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null, paid: true, skipped: false, note: null }),
-      )
-      toast(`${p.description} · ${formatBRL(p.amountCents)}`, { label: 'Desfazer', run: () => write.mutate(() => backend.remove('transactions', [id])) })
-    } catch (err) {
-      toast(friendlyError(err))
-    }
-  }
-
   return (
     <div role="dialog" aria-modal="true" aria-label="Lançar" className="fixed inset-0 z-40">
       <button type="button" aria-label="Fechar" onClick={onClose} className={`absolute inset-0 bg-[#0B1622]/60 backdrop-blur-[3px] transition-opacity duration-300 ${shown ? 'opacity-100' : 'opacity-0'}`} />
 
       <div className="pointer-events-none absolute bottom-0 left-1/2 w-full max-w-[30rem] -translate-x-1/2">
-        {/* Lançar de novo com um toque */}
-        {picks.length > 0 && (
-          <div className={`pointer-events-auto mx-4 mb-[13.5rem] transition-all duration-300 ${shown ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
-            <p className="mb-2 text-center text-[0.8125rem] font-semibold text-white/80">Lançar de novo</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {picks.map((p) => (
-                <button key={p.description} type="button" onClick={() => void launch(p)} className="press rounded-full bg-white/95 px-3.5 py-2 text-[0.875rem] font-semibold text-[#0F2433] shadow-lg">
-                  {p.description} · {formatBRL(p.amountCents)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Mesmo lugar do "+" da barra de abas */}
         <div className="px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
           <div className="grid grid-cols-5 border border-transparent px-1 py-1">

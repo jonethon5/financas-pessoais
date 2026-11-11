@@ -343,18 +343,24 @@ export function HomePage() {
       ))}
 
       <Section title="Seu mês" to="/mes">
-        <div className="grid grid-cols-3 gap-2">
+        {/* A conta fecha: renda − gastos − caixinhas = sobra */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
           {[
-            ['Entrou', s.income, ''],
-            ['Saiu', s.committed + s.daily, ''],
-            ['Sobra prevista', s.free, s.free < 0 ? 'text-danger-strong' : 'text-primary-strong'],
-          ].map(([label, cents, cls]) => (
+            ['Renda do mês', s.income, '', ''],
+            ['Gastos do mês', s.committed + s.daily, '', '−'],
+            ['Para as caixinhas', s.save, '', '−'],
+            ['Sobra prevista', s.free, s.free < 0 ? 'text-danger-strong' : 'text-primary-strong', '='],
+          ].map(([label, cents, cls, op]) => (
             <div key={label as string}>
               <p className="text-[0.8125rem] text-muted">{label}</p>
-              <Money cents={cents as number} className={`text-[1rem] font-bold ${cls}`} />
+              <p className={`text-[1rem] font-bold ${cls}`}>
+                {op && <span className="mr-1 text-muted">{op}</span>}
+                <Money cents={cents as number} />
+              </p>
             </div>
           ))}
         </div>
+        <p className="mt-2 text-[0.8125rem] text-muted">Contando as contas do mês que ainda vão vencer.</p>
         {alerts.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {alerts.map((a) => (

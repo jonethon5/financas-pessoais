@@ -461,7 +461,6 @@ export function ChartsPage() {
 
         {tab === 'geral' && (() => {
           const health = financialHealth({ today: d.today, monthTxs: d.txs, history: d.history, goals: d.goals, goalMoves: d.goalMoves, categories: d.categories, hasSalary: d.profile.salary_cents != null && d.profile.payday != null })
-          const savedThisMonth = d.goals.reduce((a, g) => a + Math.max(0, g.status.savedThisMonth), 0)
           return (
             <>
               <Link to="/saude" className="press flex items-center gap-4 rounded-[1.25rem] bg-surface p-4">
@@ -473,8 +472,8 @@ export function ChartsPage() {
                 </div>
                 <ChevronRight className="size-5 text-faint" />
               </Link>
-              <ChartCard title="Para onde foi o dinheiro" hint="Tudo o que entrou no mês, dividido.">
-                <PartsBar parts={salaryFlow(d.txs, ym, savedThisMonth)} colors={['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)', 'var(--surface-2)']} empty="Informe o salário ou lance uma renda para ver." />
+              <ChartCard title="Para onde vai o dinheiro do mês" hint="A renda do mês dividida: contas, dia a dia, caixinhas e o que sobra (igual à tela inicial).">
+                <PartsBar parts={salaryFlow(d.summary)} colors={['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)', 'var(--surface-2)']} empty="Informe o salário ou lance uma renda para ver." />
               </ChartCard>
               <ChartCard title="Saldo do mês dia a dia" hint="Linha cheia: o que já aconteceu. Tracejada: a previsão com as contas que vão vencer e o seu ritmo de gastos.">
                 <BalanceLine data={balanceProjection(d.txs, ym, d.today)} />

@@ -114,6 +114,11 @@ describe('recomeço e futuro', () => {
     const moves = [move(270000, '2026-06-01', { kind: 'inicial' }), move(30000, '2026-08-06'), move(30000, '2026-09-06'), move(30000, '2026-10-06')]
     expect(projection(moves, '2026-11-04')).toEqual({ pace: 30000, monthsLeft: 2, saved: 360000, projected: 420000 })
   })
+  it('o que já foi guardado neste mês não conta duas vezes', () => {
+    const moves = [move(270000, '2026-06-01', { kind: 'inicial' }), move(30000, '2026-08-06'), move(30000, '2026-09-06'), move(30000, '2026-10-06'), move(30000, '2026-11-03')]
+    // antes: 390.000 + 2 × 30.000 = 450.000 (contava novembro duas vezes)
+    expect(projection(moves, '2026-11-04').projected).toBe(420000)
+  })
 })
 
 describe('revisão da semana', () => {

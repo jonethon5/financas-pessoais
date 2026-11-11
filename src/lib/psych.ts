@@ -208,7 +208,9 @@ export function projection(moves: GoalMove[], today: string): { pace: number; mo
   const pace = Math.max(0, Math.round(net / 3))
   const saved = moves.reduce((a, m) => a + m.amount_cents, 0)
   const monthsLeft = 12 - ym.month + 1
-  return { pace, monthsLeft, saved, projected: saved + pace * monthsLeft }
+  // O mês atual conta só o que ainda falta guardar nele (o que já foi guardado está em "saved")
+  const thisMonth = moves.filter((m) => m.kind !== 'inicial' && m.date.slice(0, 7) === monthKey(ym)).reduce((a, m) => a + m.amount_cents, 0)
+  return { pace, monthsLeft, saved, projected: saved + Math.max(0, pace - thisMonth) + pace * (monthsLeft - 1) }
 }
 
 // ---------------------------------------------------------------------------

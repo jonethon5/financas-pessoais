@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BankAccount, Category, Transaction } from '../types'
+import { summarizeMonth } from './budget'
 import { average, balanceProjection, byCategory, byMethod, byRecurrence, dailySpend, monthlySeries, salaryFlow, savedSeries } from './charts'
 
 const NOV = { year: 2026, month: 11 }
@@ -68,9 +69,11 @@ describe('gráficos', () => {
     expect(d[9].cents).toBe(0) // aluguel é fixo, não dia a dia
   })
 
-  it('para onde foi o salário', () => {
-    const f = salaryFlow(month, NOV, 50000)
+  it('para onde vai o dinheiro: a sobra é a mesma da tela inicial', () => {
+    const s = summarizeMonth(month, 50000)
+    const f = salaryFlow(s)
     expect(f.map((x) => [x.key, x.cents])).toEqual([['fixo', 100000], ['parcela', 20000], ['dia', 80000], ['caixinhas', 50000], ['sobra', 50000]])
+    expect(f.find((x) => x.key === 'sobra')!.cents).toBe(s.free)
     expect(f.reduce((a, x) => a + x.pct, 0)).toBeCloseTo(1)
   })
 

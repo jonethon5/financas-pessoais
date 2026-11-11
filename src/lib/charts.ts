@@ -2,6 +2,7 @@
  * Contas dos gráficos (tela Gráficos). Tudo em centavos; a tela só desenha.
  */
 import type { BankAccount, Category, GoalMove, Transaction } from '../types'
+import type { MonthSummary } from './budget'
 import { addMonths, daysInMonth, dayOf, isoDate, monthKey, monthOf, monthShort, type YearMonth } from './dates'
 
 const live = (t: Transaction) => !t.skipped
@@ -116,20 +117,18 @@ export function savedSeries(moves: GoalMove[], ym: YearMonth, n: number): { key:
   })
 }
 
-/** Para onde foi o salário: fixos, parcelas, dia a dia, caixinhas e o que sobra (o que falta, se passou). */
-export function salaryFlow(monthTxs: Transaction[], ym: YearMonth, savedThisMonth: number): Part[] {
-  const key = monthKey(ym)
-  const t = monthTxs.filter((x) => live(x) && inMonth(x, key))
-  const of = (type: Transaction['type']) => sum(t.filter((x) => x.type === type).map((x) => x.amount_cents))
-  const income = of('salario') + of('extra')
-  const used = of('fixo') + of('parcela') + of('dia') + Math.max(0, savedThisMonth)
+/**
+ * Para onde vai o dinheiro do mês: fixos, parcelas, dia a dia, caixinhas (o plano do mês) e a sobra.
+ * Usa o MESMO resumo da tela inicial, então a sobra aqui é igual à "Sobra do mês" de lá.
+ */
+export function salaryFlow(s: MonthSummary): Part[] {
   const entries: [string, string, number][] = [
-    ['fixo', 'Fixos', of('fixo')],
-    ['parcela', 'Parcelas', of('parcela')],
-    ['dia', 'Dia a dia', of('dia')],
-    ['caixinhas', 'Caixinhas', Math.max(0, savedThisMonth)],
-    ['sobra', 'Sobra', Math.max(0, income - used)],
+    ['fixo', 'Fixos', s.fixed],
+    ['parcela', 'Parcelas', s.installments],
+    ['dia', 'Dia a dia', s.daily],
+    ['caixinhas', 'Caixinhas', s.save],
+    ['sobra', 'Sobra', Math.max(0, s.free)],
   ]
-  const total = Math.max(income, used)
+  const total = Math.max(s.income, s.fixed + s.installments + s.daily + s.save)
   return entries.map(([k, label, cents]) => ({ key: k, label, cents, pct: total ? cents / total : 0 }))
 }

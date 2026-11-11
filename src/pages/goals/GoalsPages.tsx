@@ -87,8 +87,8 @@ export function GoalsPage() {
         }
       />
       {items.length === 0 ? (
-        <EmptyState art={<MascotArt name="tela-metas" px={170} />} title="Sua primeira caixinha" action={<Button onClick={() => navigate('/caixinhas/nova?modelo=reserva')}>Começar pela reserva de emergência</Button>}>
-          Separe o dinheiro de cada objetivo: viagem, reserva, aquela compra. O app mostra quanto guardar por mês para chegar lá.
+        <EmptyState art={<MascotArt name="tela-metas" px={170} />} title="Sua primeira caixinha">
+          Separe o dinheiro de cada objetivo: viagem, reserva, aquela compra. Toque no + lá em cima para criar. Dica: comece pela reserva de emergência.
         </EmptyState>
       ) : (
         <div className="stagger flex flex-col gap-5">
@@ -493,7 +493,7 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
   const fileInput = useRef<HTMLInputElement>(null)
 
   const draft: Goal = {
-    id: goal?.id ?? 'novo', user_id: '', name: name || template.name, template: template.key, icon, color, photo_path: removePhoto ? null : (goal?.photo_path ?? null), motivation: motivation.trim() || null, concrete_name: concreteName.trim() || null, concrete_cents: parseBRL(concretePrice),
+    id: goal?.id ?? 'novo', user_id: '', name: name || (template.key === 'livre' ? 'Minha caixinha' : template.name), template: template.key, icon, color, photo_path: removePhoto ? null : (goal?.photo_path ?? null), motivation: motivation.trim() || null, concrete_name: concreteName.trim() || null, concrete_cents: parseBRL(concretePrice),
     mode, target_cents: parseBRL(target), target_month: mode === 'data' ? until : null, monthly_cents: parseBRL(monthly), priority: goal?.priority ?? nextPriority,
     archived: false, completed_at: goal?.completed_at ?? null, created_at: goal?.created_at ?? '',
   }
@@ -547,11 +547,11 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
             <div className="relative h-32">
               <img src={photoPreview} alt="" className="absolute inset-0 size-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-              <p className="absolute bottom-3 left-4 text-[1.25rem] font-extrabold text-white">{name || template.name}</p>
+              <p className="absolute bottom-3 left-4 text-[1.25rem] font-extrabold text-white">{name || (template.key === 'livre' ? 'Minha caixinha' : template.name)}</p>
             </div>
           ) : (
             <GoalCover goal={coverGoal} className="h-32" iconSize={56}>
-              <p className="px-4 pt-[4.75rem] text-[1.25rem] leading-tight font-extrabold text-white">{name || template.name}</p>
+              <p className="px-4 pt-[4.75rem] text-[1.25rem] leading-tight font-extrabold text-white">{name || (template.key === 'livre' ? 'Minha caixinha' : template.name)}</p>
             </GoalCover>
           )}
           <div className="flex gap-2 bg-surface p-3">
