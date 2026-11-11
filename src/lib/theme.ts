@@ -53,3 +53,39 @@ export function liftForDark(hex: string, isDark: boolean): string {
   const mix = lum < 0.2 ? 0.55 : lum < 0.4 ? 0.3 : lum < 0.55 ? 0.12 : 0
   return `#${rgb.map((v) => Math.round(v + (255 - v) * mix).toString(16).padStart(2, '0')).join('')}`
 }
+
+// ---------------------------------------------------------------------------
+// Fonte (teste do beta: a pessoa escolhe e a gente decide a definitiva)
+// ---------------------------------------------------------------------------
+export type FontPref = 'manrope' | 'maven' | 'jakarta' | 'dm' | 'nunito'
+export const FONTS: { value: FontPref; label: string; family: string; hint: string }[] = [
+  { value: 'manrope', label: 'Manrope', family: 'Manrope Variable', hint: 'A atual: moderna e limpa' },
+  { value: 'maven', label: 'Maven Pro', family: 'Maven Pro Variable', hint: 'Arredondada, parecida com a do Mobills' },
+  { value: 'jakarta', label: 'Plus Jakarta Sans', family: 'Plus Jakarta Sans Variable', hint: 'Comum em apps de banco digital' },
+  { value: 'dm', label: 'DM Sans', family: 'DM Sans Variable', hint: 'Simples e compacta' },
+  { value: 'nunito', label: 'Nunito', family: 'Nunito Variable', hint: 'Bem arredondada e amigável' },
+]
+const FONT_KEY = 'poupei:fonte'
+
+export function getFontPref(): FontPref {
+  try {
+    const v = localStorage.getItem(FONT_KEY)
+    return FONTS.some((f) => f.value === v) ? (v as FontPref) : 'manrope'
+  } catch {
+    return 'manrope'
+  }
+}
+
+export function applyFont(pref = getFontPref()) {
+  if (pref === 'manrope') document.documentElement.removeAttribute('data-font')
+  else document.documentElement.setAttribute('data-font', pref)
+}
+
+export function setFontPref(pref: FontPref) {
+  try {
+    localStorage.setItem(FONT_KEY, pref)
+  } catch {
+    /* sem armazenamento: vale só agora */
+  }
+  applyFont(pref)
+}

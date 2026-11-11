@@ -89,6 +89,7 @@ function LoggedIn() {
         <Route path="voce/bancos" element={<BanksPage />} />
         <Route path="voce" element={<YouPage />} />
         <Route path="ajustes" element={<SettingsPage />} />
+        <Route path="ajustes/:secao" element={<SettingsPage />} />
         <Route path="voce/perfil" element={<ProfileEditPage />} />
         <Route path="voce/senha" element={<PasswordPage />} />
         <Route path="voce/email" element={<EmailPage />} />

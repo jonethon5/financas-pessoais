@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BankLogo } from '../components/BankLogo'
 import { CategoryDonut } from '../components/CategoryDonut'
 import { CategoryIcon } from '../components/CategoryIcon'
@@ -262,6 +262,72 @@ function Heatmap({ days, ymFirst }: { days: { day: number; date: string; cents: 
   )
 }
 
+/** Pizza (partes de um todo) com a legenda dizendo valor e %. */
+function PartsPie({ parts, colors = SERIES }: { parts: Part[]; colors?: string[] }) {
+  const money = useMoney()
+  const shown = parts.map((p, i) => ({ ...p, color: colors[i % colors.length] })).filter((p) => p.cents > 0)
+  if (!shown.length) return <p className="text-muted">Nada neste mês.</p>
+  return (
+    <div className="flex items-center gap-4">
+      <div className="size-36 shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={shown} dataKey="cents" nameKey="label" outerRadius="100%" startAngle={90} endAngle={-270} stroke="var(--surface)" strokeWidth={2} isAnimationActive animationDuration={800}>
+              {shown.map((p) => (
+                <Cell key={p.key} fill={p.color} />
+              ))}
+            </Pie>
+            <Tooltip content={({ active, payload }) => (active && payload?.[0] ? <TipBox title={String(payload[0].name)} rows={[{ label: pct((payload[0].payload as Part).pct), value: money(payload[0].value as number), color: (payload[0].payload as { color: string }).color }]} /> : null)} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="flex flex-1 flex-col gap-2.5">
+        {shown.map((p) => (
+          <li key={p.key} className="text-[0.9375rem]">
+            <span className="flex items-center gap-2">
+              <span className="size-2.5 shrink-0 rounded-full" style={{ background: p.color }} />
+              <span className="flex-1">{p.label}</span>
+              <span className="num text-[0.8125rem] text-muted">{pct(p.pct)}</span>
+            </span>
+            <span className="num block pl-[1.125rem] font-semibold">{money(p.cents)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Área: evolução de um total ao longo dos meses. */
+function MonthArea({ data, field, label }: { data: { key: string; label: string; [k: string]: number | string }[]; field: string; label: string }) {
+  const money = useMoney()
+  const first = (data[0]?.[field] as number) ?? 0
+  const last = (data.at(-1)?.[field] as number) ?? 0
+  return (
+    <>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+            <defs>
+              <linearGradient id="viz-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--viz-3)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--viz-3)" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke="var(--viz-grid)" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--viz-axis)', fontSize: 12 }} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--viz-axis)', fontSize: 11 }} tickFormatter={short} width={60} />
+            <Tooltip cursor={{ stroke: 'var(--viz-axis)', strokeDasharray: '3 3' }} content={({ active, payload }) => (active && payload?.[0] ? <TipBox title={String(payload[0].payload.label)} rows={[{ label, value: money(payload[0].value as number), color: 'var(--viz-3)' }]} /> : null)} />
+            <Area type="monotone" dataKey={field} stroke="var(--viz-3)" strokeWidth={2} fill="url(#viz-area)" dot={{ r: 3, fill: 'var(--viz-3)', strokeWidth: 0 }} activeDot={{ r: 5 }} isAnimationActive animationDuration={800} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="mt-2 text-[0.875rem] text-muted">
+        {last >= first ? 'Cresceu' : 'Diminuiu'} <strong className="text-ink">{money(Math.abs(last - first))}</strong> no período.
+      </p>
+    </>
+  )
+}
+
 type Tab = 'despesas' | 'receitas' | 'geral'
 
 /** Gráficos: despesas, receitas e visão geral do mês escolhido, com evolução de 6 ou 12 meses. */
@@ -321,7 +387,7 @@ export function ChartsPage() {
               <Ranking items={byCategory(d.txs, 'expense', d.categories)} />
             </ChartCard>
             <ChartCard title="Por recorrência" hint="O que se repete todo mês e o que é do dia a dia.">
-              <PartsBar parts={byRecurrence(d.txs, 'expense')} />
+              <PartsPie parts={byRecurrence(d.txs, 'expense')} />
             </ChartCard>
             <ChartCard title="Débito × crédito" hint="Só os gastos que vieram do banco têm a forma de pagamento.">
               <PartsBar parts={byMethod(d.txs, accounts.data ?? [])} />
@@ -375,7 +441,7 @@ export function ChartsPage() {
               <Ranking items={byCategory(d.txs, 'income', d.categories)} />
             </ChartCard>
             <ChartCard title="Por recorrência" hint="Salário (todo mês) e rendas extras (freela, 13º, Pix recebido).">
-              <PartsBar parts={byRecurrence(d.txs, 'income')} />
+              <PartsPie parts={byRecurrence(d.txs, 'income')} />
             </ChartCard>
             <ChartCard title={`Evolução da renda (${range} meses)`}>
               <MonthBars data={series} field="income" selectedKey={key} label="Renda" />
@@ -407,7 +473,7 @@ export function ChartsPage() {
                 <IncomeVsExpense data={series} />
               </ChartCard>
               <ChartCard title="Evolução do que você guardou" hint="Total nas caixinhas no fim de cada mês.">
-                <MonthBars data={savedSeries(d.goalMoves, ym, range)} field="saved" selectedKey={key} label="Guardado" />
+                <MonthArea data={savedSeries(d.goalMoves, ym, range)} field="saved" label="Guardado" />
               </ChartCard>
             </>
           )

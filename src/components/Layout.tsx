@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Plus, WifiOff } from 'lucide-react'
 import { CalendarDots, ChartBar, House, PiggyBank, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useAuth } from '../auth/AuthProvider'
 import { useBankAutoSync, useRealtime } from '../data/finance'
 import { useToast } from './Toast'
-import { AddSheet } from './AddSheet'
+import { RadialAdd } from './RadialAdd'
+import { MenuContext } from './MenuContext'
+import { MenuSheet } from './MenuSheet'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
 
@@ -40,8 +42,8 @@ function TabItem({ to, label, icon: Icon }: Tab) {
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `flex h-[3.25rem] flex-col items-center justify-center gap-[3px] text-[0.625rem] font-medium tracking-wide transition active:opacity-60 ${
-          isActive ? 'text-primary' : 'text-faint'
+        `relative z-10 flex h-[3.25rem] flex-col items-center justify-center gap-[3px] text-[0.625rem] font-medium tracking-wide transition-colors duration-300 active:opacity-60 ${
+          isActive ? 'text-ink' : 'text-faint'
         }`
       }
     >
@@ -65,12 +67,23 @@ export function Layout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [addOpen, setAddOpen] = useState(false)
+  const closeAdd = useCallback(() => setAddOpen(false), [])
+  // Trocou de tela (inclusive pelo voltar do celular): fecha o menu e o "+"
+  useEffect(() => {
+    setMenuOpen(false)
+    setAddOpen(false)
+  }, [pathname])
+  const [menuOpen, setMenuOpen] = useState(false)
   useRealtime()
   const toast = useToast()
   useBankAutoSync((n) => toast(`${n} ${n === 1 ? 'lançamento novo' : 'lançamentos novos'} do banco`))
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
+  // Vidro sob a aba ativa: posição na grade de 5 (o "+" fica no meio)
+  const activeTab = TABS.findIndex((t) => (t.to === '/' ? pathname === '/' : pathname === t.to || pathname.startsWith(`${t.to}/`)))
+  const slot = activeTab < 0 ? -1 : [0, 1, 3, 4][activeTab]
 
   return (
+    <MenuContext.Provider value={fullScreen ? null : () => setMenuOpen(true)}>
     <div className="mx-auto min-h-dvh w-full max-w-[30rem] bg-bg">
       {mode === 'demo' && (
         <p className="pt-safe px-4 pt-1.5 text-center text-[0.75rem] font-medium text-muted">
@@ -109,7 +122,12 @@ export function Layout() {
           aria-label="Principal"
           className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 border-t border-line bg-bg/90 backdrop-blur-xl backdrop-saturate-150"
         >
-          <ul className="grid grid-cols-5 items-center px-1">
+          <ul className="relative grid grid-cols-5 items-center px-1">
+            <span
+              aria-hidden
+              className={`tab-glass absolute top-1 h-[2.75rem] transition-[left,opacity] duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)] ${slot < 0 ? 'opacity-0' : 'opacity-100'}`}
+              style={{ left: `calc(0.25rem + ${Math.max(0, slot)} * (100% - 0.5rem) / 5 + 0.375rem)`, width: 'calc((100% - 0.5rem) / 5 - 0.75rem)' }}
+            />
             <li>
               <TabItem {...TABS[0]} />
             </li>
@@ -136,7 +154,9 @@ export function Layout() {
         </nav>
       )}
 
-      <AddSheet open={addOpen} onClose={() => setAddOpen(false)} />
+      <RadialAdd open={addOpen} onClose={closeAdd} />
+      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
     </div>
+    </MenuContext.Provider>
   )
 }

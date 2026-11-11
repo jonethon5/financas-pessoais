@@ -3,6 +3,7 @@ import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { formatBRL } from '../lib/money'
 import { useCountUp, useGrow } from '../lib/motion'
 import { useHiddenValues } from '../lib/privacy'
+import { MenuButton } from './MenuContext'
 
 const variants = {
   primary: 'bg-primary text-on-primary active:bg-primary-strong disabled:opacity-40',
@@ -354,8 +355,11 @@ export function NavBar({
   left,
   right,
   large = true,
+  menu = true,
   children,
 }: {
+  /** false: sem o botão ☰ (ele já aparece sozinho nas telas com barra de abas) */
+  menu?: boolean
   title: string
   subtitle?: ReactNode
   left?: ReactNode
@@ -385,7 +389,10 @@ export function NavBar({
         <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex min-w-0 justify-start overflow-hidden">{left}</div>
           <p className={`max-w-[42vw] truncate px-2 text-[1.0625rem] font-semibold transition-opacity duration-200 ${compact ? 'opacity-100' : 'opacity-0'}`}>{title}</p>
-          <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">{right}</div>
+          <div className="flex min-w-0 items-center justify-end gap-1 overflow-hidden">
+            {right}
+            {menu && <MenuButton />}
+          </div>
         </div>
       </div>
       {large && (

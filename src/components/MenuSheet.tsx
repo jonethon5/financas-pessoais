@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router'
 import {
-  Bank, BookOpenText, Brain, Heartbeat, CalendarCheck, ChartDonut, ChatCircleText, CoinVertical, CreditCard, GearSix, Hourglass, UserCircle, ListBullets, PiggyBank, Repeat,
+  Bank, BookOpenText, Brain, ChartBar, Heartbeat, CalendarCheck, ChartDonut, ChatCircleText, CoinVertical, CreditCard, GearSix, Hourglass, UserCircle, ListBullets, PiggyBank, Repeat,
   Tag, TrendUp, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { Sheet } from './Sheet'
@@ -15,6 +15,8 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { label: 'Cartões', icon: CreditCard, to: '/voce/bancos' },
       { label: 'Caixinhas', icon: PiggyBank, to: '/caixinhas' },
       { label: 'Resumo do mês', icon: ChartDonut, to: '/mes' },
+      { label: 'Gráficos', icon: ChartBar, to: '/graficos' },
+      { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
       { label: 'Lançamentos', icon: ListBullets, to: '/mes?aba=lancamentos' },
       { label: 'Gastos fixos', icon: Repeat, to: '/voce/fixos' },
     ],
@@ -25,7 +27,6 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { label: 'Assistente', icon: Brain, to: '/assistente' },
       { label: 'Porquinho e loja', icon: PiggyBank, to: '/porquinho' },
       { label: 'Aprender', icon: BookOpenText, to: '/aprender' },
-      { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
       { label: 'Desafios', icon: Trophy, to: '/habitos' },
       { label: 'Lista de desejos', icon: Hourglass, to: '/habitos' },
       { label: 'Revisão da semana', icon: CalendarCheck, to: '/revisao' },

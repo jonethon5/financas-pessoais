@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { useState } from 'react'
 import {
-  ArrowCircleDown, Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass, List as MenuIcon,
+  ArrowCircleDown, Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass,
   PiggyBank, Receipt, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
-import { MenuSheet } from '../components/MenuSheet'
+import { MenuButton } from '../components/MenuContext'
 import { BankLogo } from '../components/BankLogo'
 import { findInstitution } from '../lib/institutions'
 import { lessonOfDay } from '../lib/learn'
@@ -85,7 +84,6 @@ export function HomePage() {
   const recurrings = useRecurrings()
   const { mode } = useAuth()
   const hidden = useHiddenValues()
-  const [menu, setMenu] = useState(false)
   const toast = useToast()
   const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda' : 'moedas'} para o ${MASCOT_NAME}`))
   if (view.isPending) return <Spinner />
@@ -147,9 +145,7 @@ export function HomePage() {
             <button type="button" onClick={toggleHidden} aria-label={hidden ? 'Mostrar valores' : 'Esconder valores'} className="grid size-11 place-items-center rounded-full active:bg-white/15">
               {hidden ? <EyeSlash size={24} /> : <Eye size={24} />}
             </button>
-            <button type="button" onClick={() => setMenu(true)} aria-label="Menu" className="grid size-11 place-items-center rounded-full active:bg-white/15">
-              <MenuIcon size={26} />
-            </button>
+            <MenuButton className="size-11 text-white active:bg-white/15" />
           </div>
         </div>
         <p className="mt-5 text-[1.375rem] font-bold">{name ? `Olá, ${name}` : 'Olá'}</p>
@@ -392,7 +388,6 @@ export function HomePage() {
           </List>
         )}
       </Section>
-      <MenuSheet open={menu} onClose={() => setMenu(false)} />
     </div>
   )
 }
