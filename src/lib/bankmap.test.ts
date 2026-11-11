@@ -38,13 +38,22 @@ describe('categorias', () => {
     expect(categoryHint(tx({ description: 'Loja qualquer' }), 'expense')).toBeNull()
     expect(categoryHint(tx({ description: 'Salário EMPRESA LTDA' }), 'income')).toBe('Salário')
   })
-  it('chave para aprender a categoria corrigida', () => {
+  it('chave para aprender a categoria corrigida: pela loja ou pessoa, não pelo "Pix para"', () => {
     expect(learnKey('UBER *TRIP 8842 HELP.UBER.COM')).toBe('uber trip')
-    expect(learnKey('Pão de Açúcar 123')).toBe('pao de')
+    expect(learnKey('Pão de Açúcar 123')).toBe('pao acucar')
+    expect(learnKey('Pix para Maria Aparecida Coutinho')).toBe('maria aparecida')
+    expect(learnKey('Pix para Caren Coutinho')).not.toBe(learnKey('Pix para Maria Aparecida Coutinho'))
   })
-  it('limpa a descrição', () => {
+  it('limpa a descrição (inclusive o formato do Nubank "tipo|quem")', () => {
     expect(cleanDescription('  PAGTO   CONTA VIVO ')).toBe('Pagto Conta Vivo')
     expect(cleanDescription('Mercado Livre')).toBe('Mercado Livre')
+    expect(cleanDescription('Transferência enviada pelo Pix|MARIA APARECIDA COUTINHO')).toBe('Pix para Maria Aparecida Coutinho')
+    expect(cleanDescription('Transferência enviada pelo Pix|12.345.678 MARIA APARECIDA GO')).toBe('Pix para Maria Aparecida Go')
+    expect(cleanDescription('Transferência recebida pelo Pix|João Silva')).toBe('Pix de João Silva')
+    expect(cleanDescription('Compra no débito|PADARIA BOM PAO')).toBe('Padaria Bom Pao')
+  })
+  it('mercado pelo nome da empresa no Pix', () => {
+    expect(categoryHint(tx({ description: 'Transferência enviada pelo Pix|COMPANHIA BRASILEIRA DE DISTR' }), 'expense')).toBe('Mercado')
   })
 })
 

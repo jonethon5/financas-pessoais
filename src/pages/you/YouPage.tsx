@@ -15,7 +15,7 @@ import { useWrite } from '../../data/finance'
 import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
 import { stableId } from '../../lib/recurring'
 import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
-import { friendlyError } from '../../lib/supabase'
+import { callFunction, friendlyError } from '../../lib/supabase'
 import type { AiTone, NotifyKind, Profile } from '../../types'
 
 export const TONES: { value: AiTone; label: string; hint: string }[] = [
@@ -65,6 +65,8 @@ export function YouPage() {
       if (next.salary_cents && next.payday) await b.update('transactions', id, { amount_cents: next.salary_cents, date: isoDate(ym, next.payday) })
       else await b.remove('transactions', [id])
     })
+    // Com banco conectado: o salário que veio do extrato passa a contar como salário (sem duplicar)
+    if (mode === 'supabase' && next.is_admin) await callFunction('bank-sync', { action: 'reconcile' }).catch(() => undefined)
   }
   const { email, mode, configured, signOut } = useAuth()
   const [sheet, setSheet] = useState<SheetName>(null)

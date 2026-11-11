@@ -70,6 +70,36 @@ async function stableUuid(key: string): Promise<string> {
 
 type Conn = { id: string; item_id: string; label: string; last_sync_at: string | null }
 
+/**
+ * Salário que veio do banco como "renda": vira "Salário" quando bate com o salário cadastrado (valor e dia).
+ * Se o app já tinha lançado o salário do mês sozinho, junta os dois num só (sem contar duas vezes).
+ */
+async function reconcileSalary(admin: SupabaseClient, uid: string): Promise<number> {
+  const { data: profile } = await admin.from('profiles').select('salary_cents, payday').eq('id', uid).single()
+  if (!profile?.salary_cents || !profile?.payday) return 0
+  const since = addDays(todayBR(), -400)
+  const [{ data: incomes }, { data: manual }, { data: cats }] = await Promise.all([
+    admin.from('transactions').select('id, amount_cents, date, external_id, bank_account_id').eq('user_id', uid).eq('source', 'banco').eq('type', 'extra').gte('date', since),
+    admin.from('transactions').select('id, date').eq('user_id', uid).eq('type', 'salario').eq('source', 'manual').is('external_id', null).gte('date', since),
+    admin.from('categories').select('id').eq('user_id', uid).eq('name', 'Salário').maybeSingle(),
+  ])
+  let changed = 0
+  for (const t of incomes ?? []) {
+    const expected = `${t.date.slice(0, 8)}${String(Math.min(profile.payday, 28)).padStart(2, '0')}`
+    if (!isSalaryMatch({ kind: 'income', amount_cents: t.amount_cents, date: t.date }, { amount_cents: profile.salary_cents, date: expected })) continue
+    const twin = (manual ?? []).find((m) => m.date.slice(0, 7) === t.date.slice(0, 7))
+    if (twin) {
+      await admin.from('transactions').delete().eq('id', t.id)
+      await admin.from('transactions').update({ amount_cents: t.amount_cents, date: t.date, external_id: t.external_id, source: 'banco', bank_account_id: t.bank_account_id }).eq('id', twin.id)
+      manual!.splice(manual!.indexOf(twin), 1)
+    } else {
+      await admin.from('transactions').update({ type: 'salario', category_id: cats?.id ?? null }).eq('id', t.id)
+    }
+    changed++
+  }
+  return changed
+}
+
 /** Sincroniza uma conexão: contas (saldo, limite, fatura) e lançamentos novos, sem duplicar. */
 async function syncConnection(admin: SupabaseClient, uid: string, conn: Conn) {
   const today = todayBR()
@@ -189,6 +219,8 @@ Deno.serve(
     const allowed = Boolean(me?.is_admin)
 
     if (body.action === 'status') return json({ configured, allowed })
+    // Salário mudou em Você: arruma o histórico que veio do banco (não chama a Pluggy)
+    if (body.action === 'reconcile') return json({ ok: true, changed: await reconcileSalary(admin, uid) })
     if (!configured) throw new UserError('A conexão com o banco ainda não foi ligada: faltam as chaves da Pluggy nos secrets.', 503)
     if (!allowed) throw new UserError('No beta, a conexão com o banco está disponível só para a conta de administrador.', 403)
 
@@ -228,6 +260,7 @@ Deno.serve(
           total.errors.push(`${conn.label}: ${message}`)
         }
       }
+      total.matched += await reconcileSalary(admin, uid)
       return json({ ok: true, ...total })
     }
 

@@ -40,20 +40,42 @@ export const normalize = (s: string) =>
     .replace(/\s+/g, ' ')
     .trim()
 
-/** Chave para aprender a categoria: as 2 primeiras palavras da descrição, sem números ("UBER *TRIP 123" → "uber trip"). */
+// Palavras que não identificam quem recebeu (o aprendizado usa o nome da pessoa ou da loja)
+const GENERIC = new Set(['pix', 'para', 'de', 'do', 'da', 'transferencia', 'enviada', 'recebida', 'pelo', 'pela', 'compra', 'no', 'na', 'debito', 'credito', 'pagamento', 'boleto', 'via', 'nupay', 'efetuado', 'ted', 'doc'])
+
+/** Chave para aprender a categoria: as 2 primeiras palavras que identificam a loja ou pessoa ("Pix para Maria Souza" → "maria souza"). */
 export function learnKey(description: string): string {
   return normalize(description)
     .split(' ')
-    .filter((w) => w.length > 1 && !/^\d+$/.test(w))
+    .filter((w) => w.length > 1 && !/^\d+$/.test(w) && !GENERIC.has(w))
     .slice(0, 2)
     .join(' ')
 }
 
-/** "IFOOD *RESTAURANTE" → "Ifood Restaurante"; descrições já em maiúsculas e minúsculas ficam como estão. */
+const title = (s: string) => (s === s.toUpperCase() ? s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : s)
+
+/**
+ * Descrição legível:
+ *  "IFOOD *RESTAURANTE" → "Ifood Restaurante"
+ *  "Transferência enviada pelo Pix|MARIA SOUZA" → "Pix para Maria Souza"
+ *  "Transferência recebida pelo Pix|JOÃO" → "Pix de João"
+ *  "Compra no débito|PADARIA X" → "Padaria X"
+ */
 export function cleanDescription(raw: string): string {
-  const s = raw.replace(/[*_]+/g, ' ').replace(/\s+/g, ' ').replace(/^\W+|\W+$/g, '').trim()
-  const titled = s === s.toUpperCase() ? s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : s
-  return (titled || 'Sem descrição').slice(0, 60)
+  const tidy = (s: string) => s.replace(/[*_]+/g, ' ').replace(/^[\d.\-/\s#]+(?=\D)/, '').replace(/\s+/g, ' ').replace(/^\W+|\W+$/g, '').trim()
+  let out: string
+  const [head, ...rest] = raw.split('|')
+  const who = tidy(rest.join(' '))
+  if (who) {
+    const h = normalize(head)
+    if (h.includes('pix') && h.includes('enviad')) out = `Pix para ${title(who)}`
+    else if (h.includes('pix') && h.includes('recebid')) out = `Pix de ${title(who)}`
+    else if (h.includes('transferencia') && h.includes('recebid')) out = `Transferência de ${title(who)}`
+    else if (h.includes('transferencia') && h.includes('enviad')) out = `Transferência para ${title(who)}`
+    else if (h.includes('boleto')) out = `Boleto ${title(who)}`
+    else out = title(who)
+  } else out = title(tidy(head))
+  return (out || 'Sem descrição').slice(0, 60)
 }
 
 // Movimentações que não são gasto nem renda de verdade (contariam duas vezes)
@@ -73,7 +95,7 @@ const CATEGORY_HINTS: [string[], string][] = [
   [['ifood', 'rappi', 'ze delivery', 'food delivery', 'delivery', 'aiqfome'], 'Delivery'],
   [['uber', '99app', '99 pop', 'taxi', 'cabify', 'combustivel', 'posto', 'gas station', 'fuel', 'estacionamento', 'parking', 'transport', 'metro', 'onibus', 'bilhete unico', 'sem parar'], 'Transporte'],
   [['netflix', 'spotify', 'youtube', 'disney', 'prime video', 'hbo', 'max ', 'deezer', 'streaming', 'apple com bill', 'google one', 'subscription', 'assinatura'], 'Assinaturas'],
-  [['supermerc', 'mercado ', 'atacad', 'assai', 'carrefour', 'pao de acucar', 'padaria', 'hortifruti', 'groceries', 'supermarket'], 'Mercado'],
+  [['supermerc', 'mercado ', 'atacad', 'assai', 'carrefour', 'pao de acucar', 'companhia brasileira de distr', 'mercato', 'padaria', 'hortifruti', 'acougue', 'groceries', 'supermarket'], 'Mercado'],
   [['farmacia', 'drogaria', 'droga raia', 'drogasil', 'pharmacy', 'drugstore', 'hospital', 'clinica', 'laboratorio', 'health', 'academia', 'smart fit', 'gym'], 'Saúde'],
   [['shopee', 'shein', 'mercado livre', 'mercadolivre', 'amazon', 'aliexpress', 'temu', 'magalu', 'online shopping'], 'Compras online'],
   [['vivo', 'claro', 'tim ', 'oi ', 'internet', 'telecom', 'telefone', 'mobile', 'celular'], 'Telefone e internet'],
