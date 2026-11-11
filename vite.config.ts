@@ -55,7 +55,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // Da fonte, só os caracteres usados em português vão para o modo offline
-        globIgnores: ['**/*cyrillic*', '**/*greek*', '**/*vietnamese*'],
+        // Fontes em teste (Manrope, Jakarta, DM Sans, Nunito) baixam só se forem escolhidas
+        globIgnores: ['**/*cyrillic*', '**/*greek*', '**/*vietnamese*', '**/*latin-ext*', '**/*manrope*', '**/*plus-jakarta*', '**/*dm-sans*', '**/*nunito*'],
         navigateFallback: `${base}index.html`,
         // Recebe as notificações push (avisos)
         importScripts: ['push-sw.js'],
