@@ -43,10 +43,10 @@ function seedProfile(): Profile {
     money_profile: 'planejador',
     about: { goal: 'guardar', age: '25-34', work: 'clt' },
     prefs: {},
-    onboarded_at: now(),
+    onboarded_at: null,
     is_admin: false,
     beta_code: null,
-    created_at: now(),
+    created_at: new Date(Date.now() - 40 * 86_400_000).toISOString(),
     updated_at: now(),
   }
 }

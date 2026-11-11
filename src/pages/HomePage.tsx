@@ -12,6 +12,12 @@ import { findInstitution } from '../lib/institutions'
 import { lessonOfDay } from '../lib/learn'
 import { financialHealth } from '../lib/health'
 import { HealthRing, scoreColor } from './HealthPage'
+import { Pig } from '../components/Pig'
+import { useToast } from '../components/Toast'
+import { usePig } from '../data/pig'
+import { DAILY_KINDS, pigLine } from '../lib/pig'
+import { MASCOT_NAME } from '../brand'
+import { CoinBadge, PigSays } from './PigPage'
 import type { BankAccount } from '../types'
 import { useRecurrings } from '../data/finance'
 import { subscriptions } from '../lib/budget'
@@ -80,6 +86,8 @@ export function HomePage() {
   const { mode } = useAuth()
   const hidden = useHiddenValues()
   const [menu, setMenu] = useState(false)
+  const toast = useToast()
+  const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda' : 'moedas'} para o ${MASCOT_NAME}`))
   if (view.isPending) return <Spinner />
   if (view.error || !view.data) return <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
   const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today, goals } = view.data
@@ -248,6 +256,20 @@ export function HomePage() {
           )}
         </div>
       </section>
+
+      {pig.state && (
+        <Section title={MASCOT_NAME} to="/porquinho">
+          <div className="flex items-center gap-3">
+            <Pig size={pig.state.size} mood={pig.state.mood} tone={p.ai_tone} wear={pig.wear} px={104} className="-my-2 shrink-0" />
+            <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+              <PigSays>{pigLine(p.ai_tone, pig.state.mood, Math.floor(Date.parse(`${today}T12:00:00Z`) / 86_400_000))}</PigSays>
+              <span className="flex items-center gap-2 text-[0.875rem] text-muted">
+                <CoinBadge n={pig.balance} /> {DAILY_KINDS.filter((k) => pig.state!.today[k]).length} de {DAILY_KINDS.length} metas hoje
+              </span>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {cards.map((c) => (
         <Section key={c.id} title="Cartão de crédito" to="/voce/bancos">

@@ -91,7 +91,7 @@ export function useGoalMoves() {
 }
 
 /** Leitura simples de uma tabela inteira da pessoa (hábitos: desafios, regras, desejos, planos). */
-export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans' | 'bank_connections' | 'bank_accounts'>(table: K) {
+export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans' | 'bank_connections' | 'bank_accounts' | 'pig_coins' | 'pig_purchases'>(table: K) {
   const backend = useBackend()
   return useQuery({ queryKey: tkey(table), queryFn: () => backend.list(table) })
 }
@@ -158,7 +158,7 @@ export function useWrite() {
   const refresh = (...tables: TableName[]) => Promise.all(tables.map((t) => qc.invalidateQueries({ queryKey: ['t', t] })))
   return useMutation({
     mutationFn: async (fn: (b: Backend) => Promise<unknown>) => fn(backend),
-    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans', 'bank_connections', 'bank_accounts', 'category_rules'),
+    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans', 'bank_connections', 'bank_accounts', 'category_rules', 'pig_coins', 'pig_purchases'),
   })
 }
 

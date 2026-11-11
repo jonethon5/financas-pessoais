@@ -111,6 +111,11 @@ export function PrivacyPage() {
       <ul>
         <li><strong>Conta:</strong> nome, e-mail e senha (a senha é guardada criptografada; ninguém consegue lê-la).</li>
         <li><strong>Perfil:</strong> apelido, foto, data de nascimento, dia do pagamento, salário e preferências, se você informar.</li>
+        <li>
+          <strong>Sobre você (primeiro acesso):</strong> faixa de idade, tipo de trabalho, com quem mora, seu objetivo e sonho, as respostas do
+          teste de perfil e, se quiser, o seu estado. Servem para adaptar as dicas, os exemplos e as metas à sua realidade; o estado é opcional.
+        </li>
+        <li><strong>Porquinho:</strong> as moedas que você ganha com as metas do dia e os itens que escolhe na lojinha (sem valor em dinheiro).</li>
         <li><strong>Seus lançamentos:</strong> rendas, gastos, categorias, orçamentos, caixinhas e o que você registrar no app.</li>
         <li><strong>Sugestões:</strong> as mensagens e imagens que você enviar, com a versão do app e o modelo do aparelho.</li>
         <li><strong>Notificações:</strong> se você ativar, o endereço técnico do navegador para entregar os avisos.</li>

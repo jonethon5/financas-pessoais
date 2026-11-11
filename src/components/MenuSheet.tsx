@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: 'Hábitos e dicas',
     items: [
       { label: 'Assistente', icon: Brain, to: '/assistente' },
+      { label: 'Porquinho e loja', icon: PiggyBank, to: '/porquinho' },
       { label: 'Aprender', icon: BookOpenText, to: '/aprender' },
       { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
       { label: 'Desafios', icon: Trophy, to: '/habitos' },

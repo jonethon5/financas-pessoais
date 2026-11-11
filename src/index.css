@@ -278,3 +278,23 @@ body {
     transition-duration: 1ms !important;
   }
 }
+
+/* Porquinho: balança de leve (respira) */
+.pig-bob {
+  animation: pig-bob 3.2s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+@keyframes pig-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.015, 0.99);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pig-bob {
+    animation: none;
+  }
+}

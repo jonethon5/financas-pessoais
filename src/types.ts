@@ -7,6 +7,8 @@ export type NotifyKind = 'vencimentos' | 'pagamento' | 'limite' | 'revisao' | 'd
 
 export type Prefs = {
   notify?: Partial<Record<NotifyKind, boolean>>
+  /** Porquinho: item da loja que ele está usando */
+  pig?: { wear?: string | null }
 }
 
 export type Profile = {
@@ -160,6 +162,8 @@ export type Tables = {
   bank_connections: BankConnection
   bank_accounts: BankAccount
   category_rules: CategoryRule
+  pig_coins: PigCoin
+  pig_purchases: PigPurchase
 }
 export type TableName = keyof Tables
 /** O que o app envia ao criar uma linha (id, user_id e created_at têm padrão). */
@@ -216,6 +220,10 @@ export type About = {
   work?: string
   home?: string
   answers?: Record<string, string>
+  /** Estado (sigla, ex.: 'SP'); opcional */
+  uf?: string
+  /** O sonho escolhido no primeiro acesso (ex.: viagem) e quanto custa, para os "ganchos" das dicas */
+  dream?: { kind: string; label: string; cents?: number | null }
 }
 
 export type ChallengeKind = 'sem_delivery' | 'sem_shopee' | 'sem_impulso' | '52_semanas' | 'personalizado'
@@ -304,5 +312,29 @@ export type CategoryRule = {
   user_id: string
   pattern: string
   category_id: string
+  created_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Porquinho: moedas e loja
+// ---------------------------------------------------------------------------
+
+export type PigCoinKind = 'lancou' | 'no_limite' | 'sem_gastar' | 'guardou' | 'semana' | 'marco'
+
+export type PigCoin = {
+  id: string
+  user_id: string
+  day: string
+  kind: PigCoinKind
+  ref: string
+  coins: number
+  created_at: string
+}
+
+export type PigPurchase = {
+  id: string
+  user_id: string
+  item: string
+  price: number
   created_at: string
 }

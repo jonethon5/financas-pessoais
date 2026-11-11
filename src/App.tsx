@@ -15,6 +15,7 @@ import { HabitsPage } from './pages/HabitsPage'
 import { LearnPage, LessonPage } from './pages/LearnPages'
 import { HealthPage } from './pages/HealthPage'
 import { AssistantPage } from './pages/AssistantPage'
+import { PigPage } from './pages/PigPage'
 import { BanksPage } from './pages/you/BanksPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { useProfile } from './data/hooks'
@@ -45,7 +46,7 @@ function LoggedOut() {
 }
 
 function LoggedIn() {
-  const { linkEvent, clearLinkEvent, mode } = useAuth()
+  const { linkEvent, clearLinkEvent } = useAuth()
   const toast = useToast()
   const profile = useProfile()
 
@@ -58,7 +59,7 @@ function LoggedIn() {
   }, [linkEvent, clearLinkEvent, toast])
 
   // Primeiro acesso: perguntas, teste de perfil, salário, fixos e primeira caixinha
-  if (mode === 'supabase' && profile.data && !profile.data.onboarded_at) return <OnboardingPage />
+  if (profile.data && !profile.data.onboarded_at) return <OnboardingPage />
 
   return (
     <Routes>
@@ -79,6 +80,7 @@ function LoggedIn() {
         <Route path="aprender" element={<LearnPage />} />
         <Route path="saude" element={<HealthPage />} />
         <Route path="assistente" element={<AssistantPage />} />
+        <Route path="porquinho" element={<PigPage />} />
         <Route path="aprender/:id" element={<LessonPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />
