@@ -10,6 +10,8 @@ import { MenuSheet } from '../components/MenuSheet'
 import { BankLogo } from '../components/BankLogo'
 import { findInstitution } from '../lib/institutions'
 import { lessonOfDay } from '../lib/learn'
+import { financialHealth } from '../lib/health'
+import { HealthRing, scoreColor } from './HealthPage'
 import type { BankAccount } from '../types'
 import { useRecurrings } from '../data/finance'
 import { subscriptions } from '../lib/budget'
@@ -104,6 +106,7 @@ export function HomePage() {
   const saved = goals.reduce((a, g) => a + g.status.saved, 0)
   const goalNeed = goals.reduce((a, g) => a + g.status.needThisMonth, 0)
   const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
+  const health = financialHealth({ today, monthTxs: txs, history: view.data.history, goals, goalMoves: view.data.goalMoves, categories, hasSalary })
 
   // Carrossel: cartões feitos com os dados da pessoa (passam sozinhos)
   const slides: Slide[] = []
@@ -289,6 +292,16 @@ export function HomePage() {
             ))}
           </div>
         )}
+      </Section>
+
+      <Section title="Saúde financeira" to="/saude">
+        <div className="flex items-center gap-4">
+          <HealthRing score={health.score} size={64} />
+          <div className="min-w-0">
+            <p className="text-[1.0625rem] font-bold" style={{ color: scoreColor(health.score) }}>{health.label}</p>
+            <p className="text-[0.9375rem] leading-snug text-muted">{health.next[0] ? health.next[0].tip : 'Tudo em dia. Continue assim.'}</p>
+          </div>
+        </div>
       </Section>
 
       <Section title="Caixinhas" to="/caixinhas">

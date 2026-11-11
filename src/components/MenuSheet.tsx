@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router'
 import {
-  Bank, BookOpenText, Brain, CalendarCheck, ChartDonut, ChatCircleText, CoinVertical, CreditCard, GearSix, Hourglass, ListBullets, PiggyBank, Repeat,
+  Bank, BookOpenText, Brain, Heartbeat, CalendarCheck, ChartDonut, ChatCircleText, CoinVertical, CreditCard, GearSix, Hourglass, ListBullets, PiggyBank, Repeat,
   Tag, TrendUp, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { Sheet } from './Sheet'
@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: 'Hábitos e dicas',
     items: [
       { label: 'Aprender', icon: BookOpenText, to: '/aprender' },
+      { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
       { label: 'Desafios', icon: Trophy, to: '/habitos' },
       { label: 'Lista de desejos', icon: Hourglass, to: '/habitos' },
       { label: 'Revisão da semana', icon: CalendarCheck, to: '/revisao' },
