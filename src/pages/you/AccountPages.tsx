@@ -6,6 +6,7 @@ import { BackButton, Button, ErrorBox, Field, List, NavBar, Notice, Row } from '
 import { useBackend } from '../../data/backend'
 import { friendlyError } from '../../lib/supabase'
 import { PasswordField, isEmail } from '../auth/AuthShell'
+import { resetTours } from '../../components/Tour'
 
 export function PasswordPage() {
   const navigate = useNavigate()
@@ -122,6 +123,8 @@ export function DeleteAccountPage() {
       await backend.deleteAccount()
       if (demo) {
         toast('Dados da demonstração apagados')
+        resetTours()
+        window.location.hash = '#/'
         window.location.reload()
         return
       }

@@ -139,6 +139,7 @@ export function Layout() {
             <li className="flex justify-center">
               <button
                 type="button"
+                data-tour="mais"
                 onClick={() => setAddOpen(true)}
                 aria-label="Lançar"
                 className="grid size-12 place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(47_111_235/0.55)] transition active:scale-95"
@@ -146,7 +147,7 @@ export function Layout() {
                 <Plus className="size-7" strokeWidth={2.4} aria-hidden />
               </button>
             </li>
-            <li>
+            <li data-tour="aba-graficos">
               <TabItem {...TABS[2]} />
             </li>
             <li>

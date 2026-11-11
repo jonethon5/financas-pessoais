@@ -5,6 +5,8 @@ import { Pig, mascotName, usePigColor } from '../components/Pig'
 import { useToast } from '../components/Toast'
 import { BackButton, ErrorBox, NavBar, ProgressBar, Spinner } from '../components/ui'
 import { usePig } from '../data/pig'
+import { useWrite } from '../data/finance'
+import { useAuth } from '../auth/AuthProvider'
 import { formatBRL } from '../lib/money'
 import { COINS, DAILY_KINDS, GOAL_LABEL, SHOP, pigLine } from '../lib/pig'
 import { friendlyError } from '../lib/supabase'
@@ -34,6 +36,8 @@ export function PigPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const MASCOT_NAME = mascotName(usePigColor())
+  const write = useWrite()
+  const { mode } = useAuth()
   const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   const [busy, setBusy] = useState<string | null>(null)
   if (pig.isPending) return <Spinner />
@@ -112,6 +116,17 @@ export function PigPage() {
             <h2 className="text-[1.0625rem] font-extrabold">Lojinha</h2>
             <CoinBadge n={pig.balance} />
           </div>
+          {mode === 'demo' && (
+            <button
+              type="button"
+              onClick={() => {
+                void write.mutateAsync((b) => b.insert('pig_coins', [{ day: input.today, kind: 'bonus', ref: String(Date.now()), coins: 1000 }])).then(() => toast('+1.000 moedas de teste'))
+              }}
+              className="press mb-3 w-full rounded-[1rem] border-2 border-dashed border-line py-2.5 text-[0.9375rem] font-semibold text-primary"
+            >
+              Ganhar 1.000 moedas de teste (só na demonstração)
+            </button>
+          )}
           <div className="grid grid-cols-3 gap-2.5">
             {SHOP.map((it) => {
               const owned = pig.owned.has(it.key)

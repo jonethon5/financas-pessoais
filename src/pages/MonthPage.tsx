@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { MascotArt } from '../components/Pig'
+import { Tour } from '../components/Tour'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { AnimatedMoney, Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Segmented, Spinner } from '../components/ui'
@@ -53,7 +54,14 @@ export function MonthPage() {
   return (
     <>
       <NavBar title="Mês" />
-      <div className="shadow-soft mb-4 flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">
+      <Tour
+        id="mes"
+        steps={[
+          { target: 'mes-seletor', title: 'Escolha o mês', text: 'Volte para ver meses passados ou avance para ver as contas que vêm por aí.' },
+          { target: 'mes-abas', title: 'Resumo, lançamentos e orçamento', text: 'No Orçamento você coloca limite por categoria e o app avisa antes de estourar.' },
+        ]}
+      />
+      <div data-tour="mes-seletor" className="shadow-soft mb-4 flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">
         <button type="button" aria-label="Mês anterior" onClick={() => set({ mes: monthKey(addMonths(ym, -1)) })} className="press grid size-10 place-items-center rounded-full text-primary active:bg-surface-2">
           <ChevronLeft className="size-6" />
         </button>
@@ -62,6 +70,7 @@ export function MonthPage() {
           <ChevronRight className="size-6" />
         </button>
       </div>
+      <div data-tour="mes-abas">
       <Segmented
         label="Ver"
         value={tab}
@@ -72,6 +81,7 @@ export function MonthPage() {
           { value: 'orcamento', label: 'Orçamento' },
         ]}
       />
+      </div>
       <div className="mt-5" key={`${monthKey(ym)}-${tab}`}>
         {view.isPending ? (
           <Spinner />

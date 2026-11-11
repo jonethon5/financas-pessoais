@@ -17,6 +17,7 @@ import { useHiddenValues } from '../lib/privacy'
 import { friendlyError } from '../lib/supabase'
 import { liftForDark, useIsDark } from '../lib/theme'
 import { HealthRing, scoreColor } from './HealthPage'
+import { Tour } from '../components/Tour'
 
 const SERIES = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -357,8 +358,10 @@ export function ChartsPage() {
           <ChevronRight className="size-6" />
         </button>
       </div>
+      <div data-tour="graficos-abas">
       <Segmented label="Ver" value={tab} onChange={(aba: Tab) => set({ aba })} options={[{ value: 'despesas', label: 'Despesas' }, { value: 'receitas', label: 'Receitas' }, { value: 'geral', label: 'Visão geral' }]} />
-      <div className="mt-3 flex gap-2">
+      </div>
+      <div data-tour="graficos-periodo" className="mt-3 flex gap-2">
         <Chip selected={range === 6} onClick={() => setRange(6)}>Últimos 6 meses</Chip>
         <Chip selected={range === 12} onClick={() => setRange(12)}>12 meses</Chip>
       </div>
@@ -377,6 +380,13 @@ export function ChartsPage() {
   return (
     <>
       {header}
+      <Tour
+        id="graficos"
+        steps={[
+          { target: 'graficos-abas', title: 'Despesas, receitas e visão geral', text: 'Troque aqui para ver para onde vai o dinheiro, de onde ele vem e o resumo do mês.' },
+          { target: 'graficos-periodo', title: '6 ou 12 meses', text: 'Escolha quantos meses aparecem nos gráficos de evolução.' },
+        ]}
+      />
       <div key={`${key}-${tab}`} className="stagger mt-5 flex flex-col gap-4 pb-4">
         {tab === 'despesas' && (
           <>

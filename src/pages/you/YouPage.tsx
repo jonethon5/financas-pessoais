@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
-  Bank, Bell, ChatCircleText, Coin, EyeSlash, FileText, GearSix, Info, Key, Moon, PaintBrush, PiggyBank, Repeat, ShieldCheck, SignOut, Tag, TextAa, Trash, UserCircle, Wallet, type Icon as PhosphorIcon,
+  ArrowCounterClockwise, Bank, Bell, ChatCircleText, Sparkle, Coin, EyeSlash, FileText, GearSix, Info, Key, Moon, PaintBrush, PiggyBank, Repeat, ShieldCheck, SignOut, Tag, TextAa, Trash, UserCircle, Wallet, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { Pig, mascotName } from '../../components/Pig'
 import { ufInfo } from '../../lib/regions'
 import { toggleHidden, useHiddenValues } from '../../lib/privacy'
+import { resetTours } from '../../components/Tour'
 import { ChevronRight, Check } from 'lucide-react'
 import { useAuth } from '../../auth/AuthProvider'
 import { APP_NAME, APP_VERSION } from '../../brand'
@@ -197,6 +198,7 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
           </List>
           <List>
             <Row icon={<Ico icon={ChatCircleText} color="#6E56F0" />} title="Ajuda e sugestões" chevron as={link('/voce/sugestao')} />
+            <Row icon={<Ico icon={Sparkle} color="#0E9AA7" />} title="Ver o guia do app de novo" subtitle="O porquinho explica cada tela" onClick={() => { resetTours(); toast('Guia ligado de novo'); navigate('/') }} />
             <Row icon={<Ico icon={Info} color="#F2A516" />} title={`Sobre o ${APP_NAME}`} trailing={APP_VERSION} chevron as={link('/ajustes/sobre')} />
           </List>
           {p.is_admin && (
@@ -266,11 +268,12 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
               <List>
                 {mode === 'supabase' && <Row icon={<Ico icon={UserCircle} color="#2F6F8F" />} title="E-mail" trailing={<span className="max-w-[40vw] truncate text-muted">{email}</span>} chevron as={link('/voce/email')} />}
                 {mode === 'supabase' && <Row icon={<Ico icon={Key} color="#8A5A06" />} title="Trocar senha" chevron as={link('/voce/senha')} />}
+                <Row icon={<Ico icon={ArrowCounterClockwise} color="#0F9D6B" />} title="Refazer o primeiro acesso" subtitle="Mascote, objetivo, modo e salário" chevron as={link('/boas-vindas')} />
                 {!demoOnly && <Row icon={<Ico icon={SignOut} color="#5B6B7A" />} title={mode === 'demo' ? 'Sair da demonstração' : 'Sair'} onClick={() => setConfirmExit(true)} />}
                 {mode === 'demo' && demoOnly && <Row title="Você está na demonstração" subtitle="Os dados ficam só neste aparelho" />}
               </List>
               <List>
-                <Row icon={<Ico icon={Trash} color="#E5484D" />} title={mode === 'demo' ? 'Apagar dados da demonstração' : 'Excluir conta'} destructive as={link('/voce/excluir')} />
+                <Row icon={<Ico icon={Trash} color="#E5484D" />} title={mode === 'demo' ? 'Começar a demonstração do zero' : 'Excluir conta'} subtitle={mode === 'demo' ? 'Apaga tudo e volta para o primeiro acesso' : undefined} destructive as={link('/voce/excluir')} />
               </List>
             </>
           )}

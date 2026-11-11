@@ -18,6 +18,7 @@ import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
 import { friendlyError } from '../../lib/supabase'
 import type { Goal, GoalMode, GoalMove } from '../../types'
 import { MascotArt } from '../../components/Pig'
+import { Tour } from '../../components/Tour'
 
 const month = (ym: YearMonth | null) => (ym ? monthLabel(ym).toLowerCase() : '')
 
@@ -76,10 +77,11 @@ export function GoalsPage() {
 
   return (
     <>
+      <Tour id="caixinhas" steps={[{ target: 'nova-caixinha', title: 'Crie uma caixinha', text: 'Dinheiro com nome e objetivo é mais difícil de gastar. Comece pela reserva para imprevistos.' }]} />
       <NavBar
         title="Caixinhas"
         right={
-          <button type="button" aria-label="Nova caixinha" onClick={() => setPicking(true)} className="press grid size-9 place-items-center rounded-full bg-primary text-on-primary shadow-soft">
+          <button type="button" data-tour="nova-caixinha" aria-label="Nova caixinha" onClick={() => setPicking(true)} className="press grid size-9 place-items-center rounded-full bg-primary text-on-primary shadow-soft">
             <Plus size={20} weight="bold" />
           </button>
         }

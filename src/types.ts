@@ -319,7 +319,8 @@ export type CategoryRule = {
 // Porquinho: moedas e loja
 // ---------------------------------------------------------------------------
 
-export type PigCoinKind = 'lancou' | 'no_limite' | 'sem_gastar' | 'guardou' | 'semana' | 'marco'
+/** 'bonus': moedas de teste, só na demonstração (o banco recusa esse tipo) */
+export type PigCoinKind = 'lancou' | 'no_limite' | 'sem_gastar' | 'guardou' | 'semana' | 'marco' | 'bonus'
 
 export type PigCoin = {
   id: string

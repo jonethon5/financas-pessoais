@@ -400,3 +400,50 @@ body {
 .today-bar {
   background: linear-gradient(90deg, var(--primary), var(--grow));
 }
+
+/* Guia interativo: tudo escuro menos o alvo, com um anel piscando em volta */
+.tour-spot {
+  box-shadow: 0 0 0 9999px rgb(8 15 24 / 0.64);
+}
+.tour-spot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 1.3rem;
+  border: 2.5px solid rgb(255 255 255 / 0.95);
+  animation: tour-pulse 1.4s ease-out infinite;
+}
+@keyframes tour-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot::after {
+    animation: none;
+  }
+}
+
+/* Bancos girando em volta do porquinho (tela de conectar banco) */
+.orbit {
+  animation: orbit-spin 28s linear infinite;
+}
+.orbit-counter {
+  animation: orbit-spin 28s linear infinite reverse;
+}
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit,
+  .orbit-counter {
+    animation: none;
+  }
+}

@@ -1,14 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, ShieldCheck } from '@phosphor-icons/react'
+import { CheckCircle, Info, ShieldCheck } from '@phosphor-icons/react'
 import { useAuth } from '../../auth/AuthProvider'
 import { BankLogo } from '../../components/BankLogo'
-import { MascotArt } from '../../components/Pig'
+import { Pig } from '../../components/Pig'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
-import { BackButton, Badge, Button, Card, EmptyState, ErrorBox, Field, List, Money, NavBar, Notice, Row, Spinner } from '../../components/ui'
+import { BackButton, Badge, Button, Card, ErrorBox, Field, List, Money, NavBar, Notice, Row, Spinner } from '../../components/ui'
 import { connectDemoBank, disconnectDemoBank } from '../../data/demoBank'
 import { useTable, useWrite } from '../../data/finance'
 import { formatDateShort } from '../../lib/dates'
@@ -39,6 +39,52 @@ export function AccountRow({ a, label }: { a: BankAccount; label?: string }) {
   )
 }
 const formatBRLShort = (c: number) => `R$ ${Math.round(c / 100).toLocaleString('pt-BR')}`
+
+/** Cartão do Open Finance: o porquinho no meio e os bancos girando em volta. */
+function OpenFinanceHero({ onAdd, compact = false }: { onAdd: () => void; compact?: boolean }) {
+  const banks = POPULAR_BANKS.slice(0, 8)
+  return (
+    <section className="overflow-hidden rounded-[1.75rem] border border-line bg-bg p-5 text-center">
+      {!compact && (
+        <div className="relative mx-auto mt-2 mb-6 size-56" aria-hidden>
+          {/* órbita */}
+          <div className="absolute inset-3 rounded-full border border-dashed border-line" />
+          <div className="orbit absolute inset-0">
+            {banks.map((b, i) => {
+              const a = (i / banks.length) * Math.PI * 2
+              return (
+                <span key={b.key} className="absolute" style={{ left: `calc(50% + ${Math.cos(a) * 46}% - 1.25rem)`, top: `calc(50% + ${Math.sin(a) * 46}% - 1.25rem)` }}>
+                  <span className="orbit-counter block">
+                    <BankLogo inst={b} size="sm" />
+                  </span>
+                </span>
+              )
+            })}
+          </div>
+          <div className="absolute top-1/2 left-1/2 grid size-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-surface shadow-[0_12px_30px_-14px_rgb(15_36_51/0.45)]">
+            <Pig art="principal" px={92} still />
+          </div>
+        </div>
+      )}
+      <p className="text-[1.75rem] leading-tight tracking-tight">
+        <span className="font-extrabold">open</span>
+        <span className="font-light">finance</span>
+      </p>
+      <p className="mx-auto mt-2 max-w-xs text-[0.9375rem] leading-snug text-muted">
+        Conecte seu banco e seus cartões para os gastos entrarem sozinhos. É só leitura: o app vê saldos e lançamentos, mas não mexe no seu dinheiro.
+      </p>
+      <button type="button" onClick={onAdd} className="press mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-[1.0625rem] font-bold text-on-primary">
+        <span className="text-[1.25rem] leading-none">+</span> Adicionar conexão
+      </button>
+      <div className="mt-4 flex gap-2.5 rounded-[1rem] bg-surface p-3.5 text-left text-[0.875rem] leading-snug text-muted">
+        <Info size={20} className="mt-0.5 shrink-0" />
+        <p>
+          Entram os lançamentos de <strong className="text-ink">contas e cartões de crédito</strong>, já com categoria. Se corrigir uma categoria, o app aprende e acerta os próximos. Regulado pelo Banco Central.
+        </p>
+      </div>
+    </section>
+  )
+}
 
 /** Grade com os bancos mais usados: a pessoa só toca no dela. */
 function BankPicker({ onPick }: { onPick: (inst: Institution) => void }) {
@@ -155,12 +201,14 @@ export function BanksPage() {
     <>
       {header}
       <div className="stagger flex flex-col gap-6">
-        <Card className="flex gap-3.5">
-          <ShieldCheck size={34} weight="duotone" className="shrink-0 text-primary" />
-          <p className="leading-snug text-muted">
-            Conexão pelo <strong className="text-ink">Open Finance</strong>, regulado pelo Banco Central. É <strong className="text-ink">só leitura</strong>: o app vê saldos e lançamentos, mas não consegue mover dinheiro. Os dados do banco atualizam uma vez por dia.
-          </p>
-        </Card>
+        {(conns.data ?? []).length > 0 && (
+          <Card className="flex gap-3.5">
+            <ShieldCheck size={34} weight="duotone" className="shrink-0 text-primary" />
+            <p className="leading-snug text-muted">
+              Conexão pelo <strong className="text-ink">Open Finance</strong>, regulado pelo Banco Central. É <strong className="text-ink">só leitura</strong>: o app vê saldos e lançamentos, mas não consegue mover dinheiro. Os dados do banco atualizam uma vez por dia.
+            </p>
+          </Card>
+        )}
         {demo && <Notice tone="primary">Demonstração: escolha um banco para ver como o app fica com ele conectado. Os dados são de exemplo.</Notice>}
 
         {!configured ? (
@@ -170,9 +218,7 @@ export function BanksPage() {
         ) : (
           <>
             {(conns.data ?? []).length === 0 ? (
-              <EmptyState art={<MascotArt name="tela-conexao" px={170} />} title="Nenhum banco conectado" action={<Button onClick={() => setAdding(true)}>Conectar banco</Button>}>
-                Conecte a sua conta e o seu cartão: os gastos entram sozinhos, sem digitar nada.
-              </EmptyState>
+              <OpenFinanceHero onAdd={() => setAdding(true)} />
             ) : (
               <>
                 {(conns.data ?? []).map((c) => (

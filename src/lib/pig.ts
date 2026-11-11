@@ -12,7 +12,7 @@ import { MILESTONES } from './goals'
 
 export type DailyKind = 'lancou' | 'no_limite' | 'sem_gastar' | 'guardou'
 export const DAILY_KINDS: DailyKind[] = ['lancou', 'guardou', 'no_limite', 'sem_gastar']
-export const COINS: Record<PigCoinKind, number> = { lancou: 1, no_limite: 1, sem_gastar: 1, guardou: 1, semana: 10, marco: 5 }
+export const COINS: Record<PigCoinKind, number> = { lancou: 1, no_limite: 1, sem_gastar: 1, guardou: 1, semana: 10, marco: 5, bonus: 1000 }
 export const GOAL_LABEL: Record<DailyKind, string> = {
   lancou: 'Lançar os gastos',
   guardou: 'Guardar qualquer valor',
