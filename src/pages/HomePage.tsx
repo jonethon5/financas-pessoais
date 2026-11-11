@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
 import { CalendarCheck, Flame, Hourglass, PencilSimpleLine, Sun, Target } from '@phosphor-icons/react'
 import { useTable } from '../data/finance'
+import { AccountRow } from './you/BanksPage'
 import { freshStart, loggingDayStreak, savingWeekStreak, wishState } from '../lib/psych'
 import { weekdayOf } from '../lib/dates'
 import { ProfileAvatar, displayName } from '../components/Avatar'
@@ -26,6 +27,7 @@ export function HomePage() {
   const plans = useTable('if_then_plans')
   const wishes = useTable('wishes')
   const challenges = useTable('challenges')
+  const bankAccounts = useTable('bank_accounts')
   if (view.isPending) return <Spinner />
   if (view.error || !view.data) return <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
   const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today } = view.data
@@ -173,6 +175,14 @@ export function HomePage() {
           </span>
           <ChevronRight className="size-5 text-faint" aria-hidden />
         </Link>
+
+        {(bankAccounts.data ?? []).length > 0 && (
+          <List header="Suas contas" footer={<Link to="/voce/bancos" className="font-semibold text-primary">Bancos conectados</Link>}>
+            {bankAccounts.data!.map((a) => (
+              <AccountRow key={a.id} a={a} />
+            ))}
+          </List>
+        )}
 
         <List header="Seu mês">
           <Row title="Entrou" trailing={<Money cents={s.income} className="text-[1.0625rem]" />} as={link('/mes')} />

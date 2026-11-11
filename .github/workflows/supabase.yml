@@ -65,8 +65,15 @@ jobs:
         env:
           SETUP_CODE: ${{ secrets.SETUP_CODE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PLUGGY_CLIENT_ID: ${{ secrets.PLUGGY_CLIENT_ID }}
+          PLUGGY_CLIENT_SECRET: ${{ secrets.PLUGGY_CLIENT_SECRET }}
         run: |
           supabase secrets set SETUP_CODE="$SETUP_CODE" --yes
+          if [ -n "$PLUGGY_CLIENT_ID" ] && [ -n "$PLUGGY_CLIENT_SECRET" ]; then
+            supabase secrets set PLUGGY_CLIENT_ID="$PLUGGY_CLIENT_ID" PLUGGY_CLIENT_SECRET="$PLUGGY_CLIENT_SECRET" --yes
+          else
+            echo "::notice::Sem chaves da Pluggy: a conexão com o banco fica desligada."
+          fi
           if [ -n "$GEMINI_API_KEY" ]; then
             supabase secrets set GEMINI_API_KEY="$GEMINI_API_KEY" --yes
           else

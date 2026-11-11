@@ -12,6 +12,7 @@ import { SignUpPage } from './pages/auth/SignUpPage'
 import { HomePage } from './pages/HomePage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { HabitsPage } from './pages/HabitsPage'
+import { BanksPage } from './pages/you/BanksPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { useProfile } from './data/hooks'
 import { PrivacyPage, TermsPage } from './pages/legal/LegalPages'
@@ -74,6 +75,7 @@ function LoggedIn() {
         <Route path="habitos" element={<HabitsPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />
+        <Route path="voce/bancos" element={<BanksPage />} />
         <Route path="voce" element={<YouPage />} />
         <Route path="voce/perfil" element={<ProfileEditPage />} />
         <Route path="voce/senha" element={<PasswordPage />} />

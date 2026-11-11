@@ -90,7 +90,7 @@ export async function buildDemoData(): Promise<{ [K in keyof Tables]: Tables[K][
 
   const month_plans = [-2, -1, 0].map((b) => ({ id: id(), user_id: 'demo', month: monthKey(addMonths(ym, b)), save_cents: 40000, split_done_at: b < 0 ? now : null, created_at: now }))
   const demoGoals = buildDemoGoals()
-  return { categories, recurrings, transactions, budget_moves: [], month_plans, ...demoGoals, ...buildDemoHabits(demoGoals.goals) }
+  return { categories, recurrings, transactions, budget_moves: [], month_plans, ...demoGoals, ...buildDemoHabits(demoGoals.goals), bank_connections: [], bank_accounts: [], category_rules: [] }
 }
 
 /** Caixinhas de exemplo (inspiradas nas linhas "Reserva" da planilha). */

@@ -105,6 +105,7 @@ export function YouPage() {
           <Row title="Dia do pagamento" trailing={p.payday ? `Dia ${p.payday}` : 'Definir'} chevron onClick={() => setSheet('payday')} />
           <Row title="Salário" trailing={p.salary_cents != null ? formatBRL(p.salary_cents) : 'Definir'} chevron onClick={() => setSheet('salary')} />
           <Row title="Horas de trabalho por semana" trailing={`${p.work_hours_week} h`} chevron onClick={() => setSheet('hours')} />
+          <Row title="Bancos conectados" subtitle="Seus gastos entram sozinhos" chevron as={link('/voce/bancos')} />
           <Row title="Gastos fixos" chevron as={link('/voce/fixos')} />
           <Row title="Categorias e limites" chevron as={link('/voce/categorias')} />
         </List>

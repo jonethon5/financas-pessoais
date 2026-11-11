@@ -118,6 +118,10 @@ export type Transaction = {
   paid: boolean
   skipped: boolean
   note: string | null
+  /** veio do banco (Open Finance) ou foi lançado à mão */
+  source?: 'manual' | 'banco'
+  external_id?: string | null
+  bank_account_id?: string | null
   created_at: string
 }
 
@@ -153,6 +157,9 @@ export type Tables = {
   rules: Rule
   wishes: Wish
   if_then_plans: IfThenPlan
+  bank_connections: BankConnection
+  bank_accounts: BankAccount
+  category_rules: CategoryRule
 }
 export type TableName = keyof Tables
 /** O que o app envia ao criar uma linha (id, user_id e created_at têm padrão). */
@@ -257,5 +264,45 @@ export type IfThenPlan = {
   action_text: string
   weekday: number | null
   active: boolean
+  created_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Conexão com o banco (Open Finance, só leitura)
+// ---------------------------------------------------------------------------
+
+export type BankConnection = {
+  id: string
+  user_id: string
+  item_id: string
+  label: string
+  status: 'ok' | 'erro' | 'expirado'
+  last_sync_at: string | null
+  last_error: string | null
+  created_at: string
+}
+
+export type BankAccount = {
+  id: string
+  user_id: string
+  connection_id: string
+  external_id: string
+  type: 'BANK' | 'CREDIT'
+  subtype: string | null
+  name: string
+  balance_cents: number | null
+  credit_limit_cents: number | null
+  available_cents: number | null
+  due_date: string | null
+  close_date: string | null
+  updated_at: string
+  created_at: string
+}
+
+export type CategoryRule = {
+  id: string
+  user_id: string
+  pattern: string
+  category_id: string
   created_at: string
 }

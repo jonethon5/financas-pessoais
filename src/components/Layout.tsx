@@ -3,7 +3,8 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Plus, WifiOff } from 'lucide-react'
 import { CalendarDots, House, PiggyBank, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useAuth } from '../auth/AuthProvider'
-import { useRealtime } from '../data/finance'
+import { useBankAutoSync, useRealtime } from '../data/finance'
+import { useToast } from './Toast'
 import { AddSheet } from './AddSheet'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
@@ -65,6 +66,8 @@ export function Layout() {
   const navigate = useNavigate()
   const [addOpen, setAddOpen] = useState(false)
   useRealtime()
+  const toast = useToast()
+  useBankAutoSync((n) => toast(`${n} ${n === 1 ? 'lançamento novo' : 'lançamentos novos'} do banco`))
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
 
   return (

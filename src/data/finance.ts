@@ -7,7 +7,7 @@ import { defaultCategories } from '../lib/categories'
 import { addMonths, compareYearMonth, currentYearMonth, firstDayISO, lastDayISO, monthKey, type YearMonth } from '../lib/dates'
 import { expectedMonthRows, missingRows } from '../lib/recurring'
 import { rulesForTransaction } from '../lib/psych'
-import { supabase } from '../lib/supabase'
+import { callFunction, supabase } from '../lib/supabase'
 import type { MonthPlan, NewRow, Profile, TableName, Tables, Transaction } from '../types'
 import { useBackend, type Backend } from './backend'
 import { useProfile } from './hooks'
@@ -91,9 +91,37 @@ export function useGoalMoves() {
 }
 
 /** Leitura simples de uma tabela inteira da pessoa (hábitos: desafios, regras, desejos, planos). */
-export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans'>(table: K) {
+export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans' | 'bank_connections' | 'bank_accounts'>(table: K) {
   const backend = useBackend()
   return useQuery({ queryKey: tkey(table), queryFn: () => backend.list(table) })
+}
+
+/**
+ * Sincroniza com o banco ao abrir o app (se a última atualização tem mais de 6 horas).
+ * O Meu Pluggy atualiza os dados do banco 1 vez por dia; aqui só buscamos o que é novo.
+ */
+export function useBankAutoSync(onImported: (n: number) => void) {
+  const { mode } = useAuth()
+  const profile = useProfile()
+  const conns = useTable('bank_connections')
+  const qc = useQueryClient()
+  useEffect(() => {
+    if (mode !== 'supabase' || !profile.data?.is_admin || !conns.data?.length) return
+    const stale = conns.data.some((c) => !c.last_sync_at || Date.now() - Date.parse(c.last_sync_at) > 6 * 3600_000)
+    if (!stale) return
+    let alive = true
+    callFunction<{ imported: number; matched: number }>('bank-sync', { action: 'sync' })
+      .then((r) => {
+        if (!alive) return
+        void qc.invalidateQueries({ queryKey: ['t'] })
+        if (r.imported + r.matched > 0) onImported(r.imported + r.matched)
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, profile.data?.is_admin, conns.data?.length])
 }
 
 /**
@@ -130,7 +158,7 @@ export function useWrite() {
   const refresh = (...tables: TableName[]) => Promise.all(tables.map((t) => qc.invalidateQueries({ queryKey: ['t', t] })))
   return useMutation({
     mutationFn: async (fn: (b: Backend) => Promise<unknown>) => fn(backend),
-    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans'),
+    onSettled: () => refresh('categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans', 'bank_connections', 'bank_accounts', 'category_rules'),
   })
 }
 
@@ -145,7 +173,7 @@ export function useRealtime() {
   const qc = useQueryClient()
   useEffect(() => {
     if (mode !== 'supabase' || !userId) return
-    const tables: (keyof Tables)[] = ['categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans']
+    const tables: (keyof Tables)[] = ['categories', 'recurrings', 'transactions', 'budget_moves', 'month_plans', 'goals', 'goal_moves', 'challenges', 'rules', 'wishes', 'if_then_plans', 'bank_connections', 'bank_accounts']
     let channel = supabase.channel(`dados-${userId}`)
     for (const table of tables) {
       channel = channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` }, () =>

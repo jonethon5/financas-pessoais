@@ -443,3 +443,6 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+[functions.bank-sync]
+verify_jwt = false

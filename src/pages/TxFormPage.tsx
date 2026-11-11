@@ -11,6 +11,7 @@ import { useBackend } from '../data/backend'
 import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite } from '../data/finance'
 import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
+import { learnKey } from '../../supabase/functions/_shared/bankmap.ts'
 import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, relativeDay, todayISO } from '../lib/dates'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
@@ -132,8 +133,17 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             for (const p of group) if (p.id !== tx.id) await b.update('transactions', p.id, { description: desc, category_id: categoryId })
           }
           await b.update('transactions', tx.id, patch)
+          // Veio do banco e a categoria mudou: aprende para os próximos e corrige os parecidos
+          if (tx.source === 'banco' && categoryId && categoryId !== tx.category_id) {
+            const key = learnKey(tx.description)
+            if (key) {
+              await b.upsert('category_rules', { pattern: key, category_id: categoryId }, 'user_id,pattern')
+              const similar = (await b.list('transactions', { eq: { source: 'banco' } })).filter((t) => t.id !== tx.id && learnKey(t.description) === key && t.category_id !== categoryId)
+              for (const t of similar) await b.update('transactions', t.id, { category_id: categoryId })
+            }
+          }
         })
-        toast('Alteração salva')
+        toast(tx.source === 'banco' && categoryId !== tx.category_id ? 'Salvo. Os próximos parecidos já vêm nessa categoria' : 'Alteração salva')
       } else if (mode === 'fixo') {
         const ym = currentYearMonth()
         await write.mutateAsync((b) =>
@@ -222,6 +232,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           />
         )}
         {error && <ErrorBox message={error} />}
+        {tx?.source === 'banco' && <Notice>Veio do banco. Valor e data são os do extrato; se mudar a categoria, o app aprende para os próximos.</Notice>}
 
         <Field
           label={mode === 'parcelado' && !tx ? (valueIs === 'total' ? 'Valor total da compra' : 'Valor de cada parcela') : 'Valor'}
