@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type Inp
 import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { formatBRL } from '../lib/money'
 import { useCountUp, useGrow } from '../lib/motion'
+import { useHiddenValues } from '../lib/privacy'
 
 const variants = {
   primary: 'bg-primary text-on-primary active:bg-primary-strong disabled:opacity-40',
@@ -278,12 +279,14 @@ export function IconTile({ children, size = 'md', className = '' }: { children: 
 /** Valor que "conta" até o número ao aparecer ou mudar. */
 export function AnimatedMoney({ cents, className = '' }: { cents: number; className?: string }) {
   const v = useCountUp(cents)
-  return <span className={`num whitespace-nowrap ${className}`}>{formatBRL(v)}</span>
+  const hidden = useHiddenValues()
+  return <span className={`num whitespace-nowrap ${className}`}>{hidden ? 'R$ ••••' : formatBRL(v)}</span>
 }
 
 /** Valor em reais com números alinhados. */
 export function Money({ cents, className = '' }: { cents: number; className?: string }) {
-  return <span className={`num whitespace-nowrap ${className}`}>{formatBRL(cents)}</span>
+  const hidden = useHiddenValues()
+  return <span className={`num whitespace-nowrap ${className}`}>{hidden ? 'R$ ••••' : formatBRL(cents)}</span>
 }
 
 export function Spinner({ label = 'Carregando…' }: { label?: string }) {

@@ -29,6 +29,7 @@ create table public.bank_accounts (
   due_date            date,
   close_date          date,
   updated_at          timestamptz not null default now(),
+  created_at          timestamptz not null default now(),
   unique (user_id, external_id)
 );
 

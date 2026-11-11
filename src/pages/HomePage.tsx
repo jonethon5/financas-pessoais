@@ -1,25 +1,57 @@
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
+import {
+  ArrowCircleDown, CalendarCheck, ChartDonut, CreditCard, Eye, EyeSlash, Flame, GearSix, Hourglass, PiggyBank, Receipt,
+  SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
+} from '@phosphor-icons/react'
 import { ChevronRight } from 'lucide-react'
-import { CalendarCheck, Flame, Hourglass, PencilSimpleLine, Sun, Target } from '@phosphor-icons/react'
-import { useTable } from '../data/finance'
-import { AccountRow } from './you/BanksPage'
-import { freshStart, loggingDayStreak, savingWeekStreak, wishState } from '../lib/psych'
-import { weekdayOf } from '../lib/dates'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
-import { AnimatedMoney, Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Spinner } from '../components/ui'
+import { AnimatedMoney, Badge, Button, ErrorBox, List, Money, ProgressBar, Row, Spinner } from '../components/ui'
+import { useTable } from '../data/finance'
 import { useMonthView } from '../data/monthView'
-import { currentYearMonth, dayOf, daysBetweenISO, formatDayLong, greeting, relativeDay } from '../lib/dates'
+import { currentYearMonth, dayOf, daysBetweenISO, formatDateShort, relativeDay, weekdayOf } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
+import { toggleHidden, useHiddenValues } from '../lib/privacy'
+import { freshStart, loggingDayStreak, savingWeekStreak, wishState } from '../lib/psych'
 import { friendlyError } from '../lib/supabase'
 import { levelText } from './MonthPage'
 
-const link = (to: string) => (content: React.ReactNode, className: string) => (
-  <Link to={to} className={className}>
-    {content}
-  </Link>
-)
+const SHORTCUTS: { to: string; label: string; icon: PhosphorIcon }[] = [
+  { to: '/lancar?tipo=dia', label: 'Gasto', icon: Receipt },
+  { to: '/lancar?tipo=renda', label: 'Renda', icon: ArrowCircleDown },
+  { to: '/caixinhas', label: 'Guardar', icon: PiggyBank },
+  { to: '/separar', label: 'Separar', icon: SplitHorizontal },
+  { to: '/mes', label: 'Resumo', icon: ChartDonut },
+  { to: '/habitos', label: 'Desafios', icon: Trophy },
+  { to: '/habitos', label: 'Desejos', icon: Hourglass },
+]
+
+/** Seção da tela inicial no estilo de app de banco: título com seta e conteúdo, separada por uma linha fina. */
+function Section({ title, to, children }: { title: string; to?: string; children: ReactNode }) {
+  const head = (
+    <span className="flex items-center justify-between">
+      <span className="text-[1.1875rem] font-extrabold tracking-tight">{title}</span>
+      {to && <ChevronRight className="size-5 text-faint" aria-hidden />}
+    </span>
+  )
+  return (
+    <section className="-mx-4 border-t border-line px-4 py-5">
+      {to ? (
+        <Link to={to} className="block active:opacity-70">
+          {head}
+          <div className="mt-2.5">{children}</div>
+        </Link>
+      ) : (
+        <>
+          {head}
+          <div className="mt-2.5">{children}</div>
+        </>
+      )}
+    </section>
+  )
+}
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -28,19 +60,21 @@ export function HomePage() {
   const wishes = useTable('wishes')
   const challenges = useTable('challenges')
   const bankAccounts = useTable('bank_accounts')
+  const hidden = useHiddenValues()
   if (view.isPending) return <Spinner />
   if (view.error || !view.data) return <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
-  const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today } = view.data
+  const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today, goals } = view.data
   const name = displayName(p)
-  const longDay = formatDayLong(today)
   const hasSalary = p.salary_cents != null && p.payday != null
   const catOf = (id: string | null) => categories.find((c) => c.id === id)
+  const banks = (bankAccounts.data ?? []).filter((a) => a.type === 'BANK')
+  const cards = (bankAccounts.data ?? []).filter((a) => a.type === 'CREDIT')
+  const bankBalance = banks.reduce((a, b) => a + (b.balance_cents ?? 0), 0)
 
   const alerts = statuses.filter((x) => x.level !== 'ok' || x.weekLevel !== 'ok').slice(0, 3)
   const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && daysBetweenISO(today, x.date) >= -3 && daysBetweenISO(today, x.date) <= 7)
   const recent = [...txs].filter((x) => !x.skipped && x.type === 'dia').sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 5)
-  const salaryArrived = hasSalary && dayOf(today) >= Math.min(p.payday!, 28)
-  const needsSplit = salaryArrived && !plan?.split_done_at
+  const needsSplit = hasSalary && dayOf(today) >= Math.min(p.payday!, 28) && !plan?.split_done_at
   const fresh = freshStart(today, p.birthday)
   const weekday = weekdayOf(today)
   const todayPlan = (plans.data ?? []).find((x) => x.active && (x.weekday == null || x.weekday === weekday))
@@ -49,48 +83,45 @@ export function HomePage() {
   const weeks = savingWeekStreak(view.data.goalMoves, today)
   const days = loggingDayStreak(allTxs, today)
   const activeChallenges = (challenges.data ?? []).filter((c) => c.status === 'ativo').length
+  const saved = goals.reduce((a, g) => a + g.status.saved, 0)
+  const goalNeed = goals.reduce((a, g) => a + g.status.needThisMonth, 0)
 
   return (
-    <>
-      <NavBar
-        title={name ? `${greeting()}, ${name}` : greeting()}
-        subtitle={longDay.charAt(0).toUpperCase() + longDay.slice(1)}
-        right={
-          <Link to="/voce" aria-label="Você">
-            <ProfileAvatar profile={p} size="sm" />
+    <div className="flex flex-col">
+      {/* Topo azul, como nos apps de banco: foto, olho para esconder valores e ajustes */}
+      <header className="pt-safe -mx-4 bg-[#2F6FEB] px-4 pb-6 text-white">
+        <div className="flex items-center justify-between pt-4">
+          <Link to="/voce" aria-label="Você" className="rounded-full ring-2 ring-white/25">
+            <ProfileAvatar profile={p} size="md" />
           </Link>
-        }
-      />
-      <div className="stagger flex flex-col gap-6">
-        {needsSplit && (
-          <Card className="bg-coral-soft shadow-none">
-            <p className="text-[1.0625rem] font-semibold">Seu salário caiu</p>
-            <p className="mt-1 leading-snug text-ink/80">Antes de gastar, separe o que vai para as caixinhas. Quem guarda primeiro, guarda mais.</p>
-            <Button variant="primary" size="md" className="mt-3 w-full" onClick={() => navigate('/separar')}>
-              Separar o salário
-            </Button>
-          </Card>
-        )}
+          <div className="flex gap-1">
+            <button type="button" onClick={toggleHidden} aria-label={hidden ? 'Mostrar valores' : 'Esconder valores'} className="grid size-11 place-items-center rounded-full active:bg-white/15">
+              {hidden ? <EyeSlash size={24} /> : <Eye size={24} />}
+            </button>
+            <Link to="/voce" aria-label="Ajustes" className="grid size-11 place-items-center rounded-full active:bg-white/15">
+              <GearSix size={24} />
+            </Link>
+          </div>
+        </div>
+        <p className="mt-5 text-[1.375rem] font-bold">{name ? `Olá, ${name}` : 'Olá'}</p>
+      </header>
 
-        {fresh && (
-          <Card className="flex gap-3.5">
-            <Sun size={34} weight="duotone" className="shrink-0 text-coral" />
-            <div>
-              <p className="text-[1.0625rem] font-bold">{fresh.title}</p>
-              <p className="mt-0.5 leading-snug text-muted">{fresh.text}</p>
-            </div>
-          </Card>
-        )}
+      {banks.length > 0 && (
+        <Section title="Conta" to="/voce/bancos">
+          <AnimatedMoney cents={bankBalance} className="text-[1.75rem] font-extrabold tracking-[-0.02em]" />
+        </Section>
+      )}
 
+      <section className={`-mx-4 px-4 py-5 ${banks.length ? 'border-t border-line' : ''}`}>
         {t && hasSalary ? (
-          <Card className="p-5">
-            <p className="text-[0.9375rem] font-medium text-muted">Você pode gastar hoje</p>
+          <>
+            <p className="text-[1.1875rem] font-extrabold tracking-tight">Hoje você pode gastar</p>
             {t.leftToday >= 0 ? (
-              <AnimatedMoney cents={t.leftToday} className="mt-0.5 block text-[2.75rem] leading-tight font-extrabold tracking-[-0.03em]" />
+              <AnimatedMoney cents={t.leftToday} className="mt-1 block text-[2.5rem] leading-tight font-extrabold tracking-[-0.03em]" />
             ) : (
-              <p className="mt-1 text-[1.5rem] leading-tight font-bold text-danger-strong">▲ Passou {formatBRL(-t.leftToday)} do valor de hoje</p>
+              <p className="mt-1 text-[1.5rem] leading-tight font-extrabold text-danger-strong">▲ Passou {hidden ? 'R$ ••••' : formatBRL(-t.leftToday)} do valor de hoje</p>
             )}
-            <p className="mt-1 text-[0.9375rem] text-muted">
+            <p className="mt-0.5 text-[0.9375rem] text-muted">
               {t.dailyAllowance > 0 ? (
                 <>
                   <Money cents={t.dailyAllowance} /> por dia · {t.daysLeft === 1 ? 'último dia do mês' : `faltam ${t.daysLeft} dias`}
@@ -100,108 +131,146 @@ export function HomePage() {
               )}
             </p>
             {t.dailyAllowance > 0 && <ProgressBar className="mt-3" value={t.spentToday / t.dailyAllowance} tone={t.leftToday < 0 ? 'danger' : t.spentToday >= t.dailyAllowance * 0.8 ? 'warn' : 'grow'} label="Gasto de hoje" />}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button size="md" onClick={() => navigate('/lancar?tipo=dia')}>
-                Lançar gasto
-              </Button>
-              <Button size="md" variant="coral" onClick={() => navigate('/separar')}>
-                Guardar
-              </Button>
-            </div>
-          </Card>
+          </>
         ) : (
-          <Card>
-            <p className="text-[1.125rem] font-semibold">Quanto você pode gastar por dia?</p>
-            <p className="mt-1 leading-snug text-muted">Informe seu salário e o dia do pagamento. O app desconta os gastos fixos e o que você quer guardar e divide pelo resto do mês.</p>
-            <Button size="md" className="mt-4 w-full" onClick={() => navigate('/voce')}>
+          <>
+            <p className="text-[1.1875rem] font-extrabold tracking-tight">Quanto você pode gastar por dia?</p>
+            <p className="mt-1 leading-snug text-muted">Informe seu salário e o dia do pagamento: o app desconta os fixos e o que você quer guardar e divide pelo resto do mês.</p>
+            <Button size="md" className="mt-3" onClick={() => navigate('/voce')}>
               Informar salário
             </Button>
-          </Card>
+          </>
         )}
 
-        {todayPlan && (
-          <Card className="flex gap-3.5">
-            <Target size={32} weight="duotone" className="shrink-0 text-ai" />
-            <div>
-              <p className="text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Seu plano para hoje</p>
-              <p className="mt-0.5 leading-snug font-semibold">
-                {todayPlan.trigger_text}, {todayPlan.action_text}.
+        {/* Atalhos redondos (arrasta para o lado) */}
+        <div className="no-scrollbar -mx-4 mt-6 flex gap-4 overflow-x-auto px-4">
+          {SHORTCUTS.map((sc) => (
+            <Link key={sc.label} to={sc.to} className="press flex w-[4.5rem] shrink-0 flex-col items-center gap-2 text-center">
+              <span className="grid size-[4.25rem] place-items-center rounded-full bg-surface text-ink">
+                <sc.icon size={28} weight="duotone" />
+              </span>
+              <span className="text-[0.8125rem] leading-tight font-semibold">{sc.label}</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Lembretes do momento */}
+        <div className="mt-6 flex flex-col gap-2.5">
+          {needsSplit && (
+            <Link to="/separar" className="press flex items-center gap-3 rounded-[1rem] bg-surface p-4">
+              <SplitHorizontal size={28} weight="duotone" className="shrink-0 text-primary" />
+              <span className="flex-1 leading-snug">
+                <strong>Seu salário caiu.</strong> Separe primeiro o das caixinhas.
+              </span>
+              <ChevronRight className="size-5 text-faint" />
+            </Link>
+          )}
+          {fresh && (
+            <div className="flex gap-3 rounded-[1rem] bg-surface p-4">
+              <Sun size={28} weight="duotone" className="shrink-0 text-coral" />
+              <p className="leading-snug">
+                <strong>{fresh.title}.</strong> {fresh.text}
               </p>
             </div>
-          </Card>
-        )}
+          )}
+          {todayPlan && (
+            <div className="flex gap-3 rounded-[1rem] bg-surface p-4">
+              <Target size={28} weight="duotone" className="shrink-0 text-ai" />
+              <p className="leading-snug">
+                <strong>Seu plano de hoje:</strong> {todayPlan.trigger_text}, {todayPlan.action_text}.
+              </p>
+            </div>
+          )}
+          {readyWish && (
+            <Link to="/habitos" className="press flex items-center gap-3 rounded-[1rem] bg-surface p-4">
+              <Hourglass size={28} weight="duotone" className="shrink-0 text-warn" />
+              <span className="flex-1 leading-snug">
+                <strong>Ainda quer o {readyWish.name}?</strong> A espera de 30 dias acabou.
+              </span>
+              <ChevronRight className="size-5 text-faint" />
+            </Link>
+          )}
+          {(weekday === 0 || weekday === 1) && (
+            <Link to="/revisao" className="press flex items-center gap-3 rounded-[1rem] bg-gradient-to-br from-[#2F6FEB] to-[#163a8a] p-4 text-white">
+              <CalendarCheck size={28} weight="duotone" className="shrink-0" />
+              <span className="flex-1 leading-snug">
+                <strong>Sua semana em 2 minutos.</strong> Veja como foi.
+              </span>
+              <ChevronRight className="size-5 opacity-80" />
+            </Link>
+          )}
+        </div>
+      </section>
 
-        {readyWish && (
-          <Link to="/habitos" className="press shadow-soft flex gap-3.5 rounded-[1.25rem] bg-surface p-4">
-            <Hourglass size={32} weight="duotone" className="shrink-0 text-warn" />
+      {cards.map((c) => (
+        <Section key={c.id} title="Cartão de crédito" to="/voce/bancos">
+          <div className="flex items-start gap-3">
+            <CreditCard size={26} weight="duotone" className="mt-0.5 shrink-0 text-muted" />
             <div>
-              <p className="font-bold">Ainda quer o {readyWish.name}?</p>
-              <p className="mt-0.5 leading-snug text-muted">Os 30 dias de espera acabaram. Se ainda quiser, compre sem culpa. Se não, é {formatBRL(readyWish.price_cents)} que fica com você.</p>
+              <p className="text-muted">{c.name}</p>
+              <p className="text-[1.25rem] font-bold">
+                Fatura atual <Money cents={c.balance_cents ?? 0} />
+              </p>
+              <p className="text-[0.9375rem] text-muted">
+                {c.due_date ? `Vence ${formatDateShort(c.due_date)}` : ''}
+                {c.available_cents != null && (
+                  <>
+                    {c.due_date ? ' · ' : ''}Limite disponível <Money cents={c.available_cents} />
+                  </>
+                )}
+              </p>
             </div>
-          </Link>
-        )}
-
-        {(weekday === 0 || weekday === 1) && (
-          <Link to="/revisao" className="press flex items-center gap-3.5 rounded-[1.25rem] bg-gradient-to-br from-[#0B7F5A] to-[#063f2d] p-4 text-white">
-            <CalendarCheck size={34} weight="duotone" className="shrink-0" />
-            <div className="flex-1">
-              <p className="font-bold">Sua semana em 2 minutos</p>
-              <p className="text-[0.9375rem] opacity-85">Veja como foi e comece a próxima melhor.</p>
-            </div>
-            <ChevronRight className="size-5 opacity-80" />
-          </Link>
-        )}
-
-        <Link to="/habitos" className="press shadow-soft flex items-center gap-4 rounded-[1.25rem] bg-surface p-4">
-          <div className="flex flex-1 items-center gap-5">
-            <span className="flex items-center gap-1.5">
-              <Flame size={26} weight="duotone" className="text-coral" />
-              <span>
-                <span className="num block text-[1.25rem] leading-none font-extrabold">{weeks}</span>
-                <span className="text-[0.75rem] font-medium text-muted">{weeks === 1 ? 'semana guardando' : 'semanas guardando'}</span>
-              </span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <PencilSimpleLine size={26} weight="duotone" className="text-ai" />
-              <span>
-                <span className="num block text-[1.25rem] leading-none font-extrabold">{days}</span>
-                <span className="text-[0.75rem] font-medium text-muted">{days === 1 ? 'dia lançando' : 'dias lançando'}</span>
-              </span>
-            </span>
           </div>
-          <span className="text-right text-[0.875rem] font-semibold text-primary">
-            Hábitos
-            {activeChallenges > 0 && <span className="block text-[0.75rem] font-medium text-muted">{activeChallenges} desafio{activeChallenges > 1 ? 's' : ''}</span>}
-          </span>
-          <ChevronRight className="size-5 text-faint" aria-hidden />
-        </Link>
+        </Section>
+      ))}
 
-        {(bankAccounts.data ?? []).length > 0 && (
-          <List header="Suas contas" footer={<Link to="/voce/bancos" className="font-semibold text-primary">Bancos conectados</Link>}>
-            {bankAccounts.data!.map((a) => (
-              <AccountRow key={a.id} a={a} />
-            ))}
-          </List>
-        )}
-
-        <List header="Seu mês">
-          <Row title="Entrou" trailing={<Money cents={s.income} className="text-[1.0625rem]" />} as={link('/mes')} />
-          <Row title="Fixos e parcelas" trailing={<Money cents={s.committed} className="text-[1.0625rem] text-muted" />} as={link('/mes')} />
-          <Row title="Para guardar" trailing={<Money cents={s.save} className="text-[1.0625rem] text-muted" />} as={link('/caixinhas')} />
-          <Row title="Dia a dia" trailing={<Money cents={s.daily} className="text-[1.0625rem] text-muted" />} as={link('/mes')} />
-          <Row title={<span className="font-semibold">Sobra prevista</span>} trailing={<Money cents={s.free} className={`text-[1.0625rem] font-semibold ${s.free < 0 ? 'text-danger-strong' : ''}`} />} />
-        </List>
-
+      <Section title="Seu mês" to="/mes">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            ['Entrou', s.income, ''],
+            ['Saiu', s.committed + s.daily, ''],
+            ['Sobra prevista', s.free, s.free < 0 ? 'text-danger-strong' : 'text-primary-strong'],
+          ].map(([label, cents, cls]) => (
+            <div key={label as string}>
+              <p className="text-[0.8125rem] text-muted">{label}</p>
+              <Money cents={cents as number} className={`text-[1rem] font-bold ${cls}`} />
+            </div>
+          ))}
+        </div>
         {alerts.length > 0 && (
-          <List header="Atenção ao orçamento">
+          <div className="mt-3 flex flex-wrap gap-2">
             {alerts.map((a) => (
-              <Row key={a.category.id} icon={<CategoryIcon category={a.category} size="sm" />} title={a.category.name} trailing={levelText(a)} as={link('/mes?aba=orcamento')} />
+              <span key={a.category.id} className="flex items-center gap-1.5 text-[0.875rem]">
+                {a.category.name} {levelText(a)}
+              </span>
             ))}
-          </List>
+          </div>
         )}
+      </Section>
 
-        {upcoming.length > 0 && (
-          <List header="Contas a pagar">
+      <Section title="Caixinhas" to="/caixinhas">
+        <AnimatedMoney cents={saved} className="text-[1.375rem] font-bold" />
+        <p className="text-[0.9375rem] text-muted">{goals.length === 0 ? 'Crie sua primeira caixinha para guardar com objetivo.' : goalNeed > 0 ? `Falta guardar ${hidden ? 'R$ ••••' : formatBRL(goalNeed)} este mês` : 'Mês em dia nas caixinhas'}</p>
+      </Section>
+
+      <Section title="Hábitos" to="/habitos">
+        <div className="flex gap-6">
+          <span className="flex items-center gap-2">
+            <Flame size={24} weight="duotone" className="text-coral" />
+            <span className="text-[0.9375rem]">
+              <strong className="num">{weeks}</strong> {weeks === 1 ? 'semana guardando' : 'semanas guardando'}
+            </span>
+          </span>
+          <span className="text-[0.9375rem] text-muted">
+            <strong className="num text-ink">{days}</strong> {days === 1 ? 'dia lançando' : 'dias lançando'}
+            {activeChallenges > 0 ? ` · ${activeChallenges} desafio${activeChallenges > 1 ? 's' : ''}` : ''}
+          </span>
+        </div>
+      </Section>
+
+      {upcoming.length > 0 && (
+        <Section title="Contas a pagar">
+          <List>
             {upcoming.map((x) => {
               const d = daysBetweenISO(today, x.date)
               return (
@@ -216,38 +285,32 @@ export function HomePage() {
                       <Money cents={x.amount_cents} />
                     </span>
                   }
-                  as={x.virtual ? undefined : link(`/lancamento/${x.id}`)}
+                  as={x.virtual ? undefined : (c, cls) => <Link to={`/lancamento/${x.id}`} className={cls}>{c}</Link>}
                 />
               )
             })}
           </List>
-        )}
+        </Section>
+      )}
 
-        <section>
-          <div className="mb-1.5 flex items-end justify-between px-4">
-            <h2 className="text-[0.8125rem] font-medium tracking-wide text-muted uppercase">Últimos gastos</h2>
-            <Link to="/mes" className="flex items-center text-[0.9375rem] font-medium text-primary">
-              Ver mês <ChevronRight className="size-4" />
-            </Link>
-          </div>
-          {recent.length === 0 ? (
-            <Card className="text-center text-muted">Nenhum gasto do dia a dia neste mês. Toque no + para lançar.</Card>
-          ) : (
-            <List>
-              {recent.map((x) => (
-                <Row
-                  key={x.id}
-                  icon={<CategoryIcon category={catOf(x.category_id)} size="sm" />}
-                  title={x.description}
-                  subtitle={relativeDay(x.date, today)}
-                  trailing={<Money cents={x.amount_cents} className="text-[1.0625rem]" />}
-                  as={link(`/lancamento/${x.id}`)}
-                />
-              ))}
-            </List>
-          )}
-        </section>
-      </div>
-    </>
+      <Section title="Últimos gastos">
+        {recent.length === 0 ? (
+          <p className="text-muted">Nenhum gasto do dia a dia neste mês. Toque no + para lançar.</p>
+        ) : (
+          <List>
+            {recent.map((x) => (
+              <Row
+                key={x.id}
+                icon={<CategoryIcon category={catOf(x.category_id)} size="sm" />}
+                title={x.description}
+                subtitle={relativeDay(x.date, today)}
+                trailing={<Money cents={x.amount_cents} className="text-[1.0625rem]" />}
+                as={(c, cls) => <Link to={`/lancamento/${x.id}`} className={cls}>{c}</Link>}
+              />
+            ))}
+          </List>
+        )}
+      </Section>
+    </div>
   )
 }

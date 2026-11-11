@@ -33,7 +33,7 @@ export function StoriesPage({ kind }: { kind: 'semana' | 'mes' }) {
     const r: Recap & { from?: string; to?: string } = kind === 'semana' ? weekRecap(txs, moves.data, view.data.categories, view.data.today) : monthRecap(txs, moves.data, view.data.categories, ym, view.data.today)
     const period = kind === 'semana' ? `${formatDateShort(r.from!)} a ${formatDateShort(r.to!)}` : monthLabel(ym)
     const list: Slide[] = [
-      { bg: 'from-[#0B7F5A] to-[#063f2d]', icon: <CalendarCheck size={56} weight="duotone" />, kicker: kind === 'semana' ? 'Sua semana em 2 minutos' : 'Sua retrospectiva', title: period, text: kind === 'semana' ? 'Bora ver como foi? Toque para avançar.' : 'Um mês inteiro em poucas telas.' },
+      { bg: 'from-[#2F6FEB] to-[#163a8a]', icon: <CalendarCheck size={56} weight="duotone" />, kicker: kind === 'semana' ? 'Sua semana em 2 minutos' : 'Sua retrospectiva', title: period, text: kind === 'semana' ? 'Bora ver como foi? Toque para avançar.' : 'Um mês inteiro em poucas telas.' },
       { bg: r.spent <= r.previousSpent ? 'from-[#0F9D6B] to-[#0B4F3A]' : 'from-[#C2410C] to-[#6b2407]', icon: r.spent <= r.previousSpent ? <TrendDown size={56} weight="duotone" /> : <TrendUp size={56} weight="duotone" />, kicker: 'Você gastou', title: formatBRL(r.spent), text: compareText(r.spent, r.previousSpent) },
     ]
     if (r.topCategory) list.push({ bg: 'from-[#6E56F0] to-[#2d2275]', icon: <ChartPieSlice size={56} weight="duotone" />, kicker: 'O que mais pesou', title: r.topCategory.name, text: `${formatBRL(r.topCategory.cents)} no dia a dia${r.biggest ? `. Maior gasto: ${r.biggest.description}, ${formatBRL(r.biggest.cents)}.` : '.'}` })
@@ -124,7 +124,7 @@ async function summaryImage(slides: Slide[], title: string): Promise<Blob> {
   c.height = 1920
   const ctx = c.getContext('2d')!
   const g = ctx.createLinearGradient(0, 0, 0, 1920)
-  g.addColorStop(0, '#0B7F5A')
+  g.addColorStop(0, '#2F6FEB')
   g.addColorStop(1, '#0F2433')
   ctx.fillStyle = g
   ctx.fillRect(0, 0, 1080, 1920)

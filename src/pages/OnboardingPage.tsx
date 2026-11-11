@@ -35,7 +35,7 @@ const FIXED = [
 ] as const
 
 /** Ilustração do passo: ícone grande sobre círculos em degradê (sem emoji). */
-function Art({ icon: Icon, color = '#0B7F5A' }: { icon: PhosphorIcon; color?: string }) {
+function Art({ icon: Icon, color = '#2F6FEB' }: { icon: PhosphorIcon; color?: string }) {
   return (
     <div className="relative mx-auto mb-7 grid size-36 place-items-center">
       <span className="absolute inset-0 rounded-full opacity-15" style={{ background: color }} />

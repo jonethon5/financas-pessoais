@@ -107,7 +107,7 @@ export function Layout() {
       {!fullScreen && (
         <nav
           aria-label="Principal"
-          className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 border-t border-line bg-surface/85 backdrop-blur-xl backdrop-saturate-150"
+          className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 border-t border-line bg-bg/90 backdrop-blur-xl backdrop-saturate-150"
         >
           <ul className="grid grid-cols-5 items-center px-1">
             <li>
@@ -121,7 +121,7 @@ export function Layout() {
                 type="button"
                 onClick={() => setAddOpen(true)}
                 aria-label="Lançar"
-                className="-mt-6 grid size-[3.5rem] place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(11_127_90/0.6)] transition active:scale-95"
+                className="-mt-6 grid size-[3.5rem] place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(47_111_235/0.55)] transition active:scale-95"
               >
                 <Plus className="size-7" strokeWidth={2.4} aria-hidden />
               </button>

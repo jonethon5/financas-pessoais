@@ -19,7 +19,7 @@ export function getThemePref(): ThemePref {
 export function applyTheme(pref = getThemePref()) {
   const isDark = pref === 'escuro' || (pref === 'sistema' && dark.matches)
   document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#0B1016' : '#F6F7F9')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#000000' : '#FFFFFF')
 }
 
 export function setThemePref(pref: ThemePref) {

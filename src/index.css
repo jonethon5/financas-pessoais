@@ -5,8 +5,8 @@
   Visual de app nativo com a fonte Manrope (embutida, funciona offline), fundo cinza bem claro, cartões brancos,
   ícones de linha numa cor só e o verde-esmeralda como destaque.
   Paleta "Esmeralda + coral" (contraste conferido pela WCAG 2.1):
-    - verde: botões, abas e progresso (dinheiro, crescimento, "está indo bem")
-    - azul-marinho: texto (confiança)
+    - azul: botões, abas e destaques (confiança, cara de banco)
+    - verde: dinheiro guardado e progresso · azul-marinho: texto
     - coral: conquistas e a chamada para guardar
     - violeta: assistente (IA) e premium
     - âmbar: perto do limite · vermelho: só quando estourou ou venceu
@@ -45,18 +45,19 @@
 }
 
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef1f4;
+  /* Estilo de app de banco: fundo branco, blocos cinza-claros sem sombra, azul como cor principal */
+  --bg: #ffffff;
+  --surface: #f4f5f7;
+  --surface-2: #e4e7ec;
   --ink: #0f2433; /* 15,9:1 no branco */
   --muted: #5b6b7a; /* 5,5:1 no branco */
   --faint: #8a94a0; /* só para dicas e desativados */
-  --line: #e6e9ed;
-  --primary: #0b7f5a; /* 5,0:1 com texto branco */
-  --primary-strong: #096a4b;
-  --primary-soft: #e7f5ef;
+  --line: #eceef1;
+  --primary: #2f6feb; /* azul principal, 4,6:1 com texto branco */
+  --primary-strong: #1d5fd6;
+  --primary-soft: #eaf1fe;
   --on-primary: #ffffff;
-  --grow: #0f9d6b; /* barras de progresso (3,5:1) */
+  --grow: #0f9d6b; /* verde só para dinheiro guardado e progresso */
   --coral: #ff6b4a;
   --coral-strong: #c2410c; /* texto coral (5,2:1) */
   --coral-soft: #ffede8;
@@ -69,10 +70,10 @@
   --danger-strong: #c81e25;
   --danger-soft: #fdecec;
   --on-ink: #ffffff;
-  --seg: #e4e7eb;
+  --seg: #eaecf0;
   --seg-on: #ffffff;
-  --switch-off: #e3e5e9;
-  --card-shadow: 0 1px 2px rgb(15 36 51 / 0.03), 0 4px 16px -6px rgb(15 36 51 / 0.07);
+  --switch-off: #dcdfe4;
+  --card-shadow: none;
   color-scheme: light;
 }
 
@@ -81,17 +82,17 @@
   o verde fica mais claro e os botões verdes ganham texto escuro.
 */
 :root[data-theme='dark'] {
-  --bg: #0b1016;
-  --surface: #151c24;
-  --surface-2: #1f2832;
-  --ink: #e8edf2;
-  --muted: #98a4b0;
-  --faint: #6c7884;
-  --line: #26303b;
-  --primary: #34c38a;
-  --primary-strong: #5ed6a5;
-  --primary-soft: #12342a;
-  --on-primary: #05261a;
+  --bg: #000000;
+  --surface: #121316;
+  --surface-2: #23262b;
+  --ink: #eceff3;
+  --muted: #9aa3ad;
+  --faint: #6c7480;
+  --line: #1f2226;
+  --primary: #6ea8fe;
+  --primary-strong: #9cc3ff;
+  --primary-soft: #0f2547;
+  --on-primary: #06142e;
   --grow: #2fbf83;
   --coral: #ff7a5c;
   --coral-strong: #ff9a80;
@@ -105,10 +106,10 @@
   --danger-strong: #ff8085;
   --danger-soft: #3a1a1c;
   --on-ink: #0b1016;
-  --seg: #1f2832;
-  --seg-on: #3a4552;
-  --switch-off: #3a4552;
-  --card-shadow: 0 0 0 1px rgb(255 255 255 / 0.05);
+  --seg: #1b1d21;
+  --seg-on: #34383f;
+  --switch-off: #34383f;
+  --card-shadow: none;
   color-scheme: dark;
 }
 
