@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import {
   Bank, Bell, ChatCircleText, Coin, EyeSlash, FileText, GearSix, Info, Key, Moon, PaintBrush, PiggyBank, Repeat, ShieldCheck, SignOut, Tag, TextAa, Trash, UserCircle, Wallet, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
-import { MASCOT_NAME } from '../../brand'
+import { Pig, mascotName } from '../../components/Pig'
 import { ufInfo } from '../../lib/regions'
 import { toggleHidden, useHiddenValues } from '../../lib/privacy'
 import { ChevronRight, Check } from 'lucide-react'
@@ -163,7 +163,7 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
           </List>
 
           <List>
-            <Row icon={<Ico icon={PiggyBank} color="#E07C93" />} title={MASCOT_NAME} subtitle="Moedas, metas do dia e lojinha" chevron as={link('/porquinho')} />
+            <Row icon={<Ico icon={PiggyBank} color="#E07C93" />} title={mascotName(p.prefs.pig?.color)} subtitle="Moedas, metas do dia e lojinha" chevron as={link('/porquinho')} />
             <Row icon={<Ico icon={GearSix} color="#5B6B7A" />} title="Ajustes" subtitle="Aparência, avisos, bancos, conta" chevron as={link('/ajustes')} />
           </List>
 
@@ -229,11 +229,18 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
             </>
           )}
           {section === 'dicas' && (
-            <List header={`Modo do ${MASCOT_NAME}`} footer="Muda a roupa e o jeito do porquinho falar. As dicas são de orçamento e hábitos, nunca de investimento.">
-              {TONES.map((t) => (
-                <Row key={t.value} title={t.label} subtitle={t.hint} onClick={() => save({ ai_tone: t.value }, 'Modo salvo')} trailing={p.ai_tone === t.value ? <Check className="size-5 text-primary" strokeWidth={2.5} aria-label="Escolhido" /> : null} />
+            <>
+            <List header="Seu mascote">
+              {(['azul', 'rosa'] as const).map((c) => (
+                <Row key={c} icon={<Pig art="rosto-feliz" color={c} px={40} still />} title={c === 'rosa' ? 'Porquinha' : 'Porquinho'} subtitle={mascotName(c)} onClick={() => save({ prefs: { ...p.prefs, pig: { ...p.prefs.pig, color: c } } }, 'Mascote trocado')} trailing={(p.prefs.pig?.color ?? 'azul') === c ? <Check className="size-5 text-primary" strokeWidth={2.5} aria-label="Escolhido" /> : null} />
               ))}
             </List>
+            <List header="Modo do mascote" footer="Muda a roupa e o jeito do porquinho falar. As dicas são de orçamento e hábitos, nunca de investimento.">
+              {TONES.map((t) => (
+                <Row key={t.value} icon={<Pig tone={t.value} mood="normal" px={44} still />} title={t.label} subtitle={t.hint} onClick={() => save({ ai_tone: t.value }, 'Modo salvo')} trailing={p.ai_tone === t.value ? <Check className="size-5 text-primary" strokeWidth={2.5} aria-label="Escolhido" /> : null} />
+              ))}
+            </List>
+            </>
           )}
           {section === 'avisos' && (
             <List footer="Escolha o que pode virar notificação no celular.">

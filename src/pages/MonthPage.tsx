@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryIcon } from '../components/CategoryIcon'
+import { MascotArt } from '../components/Pig'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { AnimatedMoney, Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Segmented, Spinner } from '../components/ui'
@@ -230,7 +231,10 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
       {parcels.length > 0 && <List header="Parcelas">{parcels.map((t) => row(t, billStatus(t)))}</List>}
 
       {days.length === 0 ? (
-        <Card className="text-center text-muted">{future ? 'Nada lançado para este mês ainda.' : 'Nenhum gasto do dia a dia neste mês.'}</Card>
+        <Card className="flex flex-col items-center gap-2 text-center text-muted">
+          <MascotArt name="tela-lancamentos" px={130} />
+          {future ? 'Nada lançado para este mês ainda.' : 'Nenhum gasto do dia a dia neste mês.'}
+        </Card>
       ) : (
         days.map((d) => (
           <List key={d} header={`${relativeDay(d, today)} · ${formatBRL(daily.filter((t) => t.date === d).reduce((a, t) => a + t.amount_cents, 0))}`}>

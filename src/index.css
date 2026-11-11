@@ -119,10 +119,10 @@
 
 /* Fonte do app (em teste no beta: Ajustes › Aparência › Fonte) */
 :root {
-  --app-font: 'Manrope Variable';
-}
-:root[data-font='maven'] {
   --app-font: 'Maven Pro Variable';
+}
+:root[data-font='manrope'] {
+  --app-font: 'Manrope Variable';
 }
 :root[data-font='jakarta'] {
   --app-font: 'Plus Jakarta Sans Variable';
@@ -364,4 +364,39 @@ body {
     inset 0 0 0 1px rgb(255 255 255 / 0.1),
     inset 0 1px 0 rgb(255 255 255 / 0.12),
     0 6px 16px -10px rgb(0 0 0 / 0.8);
+}
+
+/* Barra de abas flutuante, de vidro (o conteúdo aparece borrado por trás) */
+.tab-bar-glass {
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  box-shadow:
+    0 12px 32px -14px rgb(15 36 51 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.55);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+}
+:root[data-theme='dark'] .tab-bar-glass {
+  background: rgb(30 30 32 / 0.72);
+  border-color: rgb(255 255 255 / 0.09);
+  box-shadow:
+    0 12px 32px -14px rgb(0 0 0 / 0.9),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Cartão "Hoje você pode gastar": branco sobre o topo azul, com sombra suave */
+.today-card {
+  background: var(--bg);
+  box-shadow:
+    0 18px 40px -22px rgb(15 36 51 / 0.45),
+    0 2px 6px -2px rgb(15 36 51 / 0.08);
+  border: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
+}
+:root[data-theme='dark'] .today-card {
+  background: var(--surface);
+  border-color: rgb(255 255 255 / 0.06);
+  box-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.9);
+}
+.today-bar {
+  background: linear-gradient(90deg, var(--primary), var(--grow));
 }

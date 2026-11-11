@@ -11,21 +11,20 @@ import { findInstitution } from '../lib/institutions'
 import { lessonOfDay } from '../lib/learn'
 import { financialHealth } from '../lib/health'
 import { HealthRing, scoreColor } from './HealthPage'
-import { Pig } from '../components/Pig'
+import { Pig, mascotName, usePigColor } from '../components/Pig'
 import { useToast } from '../components/Toast'
 import { usePig } from '../data/pig'
 import { DAILY_KINDS, pigLine } from '../lib/pig'
-import { MASCOT_NAME } from '../brand'
 import { CoinBadge, PigSays } from './PigPage'
 import type { BankAccount } from '../types'
 import { useRecurrings } from '../data/finance'
-import { subscriptions } from '../lib/budget'
+import { subscriptions, type TodayBudget } from '../lib/budget'
 import { projection } from '../lib/psych'
 import { useAuth } from '../auth/AuthProvider'
 import { ChevronRight } from 'lucide-react'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
-import { AnimatedMoney, Badge, Button, ErrorBox, List, Money, ProgressBar, Row, Spinner } from '../components/ui'
+import { AnimatedMoney, Badge, Button, ErrorBox, List, Money, Row, Spinner } from '../components/ui'
 import { useTable } from '../data/finance'
 import { useMonthView } from '../data/monthView'
 import { currentYearMonth, dayOf, daysBetweenISO, formatDateShort, relativeDay, weekdayOf } from '../lib/dates'
@@ -73,6 +72,78 @@ function Section({ title, to, children }: { title: string; to?: string; children
   )
 }
 
+/**
+ * "Hoje você pode gastar": cartão de destaque que sobe por cima do topo azul,
+ * com o porquinho reagindo (feliz, preocupado perto do limite, aflito quando passa).
+ */
+function TodayCard({ t, monthFree, hidden, onSetSalary }: { t: TodayBudget | null; monthFree: number; hidden: boolean; onSetSalary: () => void }) {
+  const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
+  if (!t) {
+    return (
+      <section className="today-card relative -mt-12 overflow-hidden rounded-[1.5rem] p-5">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[1.125rem] font-extrabold tracking-tight">Quanto você pode gastar por dia?</p>
+            <p className="mt-1 text-[0.9375rem] leading-snug text-muted">Informe o salário e o dia do pagamento: o app desconta os fixos e o que você quer guardar e divide pelos dias do mês.</p>
+          </div>
+          <Pig art="rosto-pensativo" px={72} still />
+        </div>
+        <Button size="md" className="mt-4 w-full" onClick={onSetSalary}>
+          Informar salário
+        </Button>
+      </section>
+    )
+  }
+  const over = t.leftToday < 0
+  const ratio = t.dailyAllowance > 0 ? t.spentToday / t.dailyAllowance : 0
+  const warn = !over && ratio >= 0.8
+  const art = over ? 'tela-alerta' : warn ? 'rosto-preocupado' : t.spentToday === 0 ? 'rosto-feliz' : 'rosto-feliz'
+  return (
+    <section className="today-card relative -mt-12 overflow-hidden rounded-[1.5rem] p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.9375rem] font-semibold text-muted">Hoje você pode gastar</p>
+          {over ? (
+            <p className="mt-1 text-[1.75rem] leading-tight font-extrabold tracking-tight text-danger-strong">Passou {money(-t.leftToday)}</p>
+          ) : (
+            <AnimatedMoney cents={t.leftToday} className="mt-0.5 block text-[2.375rem] leading-tight font-extrabold tracking-[-0.03em]" />
+          )}
+          <span className="mt-1.5 inline-flex items-center rounded-full bg-surface-2 px-2.5 py-1 text-[0.8125rem] font-semibold text-muted">
+            {t.daysLeft === 1 ? 'Último dia do mês' : `Faltam ${t.daysLeft} dias`}
+          </span>
+        </div>
+        <Pig art={art} px={84} className="-mt-1 -mr-1" />
+      </div>
+
+      {t.dailyAllowance > 0 ? (
+        <div className="mt-4">
+          <div className="h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="Gasto de hoje" aria-valuenow={Math.round(Math.min(1, ratio) * 100)} aria-valuemin={0} aria-valuemax={100}>
+            <div className={`bar-fill h-full rounded-full ${over ? 'bg-danger' : warn ? 'bg-warn' : 'today-bar'}`} style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+          </div>
+          <p className="mt-1.5 text-[0.8125rem] text-muted">
+            {over ? 'Amanhã o valor do dia se ajusta sozinho. Sem culpa: segue o plano.' : `${money(t.spentToday)} gastos hoje de ${money(t.dailyAllowance)}`}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-[0.9375rem] leading-snug text-muted">O dinheiro do dia a dia deste mês acabou. Vamos ajustar: veja o Mês.</p>
+      )}
+
+      <div className="mt-4 grid grid-cols-3 divide-x divide-line rounded-[1rem] bg-surface py-2.5">
+        {[
+          ['Por dia', money(t.dailyAllowance)],
+          ['Gasto hoje', money(t.spentToday)],
+          ['Sobra do mês', money(monthFree)],
+        ].map(([label, value]) => (
+          <div key={label} className="px-2 text-center">
+            <p className="text-[0.75rem] text-muted">{label}</p>
+            <p className={`num text-[0.9375rem] font-bold ${label === 'Sobra do mês' && monthFree < 0 ? 'text-danger-strong' : ''}`}>{value}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function HomePage() {
   const navigate = useNavigate()
   const view = useMonthView(currentYearMonth())
@@ -85,7 +156,8 @@ export function HomePage() {
   const { mode } = useAuth()
   const hidden = useHiddenValues()
   const toast = useToast()
-  const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda' : 'moedas'} para o ${MASCOT_NAME}`))
+  const MASCOT_NAME = mascotName(usePigColor())
+  const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   if (view.isPending) return <Spinner />
   if (view.error || !view.data) return <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
   const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today, goals } = view.data
@@ -136,7 +208,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Topo azul, como nos apps de banco: foto, olho para esconder valores e ajustes */}
-      <header className="pt-safe -mx-4 bg-[#2F6FEB] px-4 pb-6 text-white">
+      <header className="pt-safe -mx-4 bg-[#2F6FEB] px-4 pb-16 text-white">
         <div className="flex items-center justify-between pt-4">
           <Link to="/voce" aria-label="Você" className="rounded-full ring-2 ring-white/25">
             <ProfileAvatar profile={p} size="md" />
@@ -151,6 +223,13 @@ export function HomePage() {
         <p className="mt-5 text-[1.375rem] font-bold">{name ? `Olá, ${name}` : 'Olá'}</p>
       </header>
 
+      <TodayCard
+        t={t && hasSalary ? t : null}
+        monthFree={s.free}
+        hidden={hidden}
+        onSetSalary={() => navigate('/voce')}
+      />
+
       {banks.length > 0 && (
         <Section title="Conta" to="/voce/bancos">
           <div className="flex items-center gap-3">
@@ -163,38 +242,9 @@ export function HomePage() {
         </Section>
       )}
 
-      <section className={`-mx-4 px-4 py-5 ${banks.length ? 'border-t border-line' : ''}`}>
-        {t && hasSalary ? (
-          <>
-            <p className="text-[1.1875rem] font-extrabold tracking-tight">Hoje você pode gastar</p>
-            {t.leftToday >= 0 ? (
-              <AnimatedMoney cents={t.leftToday} className="mt-1 block text-[2.5rem] leading-tight font-extrabold tracking-[-0.03em]" />
-            ) : (
-              <p className="mt-1 text-[1.5rem] leading-tight font-extrabold text-danger-strong">▲ Passou {hidden ? 'R$ ••••' : formatBRL(-t.leftToday)} do valor de hoje</p>
-            )}
-            <p className="mt-0.5 text-[0.9375rem] text-muted">
-              {t.dailyAllowance > 0 ? (
-                <>
-                  <Money cents={t.dailyAllowance} /> por dia · {t.daysLeft === 1 ? 'último dia do mês' : `faltam ${t.daysLeft} dias`}
-                </>
-              ) : (
-                'O dinheiro do dia a dia deste mês acabou. Vamos ajustar: veja o Mês.'
-              )}
-            </p>
-            {t.dailyAllowance > 0 && <ProgressBar className="mt-3" value={t.spentToday / t.dailyAllowance} tone={t.leftToday < 0 ? 'danger' : t.spentToday >= t.dailyAllowance * 0.8 ? 'warn' : 'grow'} label="Gasto de hoje" />}
-          </>
-        ) : (
-          <>
-            <p className="text-[1.1875rem] font-extrabold tracking-tight">Quanto você pode gastar por dia?</p>
-            <p className="mt-1 leading-snug text-muted">Informe seu salário e o dia do pagamento: o app desconta os fixos e o que você quer guardar e divide pelo resto do mês.</p>
-            <Button size="md" className="mt-3" onClick={() => navigate('/voce')}>
-              Informar salário
-            </Button>
-          </>
-        )}
-
+      <section className="-mx-4 px-4 pt-5 pb-5">
         {/* Atalhos redondos (arrasta para o lado) */}
-        <div className="no-scrollbar -mx-4 mt-6 flex gap-4 overflow-x-auto px-4">
+        <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4">
           {SHORTCUTS.map((sc) => (
             <Link key={sc.label} to={sc.to} className="press flex w-[4.5rem] shrink-0 flex-col items-center gap-2 text-center">
               <span className="grid size-[4.25rem] place-items-center rounded-full bg-surface text-ink">

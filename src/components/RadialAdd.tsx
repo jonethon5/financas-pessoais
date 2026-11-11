@@ -88,9 +88,10 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
         )}
 
         {/* Mesmo lugar do "+" da barra de abas */}
-        <div className="pb-safe grid grid-cols-5 px-1">
-          <div className="col-start-3 flex h-[3.25rem] justify-center">
-            <div className="relative -mt-6 size-[3.5rem]">
+        <div className="px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
+          <div className="grid grid-cols-5 border border-transparent px-1 py-1">
+          <div className="col-start-3 flex h-[3.25rem] items-center justify-center">
+            <div className="relative size-12">
               {ITEMS.map((it, i) => {
                 const a = (ANGLES[i] * Math.PI) / 180
                 const x = Math.cos(a) * RADIUS
@@ -118,11 +119,12 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
                 type="button"
                 onClick={onClose}
                 aria-label="Fechar"
-                className="pointer-events-auto relative grid size-[3.5rem] place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(47_111_235/0.55)]"
+                className="pointer-events-auto relative grid size-12 place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(47_111_235/0.55)]"
               >
                 <Plus className={`size-7 transition-transform duration-300 ${shown ? 'rotate-45' : ''}`} strokeWidth={2.4} aria-hidden />
               </button>
             </div>
+          </div>
           </div>
         </div>
       </div>

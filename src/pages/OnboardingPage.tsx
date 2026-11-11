@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { CalendarCheck, Compass, HandHeart, Lifebuoy, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
-import { APP_NAME, MASCOT_NAME } from '../brand'
-import { Pig } from '../components/Pig'
+import { APP_NAME } from '../brand'
+import { Pig, mascotName, type PigColor } from '../components/Pig'
 import { normalizeText } from '../lib/budget'
 import { UFS, referenceIncome, starterSaving } from '../lib/regions'
 import { TONES } from './you/YouPage'
@@ -17,7 +17,7 @@ import { emergencySuggestion } from '../lib/goals'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
 import { PROFILE_INFO, QUIZ, profileFromAnswers } from '../lib/psych'
 import { friendlyError } from '../lib/supabase'
-import type { About, AiTone, Category } from '../types'
+import type { About, AiTone, Category, Prefs } from '../types'
 
 const AGES = ['18 a 24', '25 a 34', '35 a 44', '45 a 59', '60 ou mais']
 const WORK = ['Carteira assinada', 'Autônomo ou freela', 'Servidor público', 'Estudante', 'Empresário', 'Aposentado', 'Outro']
@@ -90,10 +90,10 @@ export function OnboardingPage({ onFinish }: { onFinish?: () => void }) {
   const categories = useCategories()
   if (profile.isPending || categories.isPending) return <Spinner />
   if (profile.isError || categories.isError) return <ErrorBox message="Não foi possível carregar. Tente de novo." />
-  return <Flow categories={categories.data} initialAbout={profile.data.about ?? {}} salary={profile.data.salary_cents} payday={profile.data.payday} nickname={profile.data.nickname ?? ''} onFinish={onFinish} />
+  return <Flow categories={categories.data} initialAbout={profile.data.about ?? {}} salary={profile.data.salary_cents} payday={profile.data.payday} nickname={profile.data.nickname ?? ''} prefs={profile.data.prefs} onFinish={onFinish} />
 }
 
-function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: { categories: Category[]; initialAbout: About; salary: number | null; payday: number | null; nickname: string; onFinish?: () => void }) {
+function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFinish }: { categories: Category[]; initialAbout: About; salary: number | null; payday: number | null; nickname: string; prefs: Prefs; onFinish?: () => void }) {
   const navigate = useNavigate()
   const toast = useToast()
   const celebrate = useCelebrate()
@@ -110,6 +110,8 @@ function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: 
   const [name, setName] = useState(nickname)
   const [dreamText, setDreamText] = useState(initialAbout.dream?.cents ? centsToInput(initialAbout.dream.cents) : '')
   const [tone, setTone] = useState<AiTone | null>(null)
+  const [pigColor, setPigColor] = useState<PigColor>(prefs.pig?.color ?? 'azul')
+  const pigPrefs = { ...prefs, pig: { ...prefs.pig, color: pigColor } }
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -154,6 +156,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: 
         ...(mode === 'demo' && name.trim() ? { name: name.trim().slice(0, 80) } : {}),
         money_profile: profileKey,
         ai_tone: chosenTone,
+        prefs: pigPrefs,
         salary_cents: salaryCents,
         payday: Number(paydayText),
         onboarded_at: new Date().toISOString(),
@@ -195,7 +198,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: 
   /** Pular: só marca que o primeiro acesso foi visto (dá para refazer em Você). */
   async function skip() {
     try {
-      await update.mutateAsync({ onboarded_at: new Date().toISOString() })
+      await update.mutateAsync({ onboarded_at: new Date().toISOString(), prefs: pigPrefs })
       if (onFinish) onFinish()
       else navigate('/', { replace: true })
     } catch (err) {
@@ -212,8 +215,17 @@ function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: 
   let content: ReactNode
   if (step === 0) {
     content = (
-      <Step art={<div className="mx-auto mb-4"><Pig mood="feliz" tone="equilibrado" px={190} /></div>} title={`Oi! Eu sou o ${MASCOT_NAME}`} text={`Vou te ajudar a gastar com consciência e guardar para o que importa. Em 2 minutos a gente monta o seu plano no ${APP_NAME}.`}>
-        <p className="text-center text-[0.9375rem] leading-snug text-muted">Quanto mais você guarda o que combinou, mais gordinho eu fico. Cada meta do dia vale moedas para eu ganhar roupinhas novas.</p>
+      <Step art={<div className="mx-auto mb-2"><Pig art="principal" color={pigColor} px={180} /></div>} title={`Oi! Eu sou ${pigColor === 'rosa' ? 'a' : 'o'} ${mascotName(pigColor)}`} text={`Vou te ajudar a gastar com consciência e guardar para o que importa. Em 2 minutos a gente monta o seu plano no ${APP_NAME}.`}>
+        <p className="text-center text-[0.9375rem] font-semibold text-muted">Escolha o seu mascote</p>
+        <div className="grid grid-cols-2 gap-3">
+          {(['azul', 'rosa'] as const).map((c) => (
+            <button key={c} type="button" onClick={() => setPigColor(c)} aria-pressed={pigColor === c} className={`press flex flex-col items-center gap-1 rounded-[1.25rem] border-2 bg-surface px-2 pt-2 pb-3 ${pigColor === c ? 'border-primary' : 'border-transparent'}`}>
+              <Pig art="rosto-feliz" color={c} px={84} still />
+              <span className="font-bold">{c === 'rosa' ? 'Porquinha' : 'Porquinho'}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-center text-[0.875rem] leading-snug text-muted">Quanto mais você guarda o que combinou, mais gordinho eu fico. Cada meta do dia vale moedas para roupinhas novas.</p>
       </Step>
     )
   } else if (step === 1) {
@@ -270,7 +282,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: 
     )
   } else if (step === RESULT) {
     content = (
-      <Step art={<div className="mx-auto mb-2"><Pig mood="feliz" tone={chosenTone} px={150} /></div>} title="Como eu falo com você?" text={`Seu perfil: ${info.name}. ${info.text}`}>
+      <Step art={<div className="mx-auto mb-2"><Pig mood="normal" tone={chosenTone} color={pigColor} px={150} /></div>} title="Como eu falo com você?" text={`Seu perfil: ${info.name}. ${info.text}`}>
         <div className="flex flex-col gap-2.5">
           {TONES.map((t) => (
             <button
@@ -279,7 +291,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, onFinish }: 
               onClick={() => setTone(t.value)}
               className={`press shadow-soft flex items-center gap-3 rounded-[1.1rem] border-2 bg-surface px-3 py-2 text-left ${chosenTone === t.value ? 'border-primary' : 'border-transparent'}`}
             >
-              <Pig tone={t.value} mood="normal" px={64} className="!animate-none shrink-0" />
+              <Pig tone={t.value} mood="normal" color={pigColor} px={64} still />
               <span>
                 <span className="block text-[1.0625rem] font-bold">
                   {t.label}

@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bank, CheckCircle, ShieldCheck } from '@phosphor-icons/react'
+import { CheckCircle, ShieldCheck } from '@phosphor-icons/react'
 import { useAuth } from '../../auth/AuthProvider'
 import { BankLogo } from '../../components/BankLogo'
+import { MascotArt } from '../../components/Pig'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
@@ -169,7 +170,7 @@ export function BanksPage() {
         ) : (
           <>
             {(conns.data ?? []).length === 0 ? (
-              <EmptyState icon={<Bank size={28} weight="duotone" />} title="Nenhum banco conectado" action={<Button onClick={() => setAdding(true)}>Conectar banco</Button>}>
+              <EmptyState art={<MascotArt name="tela-conexao" px={170} />} title="Nenhum banco conectado" action={<Button onClick={() => setAdding(true)}>Conectar banco</Button>}>
                 Conecte a sua conta e o seu cartão: os gastos entram sozinhos, sem digitar nada.
               </EmptyState>
             ) : (

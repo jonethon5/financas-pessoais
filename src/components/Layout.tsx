@@ -120,13 +120,15 @@ export function Layout() {
       {!fullScreen && (
         <nav
           aria-label="Principal"
-          className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 border-t border-line bg-bg/90 backdrop-blur-xl backdrop-saturate-150"
+          className="pointer-events-none fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]"
         >
-          <ul className="relative grid grid-cols-5 items-center px-1">
+          {/* Barra flutuante de vidro (como a do WhatsApp) */}
+          <div className="tab-bar-glass pointer-events-auto rounded-[1.75rem]">
+          <ul className="relative grid grid-cols-5 items-center px-1 py-1">
             <span
               aria-hidden
-              className={`tab-glass absolute top-1 h-[2.75rem] transition-[left,opacity] duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)] ${slot < 0 ? 'opacity-0' : 'opacity-100'}`}
-              style={{ left: `calc(0.25rem + ${Math.max(0, slot)} * (100% - 0.5rem) / 5 + 0.375rem)`, width: 'calc((100% - 0.5rem) / 5 - 0.75rem)' }}
+              className={`tab-glass absolute top-1 h-[3.25rem] transition-[left,opacity] duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)] ${slot < 0 ? 'opacity-0' : 'opacity-100'}`}
+              style={{ left: `calc(0.25rem + ${Math.max(0, slot)} * (100% - 0.5rem) / 5 + 0.125rem)`, width: 'calc((100% - 0.5rem) / 5 - 0.25rem)' }}
             />
             <li>
               <TabItem {...TABS[0]} />
@@ -139,7 +141,7 @@ export function Layout() {
                 type="button"
                 onClick={() => setAddOpen(true)}
                 aria-label="Lançar"
-                className="-mt-6 grid size-[3.5rem] place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(47_111_235/0.55)] transition active:scale-95"
+                className="grid size-12 place-items-center rounded-full bg-primary text-on-primary shadow-[0_8px_20px_-6px_rgb(47_111_235/0.55)] transition active:scale-95"
               >
                 <Plus className="size-7" strokeWidth={2.4} aria-hidden />
               </button>
@@ -151,6 +153,7 @@ export function Layout() {
               <TabItem {...TABS[3]} />
             </li>
           </ul>
+          </div>
         </nav>
       )}
 

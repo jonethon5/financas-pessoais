@@ -62,6 +62,12 @@ export default defineConfig({
         // Consultas (GET) ao Supabase ficam em cache para abrir o app offline e ver os últimos dados.
         // O cache é apagado ao sair da conta.
         runtimeCaching: [
+          // Artes do porquinho: baixam quando aparecem pela primeira vez e ficam guardadas
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/mascote/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'mascote', expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 90 }, cacheableResponse: { statuses: [200] } },
+          },
           {
             urlPattern: ({ url, request }) =>
               request.method === 'GET' && url.hostname.endsWith('.supabase.co') && url.pathname.startsWith('/rest/v1/'),

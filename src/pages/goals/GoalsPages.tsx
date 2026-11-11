@@ -17,6 +17,7 @@ import { GOAL_TEMPLATES, MILESTONES, crossedMilestones, distribute, emergencySug
 import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
 import { friendlyError } from '../../lib/supabase'
 import type { Goal, GoalMode, GoalMove } from '../../types'
+import { MascotArt } from '../../components/Pig'
 
 const month = (ym: YearMonth | null) => (ym ? monthLabel(ym).toLowerCase() : '')
 
@@ -84,7 +85,7 @@ export function GoalsPage() {
         }
       />
       {items.length === 0 ? (
-        <EmptyState icon={<GoalBadgeIcon goal={{ icon: 'piggy', color: '#0F9D6B' }} size={56} />} title="Sua primeira caixinha" action={<Button onClick={() => navigate('/caixinhas/nova?modelo=reserva')}>Começar pela reserva de emergência</Button>}>
+        <EmptyState art={<MascotArt name="tela-metas" px={170} />} title="Sua primeira caixinha" action={<Button onClick={() => navigate('/caixinhas/nova?modelo=reserva')}>Começar pela reserva de emergência</Button>}>
           Separe o dinheiro de cada objetivo: viagem, reserva, aquela compra. O app mostra quanto guardar por mês para chegar lá.
         </EmptyState>
       ) : (

@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { CheckCircle, Circle, Coin } from '@phosphor-icons/react'
-import { MASCOT_NAME } from '../brand'
-import { Pig } from '../components/Pig'
+import { Pig, mascotName, usePigColor } from '../components/Pig'
 import { useToast } from '../components/Toast'
 import { BackButton, ErrorBox, NavBar, ProgressBar, Spinner } from '../components/ui'
 import { usePig } from '../data/pig'
@@ -34,7 +33,8 @@ export function CoinBadge({ n }: { n: number }) {
 export function PigPage() {
   const navigate = useNavigate()
   const toast = useToast()
-  const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda' : 'moedas'} para o ${MASCOT_NAME}`))
+  const MASCOT_NAME = mascotName(usePigColor())
+  const pig = usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   const [busy, setBusy] = useState<string | null>(null)
   if (pig.isPending) return <Spinner />
   if (pig.error || !pig.view || !pig.state || !pig.input) return <ErrorBox message={friendlyError(pig.error)} onRetry={pig.refetch} />
@@ -125,7 +125,7 @@ export function PigPage() {
                   onClick={() => void act(it.key)}
                   className={`press flex flex-col items-center gap-1 rounded-[1.1rem] border-2 bg-surface px-1.5 pt-1 pb-2.5 disabled:opacity-55 ${wearing ? 'border-primary' : 'border-transparent'}`}
                 >
-                  <Pig size="normal" mood="normal" tone={tone} wear={it.key} px={84} className="!animate-none" />
+                  <Pig size="normal" mood="normal" tone={tone} wear={it.key} px={84} still />
                   <span className="text-center text-[0.8125rem] leading-tight font-semibold">{it.name}</span>
                   <span className="text-[0.75rem] font-bold text-muted">{wearing ? 'Usando' : owned ? 'Usar' : `${it.price} moedas`}</span>
                 </button>
@@ -137,7 +137,7 @@ export function PigPage() {
 
         <Link to="/voce" className="press flex items-center justify-between rounded-[1.25rem] bg-surface p-4">
           <span>
-            <span className="block text-[0.8125rem] text-muted">Modo do {MASCOT_NAME}</span>
+            <span className="block text-[0.8125rem] text-muted">Modo de falar</span>
             <span className="block font-semibold">{toneInfo?.label}: {toneInfo?.hint}</span>
           </span>
         </Link>

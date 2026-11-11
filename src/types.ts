@@ -8,7 +8,7 @@ export type NotifyKind = 'vencimentos' | 'pagamento' | 'limite' | 'revisao' | 'd
 export type Prefs = {
   notify?: Partial<Record<NotifyKind, boolean>>
   /** Porquinho: item da loja que ele está usando */
-  pig?: { wear?: string | null }
+  pig?: { wear?: string | null; color?: 'azul' | 'rosa' }
 }
 
 export type Profile = {

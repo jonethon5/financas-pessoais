@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Confetti } from '@phosphor-icons/react'
+import { MascotArt } from './Pig'
 import { haptic } from '../lib/motion'
 
 type Celebrate = (title: string, message: string) => void
@@ -82,9 +82,7 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
       {card && (
         <div role="status" className="fixed inset-x-0 top-1/3 z-[61] flex justify-center px-6" onClick={() => setCard(null)}>
           <div className="animate-pop w-full max-w-xs rounded-[1.5rem] bg-surface p-6 text-center shadow-[0_24px_60px_-12px_rgb(15_36_51/0.35)]">
-            <span className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-coral-soft text-coral-strong">
-              <Confetti size={30} weight="duotone" />
-            </span>
+            <MascotArt name="meta-atingida" px={120} className="-mt-16 mb-1" />
             <p className="text-[1.25rem] leading-tight font-extrabold">{card.title}</p>
             <p className="mt-1.5 leading-snug text-muted">{card.message}</p>
           </div>

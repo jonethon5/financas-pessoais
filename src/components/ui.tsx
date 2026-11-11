@@ -321,10 +321,11 @@ export function Notice({ children, tone = 'neutral' }: { children: ReactNode; to
   return <div className={`rounded-[1rem] p-4 text-[0.9375rem] leading-snug ${tones[tone]}`}>{children}</div>
 }
 
-export function EmptyState({ icon, title, children, action }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({ icon, art, title, children, action }: { icon?: ReactNode; art?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
-      {icon && (
+      {art && <div className="mb-3">{art}</div>}
+      {!art && icon && (
         <IconTile size="lg" className="mb-4">
           {icon}
         </IconTile>
