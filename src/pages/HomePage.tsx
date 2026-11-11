@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import {
-  Bank, BookOpenText, ChartBar, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, EyeSlash, Flame, Heart, Heartbeat, Hourglass,
+  Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, EyeSlash, Flame, Heart, Heartbeat, Hourglass,
   Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
@@ -51,7 +51,7 @@ const SHORTCUTS: { to: string; label: string; icon: PhosphorIcon }[] = [
   { to: '/assistente', label: 'Assistente', icon: ChatCircleDots },
   { to: '/saude', label: 'Saúde', icon: Heartbeat },
   { to: '/separar', label: 'Separar', icon: SplitHorizontal },
-  { to: '/graficos', label: 'Gráficos', icon: ChartBar },
+  { to: '/revisao', label: 'Revisão', icon: CalendarCheck },
   { to: '/habitos', label: 'Desafios', icon: Trophy },
   { to: '/habitos', label: 'Desejos', icon: Hourglass },
 ]
@@ -215,7 +215,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Topo azul, como nos apps de banco: foto, olho para esconder valores e ajustes */}
-      <header className="pt-safe -mx-4 rounded-b-[1.75rem] bg-gradient-to-b from-[#2F6FEB] to-[#1D5FD6] px-4 pb-5 text-white">
+      <header className="pt-safe -mx-4 bg-gradient-to-b from-[#2F6FEB] to-[#1D5FD6] px-4 pb-5 text-white">
         <div className="flex items-center justify-between pt-4">
           <Link to="/voce" aria-label="Você" className="rounded-full ring-2 ring-white/25">
             <ProfileAvatar profile={p} size="md" />

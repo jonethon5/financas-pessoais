@@ -62,9 +62,19 @@ export function resetDemo() {
 
 let seeding: Promise<void> | null = null
 
+/** Moedas de teste da demonstração (para experimentar a lojinha do porquinho). Só uma vez. */
+function seedTestCoins() {
+  if (read('coinsSeeded', () => false)) return
+  const coins = read<Record<string, unknown>[]>('t:pig_coins', () => [])
+  coins.push({ id: crypto.randomUUID(), user_id: 'demo', day: new Date().toISOString().slice(0, 10), kind: 'bonus', ref: 'teste', coins: 1000, created_at: now() })
+  write('t:pig_coins', coins)
+  write('coinsSeeded', true)
+}
+
 /** Na primeira vez, cria os dados de exemplo (um mês realista e o histórico). */
 async function ensureSeed() {
   if (read('seeded', () => false)) {
+    seedTestCoins()
     // Demonstração criada antes das caixinhas: completa com as de exemplo
     if (!read('goalsSeeded', () => false)) {
       const { goals, goal_moves } = buildDemoGoals()
@@ -84,6 +94,7 @@ async function ensureSeed() {
     write('seeded', true)
     write('goalsSeeded', true)
     write('habitsSeeded', true)
+    seedTestCoins()
   })
   await seeding
   seeding = null
