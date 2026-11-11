@@ -42,3 +42,14 @@ export function accountTitle(inst: Institution | null, type: 'BANK' | 'CREDIT', 
   if (!inst) return fallback
   return `${inst.name} · ${type === 'CREDIT' ? 'Cartão' : 'Conta'}`
 }
+
+/** Banco pela chave (ex.: 'nubank'). */
+export function institutionByKey(key: string): Institution | null {
+  const hit = LIST.find((i) => i.key === key)
+  return hit ? { key: hit.key, name: hit.name, color: hit.color, logo: hit.logo } : null
+}
+
+/** Os bancos e carteiras digitais mais usados no Brasil, para a pessoa escolher ao conectar. */
+export const POPULAR_BANKS = ['nubank', 'caixa', 'itau', 'bradesco', 'bb', 'santander', 'inter', 'mercadopago', 'picpay', 'c6']
+  .map((k) => institutionByKey(k))
+  .filter((i): i is Institution => i != null)

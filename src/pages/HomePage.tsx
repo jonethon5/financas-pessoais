@@ -130,7 +130,7 @@ export function HomePage() {
     : { id: 'desafio', to: '/habitos', kicker: 'Desafio da semana', title: '7 dias sem delivery', text: 'Topa? Em média dá para guardar uns R$ 150 por semana.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' })
   const lesson = lessonOfDay(Math.floor(Date.parse(`${today}T12:00:00Z`) / 86_400_000))
   slides.push({ id: 'dica', to: `/aprender/${lesson.id}`, kicker: 'Aprenda em 2 minutos', title: lesson.title, text: lesson.short, icon: BookOpenText, from: '#2F6FEB', to2: '#163A8A' })
-  if (mode === 'supabase' && p.is_admin && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52' })
+  if ((mode === 'demo' || p.is_admin) && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52' })
   // Ordem: o porquê da pessoa, a lição do dia (ajuda financeira em primeiro lugar), depois o resto
   const ORDER = ['porque', 'dica', 'futuro', 'assinaturas', 'desafio', 'banco']
   slides.sort((x, y) => ORDER.indexOf(x.id) - ORDER.indexOf(y.id))

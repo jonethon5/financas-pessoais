@@ -1,16 +1,17 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bank, ShieldCheck } from '@phosphor-icons/react'
-import { BankLogo } from '../../components/BankLogo'
-import { accountTitle, findInstitution } from '../../lib/institutions'
+import { Bank, CheckCircle, ShieldCheck } from '@phosphor-icons/react'
 import { useAuth } from '../../auth/AuthProvider'
+import { BankLogo } from '../../components/BankLogo'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { BackButton, Badge, Button, Card, EmptyState, ErrorBox, Field, List, Money, NavBar, Notice, Row, Spinner } from '../../components/ui'
+import { connectDemoBank, disconnectDemoBank } from '../../data/demoBank'
 import { useTable, useWrite } from '../../data/finance'
 import { formatDateShort } from '../../lib/dates'
+import { POPULAR_BANKS, accountTitle, findInstitution, type Institution } from '../../lib/institutions'
 import { callFunction, friendlyError } from '../../lib/supabase'
 import type { BankAccount } from '../../types'
 
@@ -38,6 +39,66 @@ export function AccountRow({ a, label }: { a: BankAccount; label?: string }) {
 }
 const formatBRLShort = (c: number) => `R$ ${Math.round(c / 100).toLocaleString('pt-BR')}`
 
+/** Grade com os bancos mais usados: a pessoa só toca no dela. */
+function BankPicker({ onPick }: { onPick: (inst: Institution) => void }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[0.9375rem] leading-snug text-muted">Escolha o seu banco. A conexão é pelo Open Finance: só leitura, o app não consegue mexer no seu dinheiro.</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        {POPULAR_BANKS.map((inst) => (
+          <button key={inst.key} type="button" onClick={() => onPick(inst)} className="press flex items-center gap-3 rounded-[1.1rem] bg-surface p-3 text-left">
+            <BankLogo inst={inst} />
+            <span className="leading-tight font-semibold">{inst.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Demonstração: simula a autorização no app do banco e cria dados de exemplo. */
+function DemoConnect({ inst, onDone }: { inst: Institution; onDone: () => void }) {
+  const write = useWrite()
+  const toast = useToast()
+  const [step, setStep] = useState(0)
+  const STEPS = [`Abrindo o ${inst.name}…`, 'Autorizando só leitura (Open Finance)…', 'Buscando saldo, cartão e lançamentos…']
+  useEffect(() => {
+    let alive = true
+    const t1 = setTimeout(() => alive && setStep(1), 700)
+    const t2 = setTimeout(() => alive && setStep(2), 1400)
+    const t3 = setTimeout(async () => {
+      try {
+        const r = await write.mutateAsync((b) => connectDemoBank(b, inst))
+        toast(`${inst.name} conectado: ${(r as { imported: number }).imported} lançamentos de exemplo`)
+      } catch (err) {
+        toast(friendlyError(err))
+      }
+      if (alive) onDone()
+    }, 2100)
+    return () => {
+      alive = false
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return (
+    <div className="flex flex-col items-center gap-5 py-4">
+      <BankLogo inst={inst} />
+      <ul className="flex w-full flex-col gap-3">
+        {STEPS.map((s, i) => (
+          <li key={s} className={`flex items-center gap-3 transition-opacity ${i <= step ? 'opacity-100' : 'opacity-35'}`}>
+            {i < step ? <CheckCircle size={24} weight="fill" className="shrink-0 text-grow" /> : <span className={`size-6 shrink-0 rounded-full border-2 ${i === step ? 'animate-pulse border-primary' : 'border-line'}`} />}
+            <span className="leading-snug">{s}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-center text-[0.8125rem] text-muted">Demonstração: nada é conectado de verdade, os dados são de exemplo.</p>
+    </div>
+  )
+}
+
 /** Você › Bancos conectados (Open Finance via Meu Pluggy, só leitura). */
 export function BanksPage() {
   const navigate = useNavigate()
@@ -45,6 +106,7 @@ export function BanksPage() {
   const qc = useQueryClient()
   const write = useWrite()
   const { mode } = useAuth()
+  const demo = mode === 'demo'
   const conns = useTable('bank_connections')
   const accounts = useTable('bank_accounts')
   const status = useQuery({
@@ -54,10 +116,12 @@ export function BanksPage() {
     retry: false,
   })
   const [adding, setAdding] = useState(false)
+  const [picked, setPicked] = useState<Institution | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
 
   async function syncNow() {
+    if (demo) return toast('Na demonstração, os dados de exemplo não mudam.')
     setSyncing(true)
     try {
       const r = await callFunction<{ imported: number; matched: number; errors: string[] }>('bank-sync', { action: 'sync', force: true })
@@ -70,25 +134,21 @@ export function BanksPage() {
     }
   }
 
+  const closeAdd = () => {
+    setAdding(false)
+    setPicked(null)
+  }
   const header = <NavBar title="Bancos" left={<BackButton label="Você" onClick={() => navigate('/voce')} />} />
 
-  if (mode === 'demo') {
-    return (
-      <>
-        {header}
-        <EmptyState icon={<Bank size={28} weight="duotone" />} title="Seus gastos entrando sozinhos">
-          Com uma conta de verdade, o app lê a sua conta e o seu cartão pelo Open Finance (só leitura) e lança os gastos sem você digitar nada.
-        </EmptyState>
-      </>
-    )
-  }
-  if (status.isPending || conns.isPending) return <Spinner />
-  if (status.isError) return (
+  if ((!demo && status.isPending) || conns.isPending) return <Spinner />
+  if (!demo && status.isError) return (
     <>
       {header}
       <ErrorBox message={friendlyError(status.error)} onRetry={() => status.refetch()} />
     </>
   )
+  const configured = demo || status.data!.configured
+  const allowed = demo || status.data!.allowed
 
   return (
     <>
@@ -100,16 +160,17 @@ export function BanksPage() {
             Conexão pelo <strong className="text-ink">Open Finance</strong>, regulado pelo Banco Central. É <strong className="text-ink">só leitura</strong>: o app vê saldos e lançamentos, mas não consegue mover dinheiro. Os dados do banco atualizam uma vez por dia.
           </p>
         </Card>
+        {demo && <Notice tone="primary">Demonstração: escolha um banco para ver como o app fica com ele conectado. Os dados são de exemplo.</Notice>}
 
-        {!status.data.configured ? (
+        {!configured ? (
           <Notice tone="warn">A conexão ainda não foi ligada: faltam as chaves da Pluggy (PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET) nos secrets. O passo a passo está no README.</Notice>
-        ) : !status.data.allowed ? (
+        ) : !allowed ? (
           <Notice>No beta, a conexão com o banco está disponível só para a conta de administrador. Em breve para todos.</Notice>
         ) : (
           <>
             {(conns.data ?? []).length === 0 ? (
               <EmptyState icon={<Bank size={28} weight="duotone" />} title="Nenhum banco conectado" action={<Button onClick={() => setAdding(true)}>Conectar banco</Button>}>
-                Conecte a sua conta e o seu cartão no Meu Pluggy e cole aqui o código da conexão.
+                Conecte a sua conta e o seu cartão: os gastos entram sozinhos, sem digitar nada.
               </EmptyState>
             ) : (
               <>
@@ -146,8 +207,9 @@ export function BanksPage() {
         )}
       </div>
 
-      <Sheet open={adding} onClose={() => setAdding(false)} title="Conectar banco">
-        {adding && <ConnectForm onDone={() => setAdding(false)} />}
+      <Sheet open={adding} onClose={closeAdd} title={picked ? `Conectar ${picked.name}` : 'Conectar banco'}>
+        {adding && !picked && <BankPicker onPick={setPicked} />}
+        {adding && picked && (demo ? <DemoConnect inst={picked} onDone={closeAdd} /> : <ConnectForm inst={picked} onDone={closeAdd} />)}
       </Sheet>
       <ConfirmSheet
         open={Boolean(removing)}
@@ -158,19 +220,19 @@ export function BanksPage() {
         onConfirm={() => {
           const id = removing
           setRemoving(null)
-          if (id) write.mutate((b) => b.remove('bank_connections', [id]))
+          if (id) write.mutate((b) => (demo ? disconnectDemoBank(b, id) : b.remove('bank_connections', [id])))
         }}
       >
-        Os lançamentos que já vieram continuam no app. Para cortar o acesso de vez, revogue também no Meu Pluggy.
+        Os lançamentos que já vieram continuam no app.{demo ? '' : ' Para cortar o acesso de vez, revogue também no Meu Pluggy.'}
       </ConfirmSheet>
     </>
   )
 }
 
-function ConnectForm({ onDone }: { onDone: () => void }) {
+function ConnectForm({ inst, onDone }: { inst: Institution; onDone: () => void }) {
   const toast = useToast()
   const qc = useQueryClient()
-  const [label, setLabel] = useState('Nubank')
+  const [label, setLabel] = useState(inst.name)
   const [itemId, setItemId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -193,9 +255,13 @@ function ConnectForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <BankLogo inst={inst} />
+        <p className="leading-snug text-muted">Conecte o {inst.name} no Meu Pluggy e cole aqui o código da conexão.</p>
+      </div>
       <ol className="list-decimal space-y-1.5 pl-5 text-[0.9375rem] leading-snug text-muted">
         <li>
-          Em <strong className="text-ink">meu.pluggy.ai</strong>, conecte o banco (autoriza no app do banco).
+          Em <strong className="text-ink">meu.pluggy.ai</strong>, conecte o {inst.name} (autoriza no app do banco).
         </li>
         <li>
           No painel <strong className="text-ink">dashboard.pluggy.ai</strong>: sua aplicação › Demo › Connect Account › escolha <strong className="text-ink">MeuPluggy</strong>.
