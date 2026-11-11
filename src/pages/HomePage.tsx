@@ -1,9 +1,19 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { useState } from 'react'
 import {
-  ArrowCircleDown, CalendarCheck, ChartDonut, CreditCard, Eye, EyeSlash, Flame, GearSix, Hourglass, PiggyBank, Receipt,
-  SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
+  ArrowCircleDown, Bank, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass, Lightbulb, List as MenuIcon,
+  PiggyBank, Receipt, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
+import { HomeCarousel, type Slide } from '../components/HomeCarousel'
+import { MenuSheet } from '../components/MenuSheet'
+import { BankLogo } from '../components/BankLogo'
+import { findInstitution } from '../lib/institutions'
+import type { BankAccount } from '../types'
+import { useRecurrings } from '../data/finance'
+import { subscriptions } from '../lib/budget'
+import { projection } from '../lib/psych'
+import { useAuth } from '../auth/AuthProvider'
 import { ChevronRight } from 'lucide-react'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
@@ -60,7 +70,11 @@ export function HomePage() {
   const wishes = useTable('wishes')
   const challenges = useTable('challenges')
   const bankAccounts = useTable('bank_accounts')
+  const bankConns = useTable('bank_connections')
+  const recurrings = useRecurrings()
+  const { mode } = useAuth()
   const hidden = useHiddenValues()
+  const [menu, setMenu] = useState(false)
   if (view.isPending) return <Spinner />
   if (view.error || !view.data) return <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
   const { profile: p, summary: s, todayBudget: t, statuses, txs, plan, categories, today, goals } = view.data
@@ -70,6 +84,8 @@ export function HomePage() {
   const banks = (bankAccounts.data ?? []).filter((a) => a.type === 'BANK')
   const cards = (bankAccounts.data ?? []).filter((a) => a.type === 'CREDIT')
   const bankBalance = banks.reduce((a, b) => a + (b.balance_cents ?? 0), 0)
+  const instOf = (a: BankAccount) => findInstitution((bankConns.data ?? []).find((c) => c.id === a.connection_id)?.label, a.name)
+  const bankInsts = [...new Map(banks.map((b) => instOf(b)).filter((i) => i != null).map((i) => [i.key, i])).values()]
 
   const alerts = statuses.filter((x) => x.level !== 'ok' || x.weekLevel !== 'ok').slice(0, 3)
   const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && daysBetweenISO(today, x.date) >= -3 && daysBetweenISO(today, x.date) <= 7)
@@ -85,6 +101,28 @@ export function HomePage() {
   const activeChallenges = (challenges.data ?? []).filter((c) => c.status === 'ativo').length
   const saved = goals.reduce((a, g) => a + g.status.saved, 0)
   const goalNeed = goals.reduce((a, g) => a + g.status.needThisMonth, 0)
+  const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
+
+  // Carrossel: cartões feitos com os dados da pessoa (passam sozinhos)
+  const slides: Slide[] = []
+  const why = goals.find((g) => g.goal.motivation && !g.status.done)
+  if (why) slides.push({ id: 'porque', to: `/caixinhas/${why.goal.id}`, kicker: `Seu porquê · ${why.goal.name}`, title: `“${why.goal.motivation}”`, text: why.status.progress != null ? `Você já está em ${Math.floor(why.status.progress * 100)}%. Continue.` : 'Continue guardando um pouco por vez.', icon: Heart, from: why.goal.color, to2: '#0F2433' })
+  const proj = projection(view.data.goalMoves, today)
+  if (proj.pace > 0) slides.push({ id: 'futuro', to: '/caixinhas', kicker: 'Seu futuro', title: `Em dezembro você terá ${money(proj.projected)}`, text: `Mantendo o ritmo de ${money(proj.pace)} por mês nas caixinhas.`, icon: ChartLineUp, from: '#0F9D6B', to2: '#0B4F3A' })
+  const subs = subscriptions(recurrings.data ?? [], view.data.history)
+  if (subs.yearlyCents > 0) slides.push({ id: 'assinaturas', to: '/mes?aba=orcamento', kicker: 'O que se repete', title: `${money(subs.yearlyCents)} por ano`, text: `${subs.items.length} ${subs.items.length === 1 ? 'gasto que se repete' : 'gastos que se repetem'}. Vale cancelar algum?`, icon: Repeat, from: '#6E56F0', to2: '#2D2275' })
+  slides.push(activeChallenges > 0
+    ? { id: 'desafio', to: '/habitos', kicker: 'Desafio em andamento', title: activeChallenges === 1 ? 'Você tem 1 desafio ativo' : `Você tem ${activeChallenges} desafios ativos`, text: 'Veja como está indo e não quebre a sequência.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' }
+    : { id: 'desafio', to: '/habitos', kicker: 'Desafio da semana', title: '7 dias sem delivery', text: 'Topa? Em média dá para guardar uns R$ 150 por semana.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' })
+  const TIPS = [
+    'Separe o das caixinhas no dia do salário: o que sobra no fim do mês costuma ser bem menos.',
+    'Deu vontade de comprar? Coloque na lista de desejos e espere 30 dias.',
+    'Um dia por semana sem gastar já faz diferença no fim do mês.',
+    'Pequenos gastos repetidos pesam: veja quanto o delivery custa por mês.',
+    'Escreva o seu porquê em cada caixinha: ajuda a não desistir.',
+  ]
+  slides.push({ id: 'dica', to: '/habitos', kicker: 'Dica do dia', title: 'Para guardar mais', text: TIPS[dayOf(today) % TIPS.length], icon: Lightbulb, from: '#2F6FEB', to2: '#163A8A' })
+  if (mode === 'supabase' && p.is_admin && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52' })
 
   return (
     <div className="flex flex-col">
@@ -98,9 +136,9 @@ export function HomePage() {
             <button type="button" onClick={toggleHidden} aria-label={hidden ? 'Mostrar valores' : 'Esconder valores'} className="grid size-11 place-items-center rounded-full active:bg-white/15">
               {hidden ? <EyeSlash size={24} /> : <Eye size={24} />}
             </button>
-            <Link to="/voce" aria-label="Ajustes" className="grid size-11 place-items-center rounded-full active:bg-white/15">
-              <GearSix size={24} />
-            </Link>
+            <button type="button" onClick={() => setMenu(true)} aria-label="Menu" className="grid size-11 place-items-center rounded-full active:bg-white/15">
+              <MenuIcon size={26} />
+            </button>
           </div>
         </div>
         <p className="mt-5 text-[1.375rem] font-bold">{name ? `Olá, ${name}` : 'Olá'}</p>
@@ -108,7 +146,13 @@ export function HomePage() {
 
       {banks.length > 0 && (
         <Section title="Conta" to="/voce/bancos">
-          <AnimatedMoney cents={bankBalance} className="text-[1.75rem] font-extrabold tracking-[-0.02em]" />
+          <div className="flex items-center gap-3">
+            <BankLogo inst={bankInsts[0] ?? null} />
+            <div className="min-w-0">
+              <AnimatedMoney cents={bankBalance} className="block text-[1.75rem] leading-tight font-extrabold tracking-[-0.02em]" />
+              <p className="text-[0.875rem] text-muted">{bankInsts.length ? bankInsts.map((i) => i.name).join(' + ') : 'Saldo na conta'}</p>
+            </div>
+          </div>
         </Section>
       )}
 
@@ -205,9 +249,9 @@ export function HomePage() {
       {cards.map((c) => (
         <Section key={c.id} title="Cartão de crédito" to="/voce/bancos">
           <div className="flex items-start gap-3">
-            <CreditCard size={26} weight="duotone" className="mt-0.5 shrink-0 text-muted" />
-            <div>
-              <p className="text-muted">{c.name}</p>
+            <BankLogo inst={instOf(c)} credit />
+            <div className="min-w-0">
+              <p className="text-muted">{instOf(c)?.name ?? c.name}</p>
               <p className="text-[1.25rem] font-bold">
                 Fatura atual <Money cents={c.balance_cents ?? 0} />
               </p>
@@ -252,6 +296,8 @@ export function HomePage() {
         <AnimatedMoney cents={saved} className="text-[1.375rem] font-bold" />
         <p className="text-[0.9375rem] text-muted">{goals.length === 0 ? 'Crie sua primeira caixinha para guardar com objetivo.' : goalNeed > 0 ? `Falta guardar ${hidden ? 'R$ ••••' : formatBRL(goalNeed)} este mês` : 'Mês em dia nas caixinhas'}</p>
       </Section>
+
+      <HomeCarousel slides={slides} />
 
       <Section title="Hábitos" to="/habitos">
         <div className="flex gap-6">
@@ -311,6 +357,7 @@ export function HomePage() {
           </List>
         )}
       </Section>
+      <MenuSheet open={menu} onClose={() => setMenu(false)} />
     </div>
   )
 }
