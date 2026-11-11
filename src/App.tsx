@@ -12,6 +12,7 @@ import { SignUpPage } from './pages/auth/SignUpPage'
 import { HomePage } from './pages/HomePage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { HabitsPage } from './pages/HabitsPage'
+import { LearnPage, LessonPage } from './pages/LearnPages'
 import { BanksPage } from './pages/you/BanksPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { useProfile } from './data/hooks'
@@ -73,6 +74,8 @@ function LoggedIn() {
         <Route path="lancamento/:id" element={<TxFormPage />} />
         <Route path="separar" element={<SplitPage />} />
         <Route path="habitos" element={<HabitsPage />} />
+        <Route path="aprender" element={<LearnPage />} />
+        <Route path="aprender/:id" element={<LessonPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />
         <Route path="voce/bancos" element={<BanksPage />} />

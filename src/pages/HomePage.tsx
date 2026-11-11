@@ -2,13 +2,14 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useState } from 'react'
 import {
-  ArrowCircleDown, Bank, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass, Lightbulb, List as MenuIcon,
+  ArrowCircleDown, Bank, BookOpenText, CalendarCheck, ChartDonut, ChartLineUp, Eye, EyeSlash, Flame, Heart, Hourglass, List as MenuIcon,
   PiggyBank, Receipt, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
 import { MenuSheet } from '../components/MenuSheet'
 import { BankLogo } from '../components/BankLogo'
 import { findInstitution } from '../lib/institutions'
+import { lessonOfDay } from '../lib/learn'
 import type { BankAccount } from '../types'
 import { useRecurrings } from '../data/finance'
 import { subscriptions } from '../lib/budget'
@@ -30,8 +31,9 @@ import { levelText } from './MonthPage'
 
 const SHORTCUTS: { to: string; label: string; icon: PhosphorIcon }[] = [
   { to: '/lancar?tipo=dia', label: 'Gasto', icon: Receipt },
-  { to: '/lancar?tipo=renda', label: 'Renda', icon: ArrowCircleDown },
   { to: '/caixinhas', label: 'Guardar', icon: PiggyBank },
+  { to: '/aprender', label: 'Aprender', icon: BookOpenText },
+  { to: '/lancar?tipo=renda', label: 'Renda', icon: ArrowCircleDown },
   { to: '/separar', label: 'Separar', icon: SplitHorizontal },
   { to: '/mes', label: 'Resumo', icon: ChartDonut },
   { to: '/habitos', label: 'Desafios', icon: Trophy },
@@ -114,15 +116,12 @@ export function HomePage() {
   slides.push(activeChallenges > 0
     ? { id: 'desafio', to: '/habitos', kicker: 'Desafio em andamento', title: activeChallenges === 1 ? 'Você tem 1 desafio ativo' : `Você tem ${activeChallenges} desafios ativos`, text: 'Veja como está indo e não quebre a sequência.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' }
     : { id: 'desafio', to: '/habitos', kicker: 'Desafio da semana', title: '7 dias sem delivery', text: 'Topa? Em média dá para guardar uns R$ 150 por semana.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' })
-  const TIPS = [
-    'Separe o das caixinhas no dia do salário: o que sobra no fim do mês costuma ser bem menos.',
-    'Deu vontade de comprar? Coloque na lista de desejos e espere 30 dias.',
-    'Um dia por semana sem gastar já faz diferença no fim do mês.',
-    'Pequenos gastos repetidos pesam: veja quanto o delivery custa por mês.',
-    'Escreva o seu porquê em cada caixinha: ajuda a não desistir.',
-  ]
-  slides.push({ id: 'dica', to: '/habitos', kicker: 'Dica do dia', title: 'Para guardar mais', text: TIPS[dayOf(today) % TIPS.length], icon: Lightbulb, from: '#2F6FEB', to2: '#163A8A' })
+  const lesson = lessonOfDay(Math.floor(Date.parse(`${today}T12:00:00Z`) / 86_400_000))
+  slides.push({ id: 'dica', to: `/aprender/${lesson.id}`, kicker: 'Aprenda em 2 minutos', title: lesson.title, text: lesson.short, icon: BookOpenText, from: '#2F6FEB', to2: '#163A8A' })
   if (mode === 'supabase' && p.is_admin && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52' })
+  // Ordem: o porquê da pessoa, a lição do dia (ajuda financeira em primeiro lugar), depois o resto
+  const ORDER = ['porque', 'dica', 'futuro', 'assinaturas', 'desafio', 'banco']
+  slides.sort((x, y) => ORDER.indexOf(x.id) - ORDER.indexOf(y.id))
 
   return (
     <div className="flex flex-col">
