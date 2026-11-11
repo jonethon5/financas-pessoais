@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Plus, WifiOff } from 'lucide-react'
-import { CalendarDots, House, PiggyBank, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
+import { CalendarDots, ChartBar, House, PiggyBank, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useAuth } from '../auth/AuthProvider'
 import { useBankAutoSync, useRealtime } from '../data/finance'
 import { useToast } from './Toast'
@@ -12,8 +12,8 @@ type Tab = { to: string; label: string; icon: PhosphorIcon }
 const TABS: Tab[] = [
   { to: '/', label: 'Início', icon: House },
   { to: '/mes', label: 'Mês', icon: CalendarDots },
+  { to: '/graficos', label: 'Gráficos', icon: ChartBar },
   { to: '/caixinhas', label: 'Caixinhas', icon: PiggyBank },
-  { to: '/voce', label: 'Você', icon: UserCircle },
 ]
 
 /** Telas de formulário ocupam a tela toda, sem a barra de abas (como as telas de "Novo" do iPhone). */

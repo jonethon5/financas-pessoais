@@ -16,6 +16,7 @@ import { LearnPage, LessonPage } from './pages/LearnPages'
 import { HealthPage } from './pages/HealthPage'
 import { AssistantPage } from './pages/AssistantPage'
 import { PigPage } from './pages/PigPage'
+import { ChartsPage } from './pages/ChartsPage'
 import { BanksPage } from './pages/you/BanksPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { useProfile } from './data/hooks'
@@ -81,6 +82,7 @@ function LoggedIn() {
         <Route path="saude" element={<HealthPage />} />
         <Route path="assistente" element={<AssistantPage />} />
         <Route path="porquinho" element={<PigPage />} />
+        <Route path="graficos" element={<ChartsPage />} />
         <Route path="aprender/:id" element={<LessonPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />

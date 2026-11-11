@@ -298,3 +298,31 @@ body {
     animation: none;
   }
 }
+
+/* Gráficos: paleta categórica validada (ordem fixa) e escala de uma cor só para intensidade */
+:root {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-grid: #e9ecef;
+  --viz-axis: #5b6b7a;
+  --viz-seq-0: #eef3fb;
+  --viz-seq-1: #c9dcf6;
+  --viz-seq-2: #8fb7ec;
+  --viz-seq-3: #4f8fe0;
+  --viz-seq-4: #1f5fbf;
+}
+:root[data-theme='dark'] {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-grid: #23262b;
+  --viz-axis: #9aa5b1;
+  --viz-seq-0: #15191f;
+  --viz-seq-1: #1c3152;
+  --viz-seq-2: #24508a;
+  --viz-seq-3: #3274c9;
+  --viz-seq-4: #6ea8fe;
+}
