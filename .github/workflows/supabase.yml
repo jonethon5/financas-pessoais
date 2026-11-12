@@ -55,8 +55,21 @@ jobs:
       - name: Ligar ao projeto
         run: supabase link --project-ref "$PROJECT_REF"
 
+      # Os servidores do GitHub não têm IPv6, e a conexão direta com o banco é só IPv6.
+      # Por isso o banco é aplicado pelo "pooler" (IPv4), na região do projeto.
       - name: Aplicar o banco (migrations)
-        run: supabase db push --remote --password "$SUPABASE_DB_PASSWORD" --yes
+        run: |
+          REGION=$(curl --fail --silent -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$PROJECT_REF" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("region",""))')
+          [ -n "$REGION" ] || REGION=sa-east-1
+          PASS=$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          for HOST in "aws-1-$REGION" "aws-0-$REGION"; do
+            echo "Tentando $HOST.pooler.supabase.com ($REGION)"
+            if supabase db push --db-url "postgresql://postgres.$PROJECT_REF:$PASS@$HOST.pooler.supabase.com:5432/postgres" --yes; then
+              exit 0
+            fi
+          done
+          echo "::error::Não consegui conectar ao banco pelo pooler. Confira a senha do banco (SUPABASE_DB_PASSWORD)."
+          exit 1
 
       - name: Publicar Edge Functions
         run: supabase functions deploy --yes
