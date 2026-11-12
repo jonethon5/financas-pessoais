@@ -107,9 +107,16 @@ jobs:
           SMTP_SENDER: ${{ secrets.SMTP_SENDER }}
         run: |
           node scripts/auth-config.mjs > auth.json
-          curl --fail-with-body --silent --show-error -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
+          STATUS=$(curl --silent --show-error -o resposta.json -w '%{http_code}' -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
-            --data @auth.json > /dev/null
+            --data @auth.json)
           rm auth.json
+          if [ "$STATUS" -ge 300 ]; then
+            # Mostra o motivo que o Supabase deu (a resposta não tem segredos)
+            echo "::error::O Supabase recusou a configuração do login (HTTP $STATUS)"
+            cat resposta.json; echo
+            exit 1
+          fi
+          rm resposta.json
           echo "Login configurado para $SITE_URL"
