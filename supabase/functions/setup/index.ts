@@ -21,7 +21,9 @@ Deno.serve(
 
     const expected = Deno.env.get('SETUP_CODE')
     if (!expected) throw new UserError('O app ainda não foi configurado: falta o secret SETUP_CODE.', 503)
-    if (!sameSecret(String(body.code ?? '').trim(), expected)) throw new UserError('Código de configuração incorreto.', 401)
+    // Ignora espaços nas pontas e maiúsculas/minúsculas (o teclado do celular e o copiar/colar costumam mexer nisso)
+    const norm = (v: string) => v.trim().toLowerCase()
+    if (!sameSecret(norm(String(body.code ?? '')), norm(expected))) throw new UserError('Código de configuração incorreto.', 401)
 
     const admin = adminClient()
     const { count, error: countError } = await admin.from('profiles').select('id', { count: 'exact', head: true }).eq('is_admin', true)
