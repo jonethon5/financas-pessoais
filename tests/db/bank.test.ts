@@ -97,6 +97,7 @@ let owner: User
 let tester: User
 let salaryId: string
 let fixedId: string
+let manualId: string
 
 beforeAll(async () => {
   await startMock()
@@ -114,6 +115,9 @@ beforeAll(async () => {
   const { data: rec } = await owner.client.from('recurrings').insert({ description: 'Telefone', amount_cents: 3900, day: 15, start_month: ym }).select('id').single()
   const { data: fx } = await owner.client.from('transactions').insert({ kind: 'expense', type: 'fixo', amount_cents: 3900, date: day(15), description: 'Telefone', recurring_id: rec!.id, paid: false }).select('id').single()
   fixedId = fx!.id
+  // Um gasto que a pessoa lançou à mão e que o banco também vai trazer (Uber de R$ 18,40, um dia antes)
+  const { data: byHand } = await owner.client.from('transactions').insert({ kind: 'expense', type: 'dia', amount_cents: 1840, date: day(8), description: 'Uber para o trabalho', emotion: 'cansado' }).select('id').single()
+  manualId = byHand!.id
 }, 60_000)
 
 afterAll(async () => {
@@ -146,7 +150,7 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
   it('conecta, lê saldo e fatura, e lança sem duplicar o que o app já tinha', async () => {
     const { data, error } = await owner.client.functions.invoke('bank-sync', { body: { action: 'connect', itemId: ITEM, label: 'Nubank' } })
     expect(error).toBeNull()
-    expect(data).toMatchObject({ ok: true, accounts: 2, matched: 2 })
+    expect(data).toMatchObject({ ok: true, accounts: 2, matched: 3 })
 
     const { data: accounts } = await owner.client.from('bank_accounts').select('name, type, balance_cents, credit_limit_cents, available_cents, due_date').order('type')
     expect(accounts).toEqual([
@@ -171,8 +175,11 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
       { description: 'Pix para Outro Banco', kind: 'expense', type: 'dia', amount_cents: 30000, skipped: true, installment_no: null, installment_total: null, categories: { name: 'Outros' } },
       { description: 'Pix recebido Maria', kind: 'income', type: 'extra', amount_cents: 15000, skipped: true, installment_no: null, installment_total: null, categories: { name: 'Renda extra' } },
       { description: 'Shopee Loja', kind: 'expense', type: 'dia', amount_cents: 5970, skipped: false, installment_no: null, installment_total: null, categories: { name: 'Compras online' } },
-      { description: 'Uber Trip', kind: 'expense', type: 'dia', amount_cents: 1840, skipped: false, installment_no: null, installment_total: null, categories: { name: 'Transporte' } },
+      // o Uber não entrou de novo: confirmou o que a pessoa tinha lançado à mão (nome, dia e sentimento dela)
+      { description: 'Uber para o trabalho', kind: 'expense', type: 'dia', amount_cents: 1840, skipped: false, installment_no: null, installment_total: null, categories: null },
     ])
+    const { data: byHand } = await owner.client.from('transactions').select('date, emotion, external_id').eq('id', manualId).single()
+    expect(byHand).toEqual({ date: day(8), emotion: 'cansado', external_id: 'pluggy:b7' })
     // A renda do mês continua sendo só o salário do cadastro
     const { data: income } = await owner.client.from('transactions').select('type, amount_cents').eq('kind', 'income').eq('skipped', false)
     expect(income).toEqual([{ type: 'salario', amount_cents: 211300 }])

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
+import { categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
 
 const tx = (p: Partial<PluggyTx>): PluggyTx => ({ id: 'abc', description: 'Compra', amount: -10, date: '2026-11-04T00:00:00.000Z', ...p })
 
@@ -118,6 +118,20 @@ describe('sem duplicar com o que o app já lança sozinho', () => {
     expect(salaryMonths({ kind: 'income', amount_cents: 210000, date: '2026-11-29' }, 210000, 1)).toEqual(['2026-12'])
     expect(salaryMonths({ kind: 'income', amount_cents: 40000, date: '2026-11-05' }, 210000, 5)).toEqual([])
     expect(salaryMonths({ kind: 'income', amount_cents: 210000, date: '2026-11-05' }, null, 5)).toEqual([])
+  })
+  it('gasto que a pessoa já lançou à mão não entra de novo (mesmo valor, até 2 dias)', () => {
+    const manual = [
+      { id: 'a', amount_cents: 4290, date: '2026-11-04' },
+      { id: 'b', amount_cents: 4290, date: '2026-11-06' },
+      { id: 'c', amount_cents: 1000, date: '2026-11-06' },
+    ]
+    const buy = { kind: 'expense' as const, type: 'dia' as const, amount_cents: 4290, date: '2026-11-06' }
+    expect(findManualMatch(buy, manual)?.id).toBe('b')
+    expect(findManualMatch({ ...buy, date: '2026-11-09' }, manual)).toBeNull()
+    expect(findManualMatch({ ...buy, amount_cents: 4291 }, manual)).toBeNull()
+    // parcela e entrada não se juntam com gasto lançado à mão
+    expect(findManualMatch({ ...buy, type: 'parcela' }, manual)).toBeNull()
+    expect(findManualMatch({ ...buy, kind: 'income', type: 'extra' }, manual)).toBeNull()
   })
   it('acha o fixo em aberto que o gasto está pagando', () => {
     const fixed = [

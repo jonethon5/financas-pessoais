@@ -9,13 +9,14 @@
 //     Dinheiro que entra na conta (Pix recebido etc.) aparece no extrato, mas NÃO conta como renda sozinho;
 //   - o depósito do salário só confirma o salário do mês (não vira outra renda);
 //   - transferência entre contas da própria pessoa não é renda nem gasto;
-//   - gasto na conta e compra no cartão contam como gasto; pagamento de fatura é ignorado (já contou na compra).
+//   - gasto na conta e compra no cartão contam como gasto; pagamento de fatura é ignorado (já contou na compra);
+//   - gasto que a pessoa já tinha lançado à mão (mesmo valor, até 2 dias) é só confirmado, não entra de novo.
 //
 // As chaves PLUGGY_CLIENT_ID / PLUGGY_CLIENT_SECRET ficam só nos secrets das funções.
 // No beta, as chaves do Meu Pluggy são pessoais (do dono do app): por isso só o administrador usa.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { UserError, adminClient, callerUserId, handle, json } from '../_shared/common.ts'
-import { countKey, countsInMonth, findFixedMatch, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from '../_shared/bankmap.ts'
+import { countKey, countsInMonth, findFixedMatch, findManualMatch, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from '../_shared/bankmap.ts'
 
 const API = Deno.env.get('PLUGGY_API_BASE') || 'https://api.pluggy.ai'
 const CLIENT_ID = Deno.env.get('PLUGGY_CLIENT_ID') ?? ''
@@ -236,11 +237,14 @@ async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn) {
   const first = !conn.last_sync_at
   const from = first ? `${addDays(today, -FIRST_SYNC_DAYS).slice(0, 7)}-01` : addDays(conn.last_sync_at!.slice(0, 10), -10)
 
-  const [{ data: open }, names] = await Promise.all([
+  const [{ data: open }, { data: byHand }, names] = await Promise.all([
     admin.from('transactions').select('id, amount_cents, date, paid, external_id').eq('user_id', uid).eq('type', 'fixo').gte('date', from).eq('skipped', false),
+    admin.from('transactions').select('id, amount_cents, date').eq('user_id', uid).eq('type', 'dia').eq('source', 'manual').is('external_id', null).eq('skipped', false).gte('date', addDays(from, -2)),
     ownerNames(ctx, conn.item_id),
   ])
   const fixedRows = open ?? []
+  // Gastos lançados à mão que o banco ainda não confirmou
+  const manualRows = byHand ?? []
   const ruleSet = { has: (pattern: string) => pattern !== '' && ctx.rules.has(pattern) }
 
   const accounts = (await pluggy<{ results: PluggyAccount[] }>(`/accounts?itemId=${encodeURIComponent(conn.item_id)}`)).results ?? []
@@ -282,9 +286,9 @@ async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn) {
     if (!mapped.length) continue
 
     // O que já está no app (em lotes: a lista de ids não cabe numa consulta só quando são muitos)
-    const seen = new Map<string, { id: string; type: string; skipped: boolean }>()
+    const seen = new Map<string, { id: string; type: string; skipped: boolean; emotion: string | null; note: string | null }>()
     for (const part of chunks(mapped.map((m) => m.external_id), 100)) {
-      const { data, error } = await admin.from('transactions').select('id, external_id, type, skipped').eq('user_id', uid).in('external_id', part)
+      const { data, error } = await admin.from('transactions').select('id, external_id, type, skipped, emotion, note').eq('user_id', uid).in('external_id', part)
       if (error) throw error
       for (const s of data ?? []) seen.set(s.external_id, s)
     }
@@ -298,6 +302,15 @@ async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn) {
         if (first && m.own && !old.skipped && old.type !== 'salario' && old.type !== 'fixo') {
           await admin.from('transactions').update({ skipped: true, note: OWN_NOTE }).eq('id', old.id)
           matched++
+        } else if (first && counts && !old.skipped && old.type === 'dia' && !old.emotion && !old.note) {
+          // O mesmo gasto estava duas vezes (lançado à mão e vindo do banco): fica só o da pessoa, confirmado
+          const twin = findManualMatch(m, manualRows)
+          if (twin) {
+            await admin.from('transactions').delete().eq('id', old.id)
+            await admin.from('transactions').update({ external_id: m.external_id, source: 'banco', bank_account_id: saved.id }).eq('id', twin.id)
+            manualRows.splice(manualRows.indexOf(twin), 1)
+            matched++
+          }
         }
         continue
       }
@@ -315,6 +328,15 @@ async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn) {
         await admin.from('transactions').update({ ...link, amount_cents: m.amount_cents, date, paid: true }).eq('id', fixed.id)
         fixed.external_id = m.external_id
         fixed.paid = true
+        matched++
+        continue
+      }
+
+      // Gasto que a pessoa já lançou à mão: o banco só confirma (o nome, a categoria e o dia dela ficam)
+      const twin = counts ? findManualMatch(m, manualRows) : null
+      if (twin) {
+        await admin.from('transactions').update(link).eq('id', twin.id)
+        manualRows.splice(manualRows.indexOf(twin), 1)
         matched++
         continue
       }

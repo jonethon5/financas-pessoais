@@ -207,6 +207,16 @@ export function findFixedMatch<T extends { id: string; amount_cents: number; dat
   return candidates[0] ?? null
 }
 
+/**
+ * A pessoa já tinha lançado esse gasto à mão? (mesmo valor, até 2 dias de diferença, ainda sem ligação com o banco)
+ * Aí o lançamento do banco só confirma o dela, em vez de contar duas vezes. Escolhe o de data mais próxima.
+ */
+export function findManualMatch<T extends { id: string; amount_cents: number; date: string }>(tx: Pick<MappedTx, 'kind' | 'amount_cents' | 'date' | 'type'>, manual: T[]): T | null {
+  if (tx.kind !== 'expense' || tx.type !== 'dia') return null
+  const candidates = manual.filter((m) => m.amount_cents === tx.amount_cents && daysApart(m.date, tx.date) <= 2).sort((a, b) => daysApart(a.date, tx.date) - daysApart(b.date, tx.date))
+  return candidates[0] ?? null
+}
+
 // ---------------------------------------------------------------------------
 // O que conta no mês
 // ---------------------------------------------------------------------------

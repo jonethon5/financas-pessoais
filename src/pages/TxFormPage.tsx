@@ -135,6 +135,8 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
     if (!cents) errs.amount = 'Digite o valor (ex.: 42,90).'
     if (!description.trim()) errs.description = 'Dê um nome (ex.: Mercado, Uber, Aluguel).'
     if (mode !== 'fixo' && !isValidISODate(date)) errs.date = 'Data inválida.'
+    // Salário e gasto fixo pertencem ao mês deles: mudar para outro mês deixaria um mês sem e outro com dois
+    else if (tx && (tx.type === 'salario' || tx.type === 'fixo') && date.slice(0, 7) !== tx.date.slice(0, 7)) errs.date = 'Escolha um dia dentro do mesmo mês.'
     if (mode === 'fixo' && !tx) {
       const d = Number(day)
       if (!Number.isInteger(d) || d < 1 || d > 31) errs.day = 'Dia de 1 a 31.'
