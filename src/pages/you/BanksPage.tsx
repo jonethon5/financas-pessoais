@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, Info, ShieldCheck } from '@phosphor-icons/react'
+import { CheckCircle, Info, MagnifyingGlass, ShieldCheck } from '@phosphor-icons/react'
 import { useAuth } from '../../auth/AuthProvider'
 import { BankLogo } from '../../components/BankLogo'
 import { Pig } from '../../components/Pig'
@@ -12,7 +12,7 @@ import { BackButton, Badge, Button, Card, ErrorBox, Field, List, Money, NavBar, 
 import { connectDemoBank, disconnectDemoBank } from '../../data/demoBank'
 import { useTable, useWrite } from '../../data/finance'
 import { formatDateShort } from '../../lib/dates'
-import { POPULAR_BANKS, accountTitle, findInstitution, type Institution } from '../../lib/institutions'
+import { ALL_BANKS, POPULAR_BANKS, accountTitle, findInstitution, searchBanks, type Institution } from '../../lib/institutions'
 import { callFunction, friendlyError } from '../../lib/supabase'
 import type { BankAccount } from '../../types'
 
@@ -28,7 +28,7 @@ const ago = (iso: string | null) => {
 /** Linha de uma conta: saldo da conta corrente ou fatura do cartão. */
 export function AccountRow({ a, label }: { a: BankAccount; label?: string }) {
   const credit = a.type === 'CREDIT'
-  const inst = findInstitution(label, a.name)
+  const inst = findInstitution(a.name, label)
   return (
     <Row
       icon={<BankLogo inst={inst} credit={credit} size="sm" />}
@@ -86,19 +86,52 @@ function OpenFinanceHero({ onAdd, compact = false }: { onAdd: () => void; compac
   )
 }
 
-/** Grade com os bancos mais usados: a pessoa só toca no dela. */
+/** Busca pelo nome e lista com todos os bancos do Open Finance; sem busca, os mais usados vêm primeiro. */
 function BankPicker({ onPick }: { onPick: (inst: Institution) => void }) {
+  const [query, setQuery] = useState('')
+  const q = query.trim()
+  const results = q ? searchBanks(q) : ALL_BANKS
+  const item = (inst: Institution) => (
+    <button key={inst.key} type="button" onClick={() => onPick(inst)} className="press flex w-full items-center gap-3 rounded-[1rem] bg-surface p-2.5 text-left">
+      <BankLogo inst={inst} />
+      <span className="min-w-0 flex-1 truncate leading-tight font-semibold">{inst.name}</span>
+    </button>
+  )
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[0.9375rem] leading-snug text-muted">Escolha o seu banco. A conexão é pelo Open Finance: só leitura, o app não consegue mexer no seu dinheiro.</p>
-      <div className="grid grid-cols-2 gap-2.5">
-        {POPULAR_BANKS.map((inst) => (
-          <button key={inst.key} type="button" onClick={() => onPick(inst)} className="press flex items-center gap-3 rounded-[1.1rem] bg-surface p-3 text-left">
-            <BankLogo inst={inst} />
-            <span className="leading-tight font-semibold">{inst.name}</span>
+      <label className="shadow-soft flex items-center gap-2.5 rounded-full bg-surface px-4 py-3">
+        <MagnifyingGlass size={20} className="shrink-0 text-muted" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar banco (ex.: Neon, Caixa)"
+          aria-label="Buscar banco pelo nome"
+          autoComplete="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-muted"
+        />
+      </label>
+      {!q && (
+        <>
+          <p className="px-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Mais usados</p>
+          <div className="grid grid-cols-2 gap-2">{POPULAR_BANKS.map(item)}</div>
+          <p className="px-1 pt-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Todos os bancos ({ALL_BANKS.length})</p>
+        </>
+      )}
+      <div className="flex max-h-[45dvh] flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5">
+        {results.map(item)}
+        {q && (
+          <button type="button" onClick={() => onPick({ key: 'outro', name: q.slice(0, 40), color: '#5B6B7A', logo: '' })} className="press flex w-full items-center gap-3 rounded-[1rem] border border-dashed border-line p-2.5 text-left">
+            <BankLogo inst={null} />
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className="block truncate font-semibold">Usar “{q}”</span>
+              <span className="block text-[0.8125rem] text-muted">{results.length ? 'Não é nenhum dos de cima' : 'Não achei esse nome na lista'}</span>
+            </span>
           </button>
-        ))}
+        )}
       </div>
+      <p className="text-[0.8125rem] leading-snug text-muted">A conexão é pelo Open Finance: só leitura, o app não consegue mexer no seu dinheiro.</p>
     </div>
   )
 }
@@ -323,7 +356,9 @@ function ConnectForm({ inst, onDone }: { inst: Institution; onDone: () => void }
       <Button type="submit" loading={loading} disabled={itemId.length < 30}>
         Conectar e buscar lançamentos
       </Button>
-      <p className="text-center text-[0.8125rem] text-muted">Na primeira vez o app busca os últimos 90 dias.</p>
+      <p className="text-center text-[0.8125rem] leading-snug text-muted">
+        Na primeira vez o app busca os últimos 3 meses. Se este banco está no mesmo Meu Pluggy de uma conexão que você já tem aqui, o Item ID é o mesmo: basta tocar em “Atualizar agora” que as contas novas aparecem.
+      </p>
     </form>
   )
 }

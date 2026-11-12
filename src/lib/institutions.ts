@@ -3,6 +3,8 @@
  * A conexão via Meu Pluggy não diz qual é o banco, então reconhecemos pelo nome da conta ou da conexão
  * (ex.: "Nu Pagamentos S.A." → Nubank).
  */
+import BANKS from './banks.json'
+
 export type Institution = { key: string; name: string; color: string; logo: string }
 
 const CDN = 'https://cdn.pluggy.ai/assets/connector-icons'
@@ -26,15 +28,49 @@ const LIST: (Institution & { match: RegExp })[] = [
   { key: 'sicredi', name: 'Sicredi', color: '#3FA110', logo: `${CDN}/661.svg`, match: /sicredi/i },
 ]
 
-/** Acha o banco pelos nomes que temos (nome da conexão primeiro, depois o nome da conta). */
+const plain = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+const pick = (i: Institution): Institution => ({ key: i.key, name: i.name, color: i.color, logo: i.logo })
+
+/**
+ * Todos os bancos que dá para conectar pelo Open Finance (lista da Pluggy, gerada por scripts/bancos.mjs),
+ * em ordem alfabética. Os conhecidos usam o nome curto e a cor da lista acima.
+ */
+export const ALL_BANKS: Institution[] = (() => {
+  const used = new Set<string>()
+  const out: Institution[] = []
+  for (const b of BANKS) {
+    const known = LIST.find((i) => !used.has(i.key) && i.match.test(plain(b.name)) && plain(b.name).length <= plain(i.name).length + 18)
+    const inst = known ? pick(known) : { key: `of-${b.id}`, name: b.name, color: b.color, logo: b.logo }
+    used.add(inst.key)
+    out.push(inst)
+  }
+  for (const i of LIST) if (!used.has(i.key)) out.push(pick(i))
+  return out.sort((x, y) => plain(x.name).localeCompare(plain(y.name)))
+})()
+
+/**
+ * Acha o banco pelos nomes que temos, na ordem em que vêm (o primeiro que der certo ganha).
+ * Passe o nome da conta antes do nome da conexão: uma conexão do Meu Pluggy pode trazer contas de vários bancos.
+ */
 export function findInstitution(...names: (string | null | undefined)[]): Institution | null {
   for (const n of names) {
     if (!n) continue
-    const plain = n.normalize('NFD').replace(/[̀-ͯ]/g, '')
-    const hit = LIST.find((i) => i.match.test(plain))
-    if (hit) return { key: hit.key, name: hit.name, color: hit.color, logo: hit.logo }
+    const text = n.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const hit = LIST.find((i) => i.match.test(text))
+    if (hit) return pick(hit)
+    const exact = ALL_BANKS.find((i) => plain(i.name) === plain(n))
+    if (exact) return exact
   }
   return null
+}
+
+/** Busca pelo nome (sem acento, qualquer parte): "nu" acha Nubank, "caixa" acha as da Caixa. */
+export function searchBanks(query: string): Institution[] {
+  const q = plain(query)
+  if (!q) return ALL_BANKS
+  const hits = ALL_BANKS.filter((i) => plain(i.name).includes(q))
+  // quem começa com o que foi digitado vem primeiro
+  return [...hits.filter((i) => plain(i.name).startsWith(q)), ...hits.filter((i) => !plain(i.name).startsWith(q))]
 }
 
 /** Nome amigável de uma conta: "Nubank · Conta" em vez de "Nu Pagamentos S.A. - Instituição de Pagamento". */
@@ -46,10 +82,10 @@ export function accountTitle(inst: Institution | null, type: 'BANK' | 'CREDIT', 
 /** Banco pela chave (ex.: 'nubank'). */
 export function institutionByKey(key: string): Institution | null {
   const hit = LIST.find((i) => i.key === key)
-  return hit ? { key: hit.key, name: hit.name, color: hit.color, logo: hit.logo } : null
+  return hit ? pick(hit) : (ALL_BANKS.find((i) => i.key === key) ?? null)
 }
 
 /** Os bancos e carteiras digitais mais usados no Brasil, para a pessoa escolher ao conectar. */
-export const POPULAR_BANKS = ['nubank', 'caixa', 'itau', 'bradesco', 'bb', 'santander', 'inter', 'mercadopago', 'picpay', 'c6']
+export const POPULAR_BANKS = ['nubank', 'caixa', 'itau', 'bradesco', 'bb', 'santander', 'inter', 'mercadopago', 'picpay', 'c6', 'neon', 'pagbank']
   .map((k) => institutionByKey(k))
   .filter((i): i is Institution => i != null)

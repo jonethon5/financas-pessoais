@@ -411,7 +411,7 @@ export function ChartsPage() {
                   {cards.map((c) => {
                     const used = c.credit_limit_cents != null && c.available_cents != null ? c.credit_limit_cents - c.available_cents : (c.balance_cents ?? 0)
                     const limit = c.credit_limit_cents ?? 0
-                    const inst = findInstitution(labelOf(c.connection_id), c.name)
+                    const inst = findInstitution(c.name, labelOf(c.connection_id))
                     return (
                       <div key={c.id}>
                         <div className="flex items-center gap-3">

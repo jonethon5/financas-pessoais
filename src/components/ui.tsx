@@ -383,7 +383,7 @@ export function NavBar({
   return (
     <>
       <div
-        className={`pt-safe sticky top-0 z-30 -mx-4 transition-colors duration-200 ${
+        className={`pt-safe sticky top-0 z-30 -mx-4 transition-colors duration-200 print:hidden ${
           compact ? 'border-b border-line bg-bg/80 backdrop-blur-xl backdrop-saturate-150' : 'border-b border-transparent bg-bg'
         }`}
       >

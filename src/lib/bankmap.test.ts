@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { categoryHint, cleanDescription, findFixedMatch, isInternal, isSalaryMatch, learnKey, mapTransaction, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
+import { categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
 
 const tx = (p: Partial<PluggyTx>): PluggyTx => ({ id: 'abc', description: 'Compra', amount: -10, date: '2026-11-04T00:00:00.000Z', ...p })
 
@@ -14,7 +14,51 @@ describe('conta corrente', () => {
     expect(mapTransaction(tx({ description: 'Pagamento de fatura', amount: -1200 }), 'BANK')).toBeNull()
     expect(mapTransaction(tx({ description: 'Aplicação RDB', amount: -300 }), 'BANK')).toBeNull()
     expect(mapTransaction(tx({ description: 'Resgate RDB', amount: 300 }), 'BANK')).toBeNull()
-    expect(isInternal(tx({ description: 'Transferência', category: 'Same ownership transfer' }))).toBe(true)
+    expect(mapTransaction(tx({ description: 'Pagamento', amount: -900, operationType: 'PAGAMENTO_FATURA' }), 'BANK')).toBeNull()
+  })
+})
+
+describe('transferência entre contas da própria pessoa', () => {
+  const me = ['Ana Paula Ribeiro']
+  it('reconhece pela categoria do Open Finance, pelo mesmo CPF dos dois lados ou pelo nome no Pix', () => {
+    expect(isOwnTransfer(tx({ description: 'Transferência', category: 'Same person transfer - PIX' }))).toBe(true)
+    expect(isOwnTransfer(tx({ description: 'Transferência', category: 'Same ownership transfer' }))).toBe(true)
+    const party = (value: string) => ({ name: 'Qualquer', documentNumber: { type: 'CPF', value } })
+    expect(isOwnTransfer(tx({ description: 'Pix', paymentData: { payer: party('123.456.789-00'), receiver: party('12345678900') } }))).toBe(true)
+    expect(isOwnTransfer(tx({ description: 'Pix', paymentData: { payer: party('123.456.789-00'), receiver: party('987.654.321-00') } }))).toBe(false)
+    expect(isOwnTransfer(tx({ description: 'Transferência recebida pelo Pix|ANA PAULA RIBEIRO' }), me)).toBe(true)
+    expect(isOwnTransfer(tx({ description: 'Transferência recebida pelo Pix|ANA SOUZA' }), me)).toBe(false)
+  })
+  it('só o primeiro nome não basta, e uma compra em loja com o mesmo nome não é transferência', () => {
+    expect(mentionsName('Pix de Ana Ribeiro', 'Ana')).toBe(false)
+    expect(mentionsName('Pix de Ana Carolina', 'Ana Paula Ribeiro')).toBe(false)
+    expect(isOwnTransfer(tx({ description: 'Compra no débito|ANA RIBEIRO MODAS' }), me)).toBe(false)
+  })
+  it('entra no extrato marcada, nos dois sentidos, e só na conta (não no cartão)', () => {
+    expect(mapTransaction(tx({ description: 'Transferência enviada pelo Pix|ANA PAULA RIBEIRO', amount: -500 }), 'BANK', me)).toMatchObject({ kind: 'expense', own: true })
+    expect(mapTransaction(tx({ description: 'Transferência recebida pelo Pix|ANA PAULA RIBEIRO', amount: 500 }), 'BANK', me)).toMatchObject({ kind: 'income', own: true })
+    expect(mapTransaction(tx({ description: 'Transferência recebida pelo Pix|JOÃO SILVA', amount: 500 }), 'BANK', me)).toMatchObject({ own: false })
+    expect(mapTransaction(tx({ description: 'Pix ANA PAULA RIBEIRO', amount: 80 }), 'CREDIT', me)).toMatchObject({ own: false })
+  })
+})
+
+describe('o que conta no mês', () => {
+  const none = new Set<string>()
+  it('entrada do banco não vira renda sozinha: só conta se a pessoa já disse que conta', () => {
+    const pix = { kind: 'income' as const, own: false, description: 'Pix de João Silva' }
+    expect(countsInMonth(pix, none)).toBe(false)
+    expect(countsInMonth(pix, new Set([countKey('Pix de João Silva')]))).toBe(true)
+    // a regra de categoria (sem o prefixo) não faz a entrada contar
+    expect(countsInMonth(pix, new Set([learnKey('Pix de João Silva')]))).toBe(false)
+  })
+  it('gasto conta, a não ser que a pessoa tenha tirado os daquele destino', () => {
+    const out = { kind: 'expense' as const, own: false, description: 'Pix para Maria Souza' }
+    expect(countsInMonth(out, none)).toBe(true)
+    expect(countsInMonth(out, new Set([ignoreKey('Pix para Maria Souza')]))).toBe(false)
+  })
+  it('transferência entre contas próprias nunca conta', () => {
+    expect(countsInMonth({ kind: 'expense', own: true, description: 'Pix para Ana' }, none)).toBe(false)
+    expect(countsInMonth({ kind: 'income', own: true, description: 'Pix de Ana' }, new Set([countKey('Pix de Ana')]))).toBe(false)
   })
 })
 
@@ -63,6 +107,17 @@ describe('sem duplicar com o que o app já lança sozinho', () => {
     expect(isSalaryMatch({ kind: 'income', amount_cents: 211300, date: '2026-11-06' }, salary)).toBe(true)
     expect(isSalaryMatch({ kind: 'income', amount_cents: 15000, date: '2026-11-05' }, salary)).toBe(false)
     expect(isSalaryMatch({ kind: 'income', amount_cents: 211300, date: '2026-11-20' }, salary)).toBe(false)
+  })
+  it('descobre de qual mês é o salário, mesmo quando cai antes ou depois da virada do mês', () => {
+    expect(paydayIn('2026-02', 31)).toBe('2026-02-28')
+    expect(paydayIn('2026-11', 5)).toBe('2026-11-05')
+    expect(salaryMonths({ kind: 'income', amount_cents: 200000, date: '2026-11-06' }, 210000, 5)).toEqual(['2026-11'])
+    // dia do pagamento 30, caiu no dia 2 do mês seguinte: é o salário do mês anterior
+    expect(salaryMonths({ kind: 'income', amount_cents: 210000, date: '2026-12-02' }, 210000, 30)).toEqual(['2026-11'])
+    // dia do pagamento 1, adiantado para o dia 29: é o salário do mês seguinte
+    expect(salaryMonths({ kind: 'income', amount_cents: 210000, date: '2026-11-29' }, 210000, 1)).toEqual(['2026-12'])
+    expect(salaryMonths({ kind: 'income', amount_cents: 40000, date: '2026-11-05' }, 210000, 5)).toEqual([])
+    expect(salaryMonths({ kind: 'income', amount_cents: 210000, date: '2026-11-05' }, null, 5)).toEqual([])
   })
   it('acha o fixo em aberto que o gasto está pagando', () => {
     const fixed = [

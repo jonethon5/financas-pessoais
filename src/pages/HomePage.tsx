@@ -177,7 +177,7 @@ export function HomePage() {
   const banks = (bankAccounts.data ?? []).filter((a) => a.type === 'BANK')
   const cards = (bankAccounts.data ?? []).filter((a) => a.type === 'CREDIT')
   const bankBalance = banks.reduce((a, b) => a + (b.balance_cents ?? 0), 0)
-  const instOf = (a: BankAccount) => findInstitution((bankConns.data ?? []).find((c) => c.id === a.connection_id)?.label, a.name)
+  const instOf = (a: BankAccount) => findInstitution(a.name, (bankConns.data ?? []).find((c) => c.id === a.connection_id)?.label)
   const bankInsts = [...new Map(banks.map((b) => instOf(b)).filter((i) => i != null).map((i) => [i.key, i])).values()]
 
   const alerts = statuses.filter((x) => x.level !== 'ok' || x.weekLevel !== 'ok').slice(0, 3)
@@ -449,6 +449,9 @@ export function HomePage() {
             ))}
           </List>
         )}
+        <Link to="/extrato" className="press mt-3 flex items-center justify-center gap-1.5 rounded-full bg-surface py-3 text-[0.9375rem] font-semibold text-primary shadow-soft">
+          Ver extrato completo <ChevronRight className="size-4" aria-hidden />
+        </Link>
       </Section>
       <Tour id="inicio" steps={HOME_TOUR} />
     </div>

@@ -1,0 +1,770 @@
+[
+ {
+  "id": 976,
+  "name": "6P Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/976.svg"
+ },
+ {
+  "id": 804,
+  "name": "99Pay",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/804.png"
+ },
+ {
+  "id": 970,
+  "name": "Apex",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/970.svg"
+ },
+ {
+  "id": 883,
+  "name": "ASA",
+  "color": "#2b56c0",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/883.svg"
+ },
+ {
+  "id": 969,
+  "name": "Atlanta",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/969.svg"
+ },
+ {
+  "id": 974,
+  "name": "Axiis Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/974.svg"
+ },
+ {
+  "id": 805,
+  "name": "Azimut",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/805.svg"
+ },
+ {
+  "id": 652,
+  "name": "Banco Bmg",
+  "color": "#fa6300",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/652.svg"
+ },
+ {
+  "id": 817,
+  "name": "Banco BRB",
+  "color": "#003D7C",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/682.svg"
+ },
+ {
+  "id": 653,
+  "name": "Banco Digio",
+  "color": "#ff6776",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/653.svg"
+ },
+ {
+  "id": 611,
+  "name": "Banco do Brasil",
+  "color": "#1194F6",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/211.svg"
+ },
+ {
+  "id": 671,
+  "name": "Banco do Nordeste do Brasil",
+  "color": "#A6193C",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/671.svg"
+ },
+ {
+  "id": 741,
+  "name": "Banco Guanabara",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/741.svg"
+ },
+ {
+  "id": 680,
+  "name": "Banco Master",
+  "color": "#031C2D",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/680.svg"
+ },
+ {
+  "id": 742,
+  "name": "Banco Mercantil",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/742.svg"
+ },
+ {
+  "id": 657,
+  "name": "Banco PAN",
+  "color": "#02afff",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/657.svg"
+ },
+ {
+  "id": 714,
+  "name": "Banco Sofisa",
+  "color": "#004e46",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/714.svg"
+ },
+ {
+  "id": 659,
+  "name": "Banrisul",
+  "color": "#0B45E4",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/659.svg"
+ },
+ {
+  "id": 967,
+  "name": "BPO Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/967.svg"
+ },
+ {
+  "id": 775,
+  "name": "Bradescard",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/603.svg"
+ },
+ {
+  "id": 603,
+  "name": "Bradesco",
+  "color": "#e5173f",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/203.svg"
+ },
+ {
+  "id": 675,
+  "name": "BTGPactual",
+  "color": "#66768f",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/214.svg"
+ },
+ {
+  "id": 716,
+  "name": "BV - Pessoa Física - APP",
+  "color": "#223AD2",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/716.svg"
+ },
+ {
+  "id": 717,
+  "name": "BV - Pessoa Física - Web",
+  "color": "#223AD2",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/717.svg"
+ },
+ {
+  "id": 719,
+  "name": "BV - Private",
+  "color": "#223AD2",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/719.svg"
+ },
+ {
+  "id": 626,
+  "name": "C6 Bank",
+  "color": "#FFE45C",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/726.svg"
+ },
+ {
+  "id": 990,
+  "name": "CAIXA - clientes sem conta",
+  "color": "#296fa7",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/619.svg"
+ },
+ {
+  "id": 619,
+  "name": "Caixa Econômica Federal",
+  "color": "#296fa7",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/219.svg"
+ },
+ {
+  "id": 783,
+  "name": "Caixa Tem",
+  "color": "#296fa7",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/783.svg"
+ },
+ {
+  "id": 821,
+  "name": "Cartão Atacadão",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/821.svg"
+ },
+ {
+  "id": 822,
+  "name": "Cartão Carrefour",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/822.svg"
+ },
+ {
+  "id": 820,
+  "name": "Cartão Sam's Club",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/820.svg"
+ },
+ {
+  "id": 982,
+  "name": "CEAPE BANK",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/982.svg"
+ },
+ {
+  "id": 983,
+  "name": "Celcoin Baas",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/983.svg"
+ },
+ {
+  "id": 966,
+  "name": "Concept",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/966.svg"
+ },
+ {
+  "id": 880,
+  "name": "Conta Bemol",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/880.svg"
+ },
+ {
+  "id": 965,
+  "name": "Conta Universal",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/965.svg"
+ },
+ {
+  "id": 964,
+  "name": "CRB Money",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/964.svg"
+ },
+ {
+  "id": 750,
+  "name": "Crefisa",
+  "color": "#23b9e2",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/750.svg"
+ },
+ {
+  "id": 963,
+  "name": "Dezbrazil",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/963.svg"
+ },
+ {
+  "id": 962,
+  "name": "DMX",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/962.svg"
+ },
+ {
+  "id": 961,
+  "name": "Ease Bankly",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/961.svg"
+ },
+ {
+  "id": 959,
+  "name": "Ella Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/959.svg"
+ },
+ {
+  "id": 957,
+  "name": "EMCASH",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/957.svg"
+ },
+ {
+  "id": 956,
+  "name": "ESBank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/956.svg"
+ },
+ {
+  "id": 955,
+  "name": "Exclusive",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/955.svg"
+ },
+ {
+  "id": 954,
+  "name": "Fixxbank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/954.svg"
+ },
+ {
+  "id": 953,
+  "name": "Genius",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/953.svg"
+ },
+ {
+  "id": 952,
+  "name": "Giffty",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/952.svg"
+ },
+ {
+  "id": 951,
+  "name": "Gift Premium",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/951.svg"
+ },
+ {
+  "id": 950,
+  "name": "Glorya",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/950.svg"
+ },
+ {
+  "id": 949,
+  "name": "GoalBox",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/949.svg"
+ },
+ {
+  "id": 948,
+  "name": "Gold Pass",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/948.svg"
+ },
+ {
+  "id": 980,
+  "name": "GS3",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/980.svg"
+ },
+ {
+  "id": 947,
+  "name": "H+ plus",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/947.svg"
+ },
+ {
+  "id": 946,
+  "name": "HausBank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/946.svg"
+ },
+ {
+  "id": 944,
+  "name": "Health Cash",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/944.svg"
+ },
+ {
+  "id": 978,
+  "name": "Hiperbanco",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/978.svg"
+ },
+ {
+  "id": 943,
+  "name": "Hyak Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/943.svg"
+ },
+ {
+  "id": 942,
+  "name": "Ibanx",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/942.svg"
+ },
+ {
+  "id": 941,
+  "name": "iHold",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/941.svg"
+ },
+ {
+  "id": 940,
+  "name": "IlevaCard",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/940.svg"
+ },
+ {
+  "id": 972,
+  "name": "Imobi Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/972.svg"
+ },
+ {
+  "id": 939,
+  "name": "Incentivale",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/939.svg"
+ },
+ {
+  "id": 777,
+  "name": "InfinitePay",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/777.svg"
+ },
+ {
+  "id": 938,
+  "name": "Inova",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/938.svg"
+ },
+ {
+  "id": 823,
+  "name": "Inter",
+  "color": "#fb6910",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/215.svg"
+ },
+ {
+  "id": 601,
+  "name": "Itaú",
+  "color": "#EC7000",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/201.svg"
+ },
+ {
+  "id": 937,
+  "name": "JoyCard",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/937.svg"
+ },
+ {
+  "id": 936,
+  "name": "Lemon",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/936.svg"
+ },
+ {
+  "id": 934,
+  "name": "Lothus",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/934.svg"
+ },
+ {
+  "id": 932,
+  "name": "Mais Todos",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/932.svg"
+ },
+ {
+  "id": 931,
+  "name": "Mark Up",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/931.svg"
+ },
+ {
+  "id": 929,
+  "name": "Meirelles",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/929.svg"
+ },
+ {
+  "id": 720,
+  "name": "Méliuz",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/720.svg"
+ },
+ {
+  "id": 606,
+  "name": "Mercado Pago",
+  "color": "#009ee3",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/206.svg"
+ },
+ {
+  "id": 928,
+  "name": "Meu Premio",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/928.svg"
+ },
+ {
+  "id": 927,
+  "name": "Meu Premio 360",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/927.svg"
+ },
+ {
+  "id": 688,
+  "name": "Midway",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/688.svg"
+ },
+ {
+  "id": 926,
+  "name": "Moovi",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/926.svg"
+ },
+ {
+  "id": 925,
+  "name": "MOTTU",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/925.svg"
+ },
+ {
+  "id": 924,
+  "name": "Multipremium",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/924.svg"
+ },
+ {
+  "id": 793,
+  "name": "Necton",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/793.svg"
+ },
+ {
+  "id": 689,
+  "name": "Neon",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/689.svg"
+ },
+ {
+  "id": 656,
+  "name": "Next",
+  "color": "#03ff60",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/656.svg"
+ },
+ {
+  "id": 922,
+  "name": "Nitybank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/922.svg"
+ },
+ {
+  "id": 612,
+  "name": "Nubank",
+  "color": "#8a0fbe",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/212.svg"
+ },
+ {
+  "id": 921,
+  "name": "Omnion",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/921.svg"
+ },
+ {
+  "id": 920,
+  "name": "Onn Marketing",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/920.svg"
+ },
+ {
+  "id": 918,
+  "name": "Ovni",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/918.svg"
+ },
+ {
+  "id": 917,
+  "name": "P2x",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/917.svg"
+ },
+ {
+  "id": 692,
+  "name": "PagBank",
+  "color": "#1BB99A",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/692.svg"
+ },
+ {
+  "id": 814,
+  "name": "Pague Veloz Serasa",
+  "color": "#FE8502",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/814.svg"
+ },
+ {
+  "id": 916,
+  "name": "PayCard",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/916.svg"
+ },
+ {
+  "id": 651,
+  "name": "PicPay",
+  "color": "#238662",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/651.svg"
+ },
+ {
+  "id": 765,
+  "name": "Player's Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/765.svg"
+ },
+ {
+  "id": 915,
+  "name": "Pocket",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/915.svg"
+ },
+ {
+  "id": 800,
+  "name": "Porto Bank",
+  "color": "#2b56c0",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/800.svg"
+ },
+ {
+  "id": 914,
+  "name": "POWPAY",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/914.svg"
+ },
+ {
+  "id": 913,
+  "name": "Prix",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/913.svg"
+ },
+ {
+  "id": 912,
+  "name": "Pulse",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/912.svg"
+ },
+ {
+  "id": 694,
+  "name": "QI SCD",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/694.svg"
+ },
+ {
+  "id": 910,
+  "name": "Rapidium Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/910.svg"
+ },
+ {
+  "id": 767,
+  "name": "RecargaPay",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/767.svg"
+ },
+ {
+  "id": 696,
+  "name": "Rede Celcoin",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/696.svg"
+ },
+ {
+  "id": 909,
+  "name": "RelacionaMais",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/909.svg"
+ },
+ {
+  "id": 907,
+  "name": "Resolve Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/907.svg"
+ },
+ {
+  "id": 905,
+  "name": "Rhiza Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/905.svg"
+ },
+ {
+  "id": 629,
+  "name": "Safra",
+  "color": "#00003C",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/629.svg"
+ },
+ {
+  "id": 711,
+  "name": "Safra Financeira",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/711.svg"
+ },
+ {
+  "id": 608,
+  "name": "Santander",
+  "color": "#cc0000",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/208.svg"
+ },
+ {
+  "id": 903,
+  "name": "SEMEC BANK",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/903.svg"
+ },
+ {
+  "id": 658,
+  "name": "Sicoob",
+  "color": "#00AE9D",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/228.svg"
+ },
+ {
+  "id": 661,
+  "name": "Sicredi",
+  "color": "#3FA110",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/661.svg"
+ },
+ {
+  "id": 901,
+  "name": "Simpbank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/901.svg"
+ },
+ {
+  "id": 900,
+  "name": "Smart",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/900.svg"
+ },
+ {
+  "id": 898,
+  "name": "Snob Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/898.svg"
+ },
+ {
+  "id": 897,
+  "name": "Spin",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/897.svg"
+ },
+ {
+  "id": 787,
+  "name": "Stone Pagamentos",
+  "color": "#00A868",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/787.svg"
+ },
+ {
+  "id": 896,
+  "name": "Suppero",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/896.svg"
+ },
+ {
+  "id": 895,
+  "name": "Tokpay",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/895.svg"
+ },
+ {
+  "id": 674,
+  "name": "Uber Conta by Digio",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/674.svg"
+ },
+ {
+  "id": 663,
+  "name": "Unicred",
+  "color": "#1e5c49",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/663.svg"
+ },
+ {
+  "id": 894,
+  "name": "Unique",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/894.svg"
+ },
+ {
+  "id": 892,
+  "name": "Uze",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/892.svg"
+ },
+ {
+  "id": 890,
+  "name": "Won Bank",
+  "color": "#ef294b",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/890.svg"
+ },
+ {
+  "id": 676,
+  "name": "Woop",
+  "color": "#00EE62",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/676.svg"
+ },
+ {
+  "id": 602,
+  "name": "XP Banking",
+  "color": "#111111",
+  "logo": "https://cdn.pluggy.ai/assets/connector-icons/202.svg"
+ }
+]

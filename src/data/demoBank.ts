@@ -70,7 +70,8 @@ export async function connectDemoBank(b: Backend, inst: Institution): Promise<{ 
   rows.push({
     kind: 'income' as const, type: 'extra' as const, amount_cents: money(50, 200), date: addDaysISO(today, -5), description: 'Pix de Maria',
     category_id: catId('Renda extra'), recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null,
-    paid: true, skipped: false, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: bankId,
+    // Como no app de verdade: dinheiro que entra na conta aparece no extrato, mas não vira renda sozinho
+    paid: true, skipped: true, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: bankId,
   })
   await b.insert('transactions', rows)
   return { accounts: 2, imported: rows.length }

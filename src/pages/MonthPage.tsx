@@ -186,6 +186,8 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
   const txs = categoryFilter ? allTxs.filter((t) => t.category_id === categoryFilter) : allTxs
   const future = compareYearMonth(ym, currentYearMonth()) > 0
   const live = txs.filter((t) => !t.skipped)
+  // Veio do banco e não conta (entrada que não é renda, Pix entre contas próprias)
+  const out = txs.filter((t) => t.skipped && t.source === 'banco')
 
   const catOf = (id: string | null) => categories.find((c) => c.id === id)
   const incomes = live.filter((t) => t.kind === 'income')
@@ -254,6 +256,12 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
             {daily.filter((t) => t.date === d).map((t) => row(t))}
           </List>
         ))
+      )}
+      {!future && (
+        <List footer={out.length > 0 ? 'Dinheiro que entrou na conta do banco e transferências entre contas suas aparecem no extrato, mas não entram na conta do mês.' : undefined}>
+          <Row title="Extrato completo" subtitle="Busca, filtros e arquivo para baixar" chevron as={link(`/extrato?mes=${monthKey(ym)}`)} />
+          {out.length > 0 && <Row title="Não contam no mês" trailing={String(out.length)} chevron as={link(`/extrato?mes=${monthKey(ym)}&ver=fora`)} />}
+        </List>
       )}
     </div>
   )

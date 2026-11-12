@@ -11,7 +11,7 @@ const SIZES = { sm: 'size-9 rounded-[0.625rem]', md: 'size-11 rounded-[0.75rem]'
 export function BankLogo({ inst, credit, size = 'md' }: { inst: Institution | null; credit?: boolean; size?: keyof typeof SIZES }) {
   const [failed, setFailed] = useState(false)
   const box = `grid shrink-0 place-items-center overflow-hidden ${SIZES[size]}`
-  if (inst && !failed) {
+  if (inst && inst.logo && !failed) {
     return (
       <span className={`${box} bg-white ring-1 ring-line`}>
         <img src={inst.logo} alt={inst.name} className="size-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />

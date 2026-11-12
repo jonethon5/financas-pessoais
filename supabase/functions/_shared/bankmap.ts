@@ -12,7 +12,13 @@ export type PluggyTx = {
   status?: string | null
   creditCardMetadata?: { installmentNumber?: number | null; totalInstallments?: number | null; purchaseDate?: string | null } | null
   merchant?: { name?: string | null; businessName?: string | null } | null
+  /** tipo da operação no Open Finance (ex.: PIX, PAGAMENTO_FATURA, RESGATE_APLIC_FINANCEIRA) */
+  operationType?: string | null
+  /** quem pagou e quem recebeu (nem todo banco manda) */
+  paymentData?: { payer?: Party | null; receiver?: Party | null; paymentMethod?: string | null } | null
 }
+
+type Party = { name?: string | null; documentNumber?: { type?: string | null; value?: string | null } | null }
 
 export type AccountType = 'BANK' | 'CREDIT'
 
@@ -29,6 +35,8 @@ export type MappedTx = {
   installment_total: number | null
   /** junta as parcelas da mesma compra */
   installmentKey: string | null
+  /** transferência entre contas da própria pessoa: aparece no extrato, mas não conta */
+  own: boolean
 }
 
 export const normalize = (s: string) =>
@@ -78,16 +86,47 @@ export function cleanDescription(raw: string): string {
   return (out || 'Sem descrição').slice(0, 60)
 }
 
-// Movimentações que não são gasto nem renda de verdade (contariam duas vezes)
+// Movimentações que não são gasto nem renda de verdade (contariam duas vezes): nem entram no app
 const INTERNAL = [
   'pagamento de fatura', 'pagamento fatura', 'pagamento recebido', 'credit card payment', 'fatura do cartao', 'pgto fatura',
-  'aplicacao', 'resgate', 'investment', 'rdb', 'dinheiro guardado', 'guardado na caixinha', 'caixinha', 'transferencia entre contas',
-  'same ownership', 'mesma titularidade', 'estorno de pagamento',
+  'aplicacao', 'resgate', 'investment', 'rdb', 'dinheiro guardado', 'guardado na caixinha', 'caixinha', 'estorno de pagamento',
 ]
+const INTERNAL_OPERATIONS = new Set(['PAGAMENTO_FATURA', 'RESGATE_APLIC_FINANCEIRA', 'APLICACAO_FINANCEIRA'])
 
 export function isInternal(tx: PluggyTx): boolean {
+  if (tx.operationType && INTERNAL_OPERATIONS.has(tx.operationType)) return true
   const text = normalize(`${tx.description} ${tx.descriptionRaw ?? ''} ${tx.category ?? ''}`)
   return INTERNAL.some((w) => text.includes(w))
+}
+
+// Transferência entre contas da própria pessoa, do jeito que o Open Finance descreve
+const OWN_TRANSFER = ['same person transfer', 'same ownership', 'mesma titularidade', 'mesmo titular', 'transferencia entre contas', 'entre contas proprias']
+
+const digits = (s: string | null | undefined) => (s ?? '').replace(/\D/g, '')
+
+/** O nome aparece no texto? Precisa bater o primeiro e o último nome (só o primeiro nome não basta). */
+export function mentionsName(text: string, fullName: string | null | undefined): boolean {
+  const parts = normalize(fullName ?? '').split(' ').filter((w) => w.length > 1)
+  if (parts.length < 2) return false
+  const words = new Set(normalize(text).split(' '))
+  return words.has(parts[0]) && words.has(parts[parts.length - 1])
+}
+
+/**
+ * Transferência entre contas da própria pessoa (ex.: Pix do Neon para o Nubank):
+ * não é renda nem gasto, é o mesmo dinheiro mudando de lugar.
+ * Sinais: a categoria do Open Finance, o mesmo CPF dos dois lados, ou o nome da pessoa no Pix.
+ */
+export function isOwnTransfer(tx: PluggyTx, ownerNames: (string | null | undefined)[] = []): boolean {
+  const text = `${tx.description} ${tx.descriptionRaw ?? ''}`
+  const labels = normalize(`${text} ${tx.category ?? ''}`)
+  if (OWN_TRANSFER.some((w) => labels.includes(w))) return true
+  const payer = digits(tx.paymentData?.payer?.documentNumber?.value)
+  const receiver = digits(tx.paymentData?.receiver?.documentNumber?.value)
+  if (payer.length >= 11 && payer === receiver) return true
+  if (!/\b(pix|ted|doc|transf\w*)\b/.test(normalize(`${text} ${tx.paymentData?.paymentMethod ?? ''} ${tx.operationType ?? ''}`))) return false
+  const counterpart = `${text} ${tx.paymentData?.payer?.name ?? ''} ${tx.paymentData?.receiver?.name ?? ''}`
+  return ownerNames.some((n) => mentionsName(counterpart, n))
 }
 
 // Palavra (na descrição ou na categoria do Open Finance) → categoria padrão do app
@@ -108,7 +147,7 @@ const CATEGORY_HINTS: [string[], string][] = [
 ]
 
 export function categoryHint(tx: PluggyTx, kind: 'income' | 'expense'): string | null {
-  if (kind === 'income') return /salario|salary|folha|payroll|pagamento de salario/.test(normalize(`${tx.description} ${tx.category ?? ''}`)) ? 'Salário' : 'Renda extra'
+  if (kind === 'income') return tx.operationType === 'FOLHA_PAGAMENTO' || /salario|salary|folha|payroll|pagamento de salario/.test(normalize(`${tx.description} ${tx.category ?? ''}`)) ? 'Salário' : 'Renda extra'
   const text = ` ${normalize(`${tx.description} ${tx.descriptionRaw ?? ''} ${tx.merchant?.businessName ?? ''} ${tx.category ?? ''}`)} `
   for (const [words, name] of CATEGORY_HINTS) if (words.some((w) => text.includes(w.endsWith(' ') ? ` ${w}` : w))) return name
   return null
@@ -118,8 +157,9 @@ export function categoryHint(tx: PluggyTx, kind: 'income' | 'expense'): string |
  * Uma transação do banco → um lançamento do app (ou null para ignorar).
  * Conta corrente: saída (valor negativo) = gasto; entrada = renda.
  * Cartão de crédito: compra (valor positivo) = gasto; pagamento ou estorno (negativo) = ignorado.
+ * `ownerNames` (nome da pessoa no banco e no app) ajuda a reconhecer o Pix entre contas próprias.
  */
-export function mapTransaction(tx: PluggyTx, account: AccountType): MappedTx | null {
+export function mapTransaction(tx: PluggyTx, account: AccountType, ownerNames: (string | null | undefined)[] = []): MappedTx | null {
   const cents = Math.round(Math.abs(tx.amount) * 100)
   if (!cents || isInternal(tx)) return null
   let kind: 'income' | 'expense'
@@ -143,6 +183,7 @@ export function mapTransaction(tx: PluggyTx, account: AccountType): MappedTx | n
     installment_no: isParcel ? meta!.installmentNumber! : null,
     installment_total: isParcel ? total : null,
     installmentKey: isParcel ? `${normalize(description)}|${(meta?.purchaseDate ?? '').slice(0, 10)}|${total}` : null,
+    own: account === 'BANK' && isOwnTransfer(tx, ownerNames),
   }
 }
 
@@ -164,4 +205,51 @@ export function findFixedMatch<T extends { id: string; amount_cents: number; dat
     .filter((f) => !f.paid && !f.external_id && Math.abs(f.amount_cents - tx.amount_cents) <= f.amount_cents * 0.1 && daysApart(f.date, tx.date) <= 7)
     .sort((a, b) => Math.abs(a.amount_cents - tx.amount_cents) - Math.abs(b.amount_cents - tx.amount_cents))
   return candidates[0] ?? null
+}
+
+// ---------------------------------------------------------------------------
+// O que conta no mês
+// ---------------------------------------------------------------------------
+
+/** Regras que a pessoa ensinou ao app (ficam em category_rules, com um prefixo que a chave da categoria nunca tem). */
+export const countKey = (description: string) => {
+  const k = learnKey(description)
+  return k ? `conta:${k}` : ''
+}
+export const ignoreKey = (description: string) => {
+  const k = learnKey(description)
+  return k ? `ignora:${k}` : ''
+}
+
+/**
+ * O lançamento que veio do banco entra na conta do mês?
+ *  - transferência entre contas próprias: não;
+ *  - entrada (Pix recebido etc.): só se a pessoa já disse que as entradas daquela origem contam.
+ *    A renda do mês é o salário do cadastro mais o que a pessoa lança à mão;
+ *  - gasto: sim, a não ser que a pessoa tenha dito para não contar os daquele destino.
+ */
+export function countsInMonth(m: Pick<MappedTx, 'kind' | 'own' | 'description'>, rules: { has(pattern: string): boolean }): boolean {
+  if (m.own) return false
+  if (m.kind === 'income') return rules.has(countKey(m.description))
+  return !rules.has(ignoreKey(m.description))
+}
+
+const lastDayOf = (month: string) => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate()
+
+/** "2026-11" + 1 → "2026-12" */
+export const shiftMonth = (month: string, n: number) => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1 + n, 1)).toISOString().slice(0, 7)
+
+/** Dia do pagamento naquele mês ("2026-02", dia 31 → "2026-02-28"), igual ao que o app usa para lançar o salário. */
+export const paydayIn = (month: string, payday: number) => `${month}-${String(Math.min(Math.max(payday, 1), lastDayOf(month))).padStart(2, '0')}`
+
+/**
+ * De qual mês essa entrada pode ser o salário (o mais próximo primeiro).
+ * O salário pode cair uns dias antes ou depois da virada do mês, por isso olha também os meses vizinhos.
+ */
+export function salaryMonths(tx: Pick<MappedTx, 'kind' | 'amount_cents' | 'date'>, salaryCents: number | null | undefined, payday: number | null | undefined): string[] {
+  if (!salaryCents || !payday) return []
+  const month = tx.date.slice(0, 7)
+  return [month, shiftMonth(month, -1), shiftMonth(month, 1)]
+    .filter((m) => isSalaryMatch(tx, { amount_cents: salaryCents, date: paydayIn(m, payday) }))
+    .sort((a, b) => daysApart(tx.date, paydayIn(a, payday)) - daysApart(tx.date, paydayIn(b, payday)))
 }

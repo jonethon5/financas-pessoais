@@ -11,7 +11,7 @@ import { useBackend } from '../data/backend'
 import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite } from '../data/finance'
 import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
-import { learnKey } from '../../supabase/functions/_shared/bankmap.ts'
+import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
 import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, relativeDay, todayISO } from '../lib/dates'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
@@ -69,6 +69,9 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const [date, setDate] = useState(tx?.date ?? today)
   const [emotion, setEmotion] = useState<Emotion | null>(tx?.emotion ?? null)
   const [paid, setPaid] = useState(tx?.paid ?? true)
+  // Veio do banco: a pessoa decide se entra na conta do mês (entrada não conta sozinha; gasto conta)
+  const fromBank = tx?.source === 'banco' && tx.type !== 'salario' && tx.type !== 'fixo'
+  const [counts, setCounts] = useState(tx ? !tx.skipped : true)
   // Fixo
   const [day, setDay] = useState(String(dayOf(today)))
   const [remind, setRemind] = useState(true)
@@ -127,6 +130,18 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
       if (tx) {
         await write.mutateAsync(async (b) => {
           const patch: Partial<Transaction> = { amount_cents: cents!, description: desc, category_id: categoryId, date, emotion: mode === 'dia' ? emotion : null, paid }
+          if (fromBank && counts === tx.skipped) {
+            patch.skipped = !counts
+            // Aprende para os próximos da mesma origem (entrada que conta) ou do mesmo destino (gasto que não conta)
+            const pattern = income ? countKey(tx.description) : ignoreKey(tx.description)
+            const teach = income ? counts : !counts
+            const ruleCategory = categoryId ?? tx.category_id ?? cats[0]?.id ?? null
+            if (pattern && teach && ruleCategory) await b.upsert('category_rules', { pattern, category_id: ruleCategory }, 'user_id,pattern')
+            if (pattern && !teach) {
+              const old = (await b.list('category_rules')).filter((r) => r.pattern === pattern)
+              if (old.length) await b.remove('category_rules', old.map((r) => r.id))
+            }
+          }
           if (tx.type === 'parcela' && tx.installment_group) {
             // Nome e categoria valem para todas as parcelas; valor, data e "pago" só para esta
             const group = await b.list('transactions', { eq: { installment_group: tx.installment_group } })
@@ -143,7 +158,14 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             }
           }
         })
-        toast(tx.source === 'banco' && categoryId !== tx.category_id ? 'Salvo. Os próximos parecidos já vêm nessa categoria' : 'Alteração salva')
+        const who = tx.description.replace(/^(Pix|Transferência) (de|para) /i, '')
+        toast(
+          fromBank && counts === tx.skipped
+            ? income
+              ? counts ? `Agora conta como renda. As próximas entradas de ${who} também` : 'Não conta mais como renda'
+              : counts ? 'Voltou a contar como gasto' : `Não conta mais como gasto. Os próximos para ${who} também não`
+            : tx.source === 'banco' && categoryId !== tx.category_id ? 'Salvo. Os próximos parecidos já vêm nessa categoria' : 'Alteração salva',
+        )
       } else if (mode === 'fixo') {
         const ym = currentYearMonth()
         await write.mutateAsync((b) =>
@@ -232,7 +254,12 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           />
         )}
         {error && <ErrorBox message={error} />}
-        {tx?.source === 'banco' && <Notice>Veio do banco. Valor e data são os do extrato; se mudar a categoria, o app aprende para os próximos.</Notice>}
+        {tx?.source === 'banco' && <Notice>{tx.note ?? 'Veio do banco. Valor e data são os do extrato; se mudar a categoria, o app aprende para os próximos.'}</Notice>}
+        {fromBank && (
+          <List footer={income ? 'Sua renda do mês é o salário (em Você) mais o que você lançar. Dinheiro que entra na conta do banco só conta se você ligar aqui.' : 'Desligue se for dinheiro que só mudou de lugar (por exemplo, um Pix para outra conta sua).'}>
+            <Row title={income ? 'Contar como renda do mês' : 'Contar como gasto do mês'} trailing={<Switch label={income ? 'Contar como renda do mês' : 'Contar como gasto do mês'} checked={counts} onChange={setCounts} />} />
+          </List>
+        )}
 
         <Field
           label={mode === 'parcelado' && !tx ? (valueIs === 'total' ? 'Valor total da compra' : 'Valor de cada parcela') : 'Valor'}
@@ -351,7 +378,8 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         <Button type="submit" loading={write.isPending} className="mt-1">
           Salvar
         </Button>
-        {tx && tx.type !== 'salario' && (
+        {/* O que veio do banco não se apaga (voltaria na próxima atualização): usa o "contar" lá em cima */}
+        {tx && tx.type !== 'salario' && !fromBank && (
           <Button variant="danger" onClick={() => setConfirmDelete(true)}>
             {tx.type === 'fixo' ? 'Tirar deste mês' : 'Apagar'}
           </Button>

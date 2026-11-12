@@ -120,7 +120,7 @@ export function Layout() {
       {!fullScreen && (
         <nav
           aria-label="Principal"
-          className="pointer-events-none fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]"
+          className="pointer-events-none fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] print:hidden"
         >
           {/* Barra flutuante de vidro (como a do WhatsApp) */}
           <div className="tab-bar-glass pointer-events-auto rounded-[1.75rem]">
