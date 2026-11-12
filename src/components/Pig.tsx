@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useProfile } from '../data/hooks'
 import type { AiTone } from '../types'
 import type { PigMood, PigSize } from '../lib/pig'
@@ -14,7 +15,16 @@ export function mascotName(color: PigColor | undefined | null): string {
 /** Cor escolhida (padrão: azul). */
 export function usePigColor(): PigColor {
   const profile = useProfile()
-  return profile.data?.prefs.pig?.color ?? 'azul'
+  const color = profile.data?.prefs.pig?.color ?? 'azul'
+  useEffect(() => {
+    if (!profile.data) return
+    try {
+      localStorage.setItem('poupei:cor', color)
+    } catch {
+      /* tudo bem */
+    }
+  }, [color, profile.data])
+  return color
 }
 
 /** Endereço de uma arte do mascote (public/mascote/{cor}/{nome}.webp). */

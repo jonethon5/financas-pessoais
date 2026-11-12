@@ -3,17 +3,20 @@ import { canvasToBlob, loadImage } from '../lib/image'
 import { Sheet } from './Sheet'
 import { Button, ErrorBox } from './ui'
 
-const STAGE = 288 // tamanho do quadro na tela (px)
-const OUTPUT = 512 // tamanho da foto salva (px)
+const STAGE = 288 // largura do quadro na tela (px)
 const MAX_ZOOM = 4
 
 type Point = { x: number; y: number }
 
 /**
- * Recorte quadrado da foto (o círculo mostra como ela aparece no perfil).
- * Arrastar move, pinçar ou usar o controle aproxima. Sai uma foto de 512×512 em JPEG.
+ * Recorte da foto no formato em que ela vai aparecer: quadrado com círculo (perfil)
+ * ou retângulo (capa da caixinha, `aspect` = largura ÷ altura).
+ * Arrastar move, pinçar ou usar o controle aproxima. Sai um JPEG no tamanho certo.
  */
-export function PhotoCropper({ file, onCancel, onDone }: { file: File | null; onCancel: () => void; onDone: (image: Blob) => void }) {
+export function PhotoCropper({ file, onCancel, onDone, aspect = 1, round = true }: { file: File | null; onCancel: () => void; onDone: (image: Blob) => void; aspect?: number; round?: boolean }) {
+  const STAGE_H = Math.round(STAGE / aspect)
+  const OUT_W = aspect > 1 ? 1200 : 512
+  const OUT_H = Math.round(OUT_W / aspect)
   const [img, setImg] = useState<HTMLImageElement | null>(null)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
@@ -42,7 +45,8 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File | null; on
     }
   }, [file])
 
-  const base = img ? STAGE / Math.min(img.naturalWidth, img.naturalHeight) : 1
+  // A foto sempre cobre o quadro inteiro
+  const base = img ? Math.max(STAGE / img.naturalWidth, STAGE_H / img.naturalHeight) : 1
   const scale = base * zoom
   const width = img ? img.naturalWidth * scale : 0
   const height = img ? img.naturalHeight * scale : 0
@@ -51,7 +55,7 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File | null; on
   function clamp(o: Point, s = scale): Point {
     if (!img) return o
     const maxX = Math.max(0, (img.naturalWidth * s - STAGE) / 2)
-    const maxY = Math.max(0, (img.naturalHeight * s - STAGE) / 2)
+    const maxY = Math.max(0, (img.naturalHeight * s - STAGE_H) / 2)
     return { x: Math.max(-maxX, Math.min(maxX, o.x)), y: Math.max(-maxY, Math.min(maxY, o.y)) }
   }
 
@@ -93,14 +97,14 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File | null; on
     setBusy(true)
     try {
       const canvas = document.createElement('canvas')
-      canvas.width = OUTPUT
-      canvas.height = OUTPUT
+      canvas.width = OUT_W
+      canvas.height = OUT_H
       const ctx = canvas.getContext('2d')!
       ctx.imageSmoothingQuality = 'high'
       ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, OUTPUT, OUTPUT)
-      const f = OUTPUT / STAGE
-      ctx.drawImage(img, (STAGE / 2 + offset.x - width / 2) * f, (STAGE / 2 + offset.y - height / 2) * f, width * f, height * f)
+      ctx.fillRect(0, 0, OUT_W, OUT_H)
+      const f = OUT_W / STAGE
+      ctx.drawImage(img, (STAGE / 2 + offset.x - width / 2) * f, (STAGE_H / 2 + offset.y - height / 2) * f, width * f, height * f)
       onDone(await canvasToBlob(canvas, 'image/jpeg', 0.86))
     } catch (e) {
       setError((e as Error).message)
@@ -117,7 +121,7 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File | null; on
         <div className="flex flex-col items-center gap-5">
           <div
             className="relative touch-none overflow-hidden rounded-[1.25rem] bg-ink select-none"
-            style={{ width: STAGE, height: STAGE }}
+            style={{ width: STAGE, height: STAGE_H }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -130,10 +134,10 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File | null; on
                 alt=""
                 draggable={false}
                 className="pointer-events-none absolute max-w-none"
-                style={{ width, height, left: STAGE / 2 + offset.x - width / 2, top: STAGE / 2 + offset.y - height / 2 }}
+                style={{ width, height, left: STAGE / 2 + offset.x - width / 2, top: STAGE_H / 2 + offset.y - height / 2 }}
               />
             )}
-            <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_0_999px_rgb(15_36_51/0.5)]" />
+            {round && <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_0_999px_rgb(15_36_51/0.5)]" />}
           </div>
           <label className="w-full px-2">
             <span className="sr-only">Aproximar</span>

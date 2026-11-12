@@ -3,11 +3,12 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ArrowDown, ArrowUp, CheckCircle, Plus } from '@phosphor-icons/react'
 import { useCelebrate } from '../../components/Celebration'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
-import { GOAL_COLORS, GOAL_ICON_KEYS, GoalBadgeIcon, GoalCover, goalIcon } from '../../components/GoalCover'
+import { COVER_ASPECT, GOAL_COLORS, GOAL_ICON_KEYS, GoalBadgeIcon, GoalCover, goalIcon } from '../../components/GoalCover'
+import { Reveal } from '../../components/Reveal'
 import { PhotoCropper } from '../../components/PhotoCropper'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
-import { AnimatedMoney, BackButton, Button, Card, EmptyState, ErrorBox, Field, List, Money, NavBar, NavButton, Notice, ProgressBar, Row, Segmented, Spinner, TextArea } from '../../components/ui'
+import { AnimatedMoney, BackButton, Button, EmptyState, ErrorBox, Field, List, Money, NavBar, NavButton, Notice, ProgressBar, Row, Segmented, Spinner, TextArea } from '../../components/ui'
 import { useBackend } from '../../data/backend'
 import { useWrite } from '../../data/finance'
 import { useMonthView } from '../../data/monthView'
@@ -93,37 +94,48 @@ export function GoalsPage() {
         </EmptyState>
       ) : (
         <div className="stagger flex flex-col gap-5">
-          <Card className="p-5">
-            <p className="text-[0.9375rem] font-medium text-muted">Guardado nas caixinhas</p>
-            <AnimatedMoney cents={total} className="block text-[2.25rem] leading-tight font-extrabold tracking-[-0.03em]" />
+          <Reveal>
+          <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#12A876] to-[#0A6E4E] p-5 text-white shadow-[0_18px_40px_-20px_rgb(10_110_78/0.8)]">
+            <span aria-hidden className="absolute -top-14 -right-10 size-44 rounded-full bg-white/10" />
+            <span aria-hidden className="absolute -bottom-16 left-16 size-32 rounded-full bg-white/[0.06]" />
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[0.9375rem] font-medium text-white/80">Guardado nas caixinhas</p>
+                <AnimatedMoney cents={total} className="block text-[2.375rem] leading-tight font-extrabold tracking-[-0.03em]" />
+              </div>
+              <MascotArt name="rosto-feliz" px={72} className="-mt-1 -mr-1 shrink-0" />
+            </div>
             {planned > 0 && (
-              <>
-                <div className="mt-3 flex items-baseline justify-between text-[0.875rem]">
-                  <span className="text-muted">Este mês</span>
-                  <span className="font-semibold">
-                    {formatBRL(thisMonth)} <span className="font-medium text-muted">de {formatBRL(planned)}</span>
+              <div className="relative mt-3">
+                <div className="flex items-baseline justify-between text-[0.875rem]">
+                  <span className="text-white/80">Este mês</span>
+                  <span className="num font-semibold">
+                    {formatBRL(thisMonth)} <span className="font-medium text-white/75">de {formatBRL(planned)}</span>
                   </span>
                 </div>
-                <ProgressBar className="mt-1.5" value={thisMonth / planned} tone="coral" label="Guardado este mês" />
-              </>
+                <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/20" role="progressbar" aria-label="Guardado este mês" aria-valuenow={Math.round(Math.min(1, thisMonth / planned) * 100)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="bar-fill h-full rounded-full bg-white" style={{ width: `${Math.min(100, (thisMonth / planned) * 100)}%` }} />
+                </div>
+              </div>
             )}
             {proj.pace > 0 && (
-              <p className="mt-3 text-[0.9375rem] leading-snug">
-                Mantendo esse ritmo, em dezembro você terá <strong className="text-primary-strong">{formatBRL(proj.projected)}</strong> guardados.
+              <p className="relative mt-3 rounded-[0.9rem] bg-white/12 px-3 py-2 text-[0.9375rem] leading-snug">
+                Mantendo esse ritmo, em dezembro você terá <strong>{formatBRL(proj.projected)}</strong>.
               </p>
             )}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button size="md" onClick={() => navigate('/separar')}>
+            <div className="relative mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => navigate('/separar')} className="press rounded-full bg-white py-3 text-[0.9375rem] font-bold text-[#0A6E4E]">
                 Separar salário
-              </Button>
-              <Button size="md" variant="coral" onClick={() => setLeftover(true)}>
+              </button>
+              <button type="button" onClick={() => setLeftover(true)} className="press rounded-full bg-white/18 py-3 text-[0.9375rem] font-bold text-white ring-1 ring-white/30">
                 Guardar sobra
-              </Button>
+              </button>
             </div>
-          </Card>
+          </section>
+          </Reveal>
 
           {open.map((g, i) => (
-            <div key={g.goal.id} className="relative">
+            <Reveal key={g.goal.id} delay={Math.min(i, 3) * 70} className="relative">
               <GoalCard goal={g.goal} status={g.status} />
               {ordering && (
                 <div className="absolute top-3 right-3 flex gap-1.5">
@@ -135,7 +147,7 @@ export function GoalsPage() {
                   </button>
                 </div>
               )}
-            </div>
+            </Reveal>
           ))}
           {open.length > 1 && (
             <Button variant="ghost" size="sm" className="self-center" onClick={() => setOrdering((o) => !o)}>
@@ -177,31 +189,42 @@ export function GoalsPage() {
 }
 
 function GoalCard({ goal, status: s }: { goal: Goal; status: GoalStatus }) {
+  const pct = s.progress != null ? Math.floor(Math.min(s.progress, 1) * 100) : null
   return (
-    <Link to={`/caixinhas/${goal.id}`} className="press shadow-soft block overflow-hidden rounded-[1.375rem] bg-surface">
-      <GoalCover goal={goal} className="h-24" iconSize={46}>
-        <p className="px-4 pt-14 text-[1.1875rem] leading-tight font-extrabold text-white drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">{goal.name}</p>
+    <Link to={`/caixinhas/${goal.id}`} className="press shadow-soft block overflow-hidden rounded-[1.5rem] bg-surface">
+      <GoalCover goal={goal} iconSize={52}>
+        {pct != null && (
+          <span className="absolute top-3 left-3 rounded-full bg-black/25 px-2.5 py-1 text-[0.8125rem] font-bold backdrop-blur-md">{pct}%</span>
+        )}
+        <p className="text-[1.3125rem] leading-tight font-extrabold drop-shadow-[0_1px_8px_rgb(0_0_0/0.3)]">{goal.name}</p>
+        {goal.motivation && <p className="mt-0.5 line-clamp-1 text-[0.875rem] text-white/85 italic">“{goal.motivation}”</p>}
       </GoalCover>
-      <div className="px-4 pt-3 pb-4">
-        {goal.motivation && <p className="mb-2 line-clamp-2 text-[0.9375rem] leading-snug text-muted italic">“{goal.motivation}”</p>}
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[1.25rem] font-bold">
-            <AnimatedMoney cents={s.saved} />
-            {s.target != null && <span className="text-[0.9375rem] font-medium text-muted"> de {formatBRL(s.target)}</span>}
-          </p>
-          {s.progress != null && <span className="num text-[0.9375rem] font-bold text-primary-strong">{Math.floor(Math.min(s.progress, 1) * 100)}%</span>}
+      <div className="flex flex-col gap-2.5 px-4 pt-3.5 pb-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[0.75rem] font-semibold tracking-wide text-muted uppercase">Guardado</p>
+            <AnimatedMoney cents={s.saved} className="block text-[1.375rem] leading-tight font-extrabold tracking-tight" />
+          </div>
+          {s.target != null && (
+            <div className="text-right">
+              <p className="text-[0.75rem] font-semibold tracking-wide text-muted uppercase">Meta</p>
+              <p className="num text-[1rem] font-bold">{formatBRL(s.target)}</p>
+            </div>
+          )}
         </div>
-        {s.progress != null && <ProgressBar className="mt-2 h-2.5" value={s.progress} milestones={[0.25, 0.5, 0.75]} label={`Progresso de ${goal.name}`} />}
-        <p className="mt-2 text-[0.875rem] text-muted">{planText(goal, s)}</p>
-        {s.perMonth ? (
-          s.needThisMonth > 0 ? (
-            <p className="mt-1 text-[0.875rem] font-semibold text-coral-strong">Falta guardar {formatBRL(s.needThisMonth)} este mês</p>
-          ) : (
-            <p className="mt-1 flex items-center gap-1 text-[0.875rem] font-semibold text-primary-strong">
-              <CheckCircle size={16} weight="fill" /> Mês em dia
-            </p>
-          )
-        ) : null}
+        {s.progress != null && <ProgressBar className="h-2.5" value={s.progress} milestones={[0.25, 0.5, 0.75]} label={`Progresso de ${goal.name}`} />}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[0.875rem] text-muted">{planText(goal, s)}</p>
+          {s.perMonth ? (
+            s.needThisMonth > 0 ? (
+              <span className="rounded-full bg-coral-soft px-2.5 py-1 text-[0.8125rem] font-semibold text-coral-strong">Faltam {formatBRL(s.needThisMonth)} este mês</span>
+            ) : (
+              <span className="flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[0.8125rem] font-semibold text-primary-strong">
+                <CheckCircle size={15} weight="fill" /> Mês em dia
+              </span>
+            )
+          ) : null}
+        </div>
       </div>
     </Link>
   )
@@ -246,8 +269,8 @@ export function GoalDetailPage() {
       <NavBar title={goal.name} large={false} left={<BackButton label="Voltar" onClick={() => navigate("/caixinhas")} />} right={<NavButton onClick={() => navigate(`/caixinhas/${goal.id}/editar`)}>Editar</NavButton>} />
       <div className="stagger flex flex-col gap-5 pt-3">
         <div className="shadow-soft overflow-hidden rounded-[1.5rem] bg-surface">
-          <GoalCover goal={goal} className="h-36" iconSize={64}>
-            <p className="px-5 pt-[5.5rem] text-[1.5rem] leading-tight font-extrabold text-white drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">{goal.name}</p>
+          <GoalCover goal={goal} iconSize={64}>
+            <p className="text-[1.5rem] leading-tight font-extrabold drop-shadow-[0_1px_8px_rgb(0_0_0/0.3)]">{goal.name}</p>
           </GoalCover>
           <div className="p-5">
             {goal.motivation && (
@@ -544,17 +567,9 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
       <form id="caixinha" onSubmit={onSubmit} noValidate className="flex flex-col gap-5 pt-3">
         {error && <ErrorBox message={error} />}
         <div className="shadow-soft overflow-hidden rounded-[1.375rem]">
-          {photoPreview ? (
-            <div className="relative h-32">
-              <img src={photoPreview} alt="" className="absolute inset-0 size-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-              <p className="absolute bottom-3 left-4 text-[1.25rem] font-extrabold text-white">{name || (template.key === 'livre' ? 'Minha caixinha' : template.name)}</p>
-            </div>
-          ) : (
-            <GoalCover goal={coverGoal} className="h-32" iconSize={56}>
-              <p className="px-4 pt-[4.75rem] text-[1.25rem] leading-tight font-extrabold text-white">{name || (template.key === 'livre' ? 'Minha caixinha' : template.name)}</p>
-            </GoalCover>
-          )}
+          <GoalCover goal={coverGoal} photoUrl={photoPreview} iconSize={56}>
+            <p className="text-[1.25rem] leading-tight font-extrabold drop-shadow-[0_1px_8px_rgb(0_0_0/0.3)]">{name || (template.key === 'livre' ? 'Minha caixinha' : template.name)}</p>
+          </GoalCover>
           <div className="flex gap-2 bg-surface p-3">
             <Button variant="soft" size="sm" onClick={() => fileInput.current?.click()}>
               {photoPreview || goal?.photo_path ? 'Trocar foto' : 'Usar uma foto'}
@@ -659,6 +674,8 @@ function GoalForm({ goal, nextPriority, monthlyExpenses }: { goal: Goal | null; 
         </Button>
       </form>
       <PhotoCropper
+        aspect={COVER_ASPECT}
+        round={false}
         file={picked}
         onCancel={() => setPicked(null)}
         onDone={(img) => {

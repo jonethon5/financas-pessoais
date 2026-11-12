@@ -28,26 +28,29 @@ function shade(hex: string, amount: number): string {
  * Capa da caixinha: a foto escolhida pela pessoa ou um degradê na cor da caixinha
  * com formas suaves e o ícone grande (sem emoji).
  */
-export function GoalCover({ goal, className = '', iconSize = 44, children }: { goal: Pick<Goal, 'icon' | 'color' | 'photo_path'>; className?: string; iconSize?: number; children?: React.ReactNode }) {
-  const photo = useFileUrl('fotos', goal.photo_path)
+/** Proporção da capa (largura ÷ altura). O recorte da foto usa a mesma, então nada sai torto. */
+export const COVER_ASPECT = 12 / 5
+
+export function GoalCover({ goal, className = '', iconSize = 44, children, photoUrl }: { goal: Pick<Goal, 'icon' | 'color' | 'photo_path'>; className?: string; iconSize?: number; children?: React.ReactNode; photoUrl?: string | null }) {
+  const photo = useFileUrl('fotos', photoUrl ? null : goal.photo_path)
+  const src = photoUrl ?? photo.data
   const Icon = goalIcon(goal.icon)
   return (
-    <div className={`relative overflow-hidden ${className}`} style={{ background: `linear-gradient(135deg, ${goal.color} 0%, ${shade(goal.color, 0.35)} 100%)` }}>
-      {photo.data ? (
-        <>
-          <img src={photo.data} alt="" className="absolute inset-0 size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-        </>
+    <div className={`relative isolate overflow-hidden ${className}`} style={{ aspectRatio: String(COVER_ASPECT), background: `linear-gradient(135deg, ${goal.color} 0%, ${shade(goal.color, 0.38)} 100%)` }}>
+      {src ? (
+        <img src={src} alt="" className="absolute inset-0 -z-10 size-full object-cover" />
       ) : (
         <>
-          <span aria-hidden className="absolute -top-8 -right-6 size-32 rounded-full bg-white/10" />
-          <span aria-hidden className="absolute -bottom-10 left-6 size-24 rounded-full bg-white/[0.07]" />
-          <span aria-hidden className="absolute top-1/2 right-5 -translate-y-1/2 text-white/95 drop-shadow-[0_6px_14px_rgb(0_0_0/0.18)]">
+          <span aria-hidden className="absolute -top-10 -right-8 -z-10 size-40 rounded-full bg-white/10" />
+          <span aria-hidden className="absolute -bottom-12 left-10 -z-10 size-28 rounded-full bg-white/[0.07]" />
+          <span aria-hidden className="absolute top-4 right-5 -z-10 text-white/90 drop-shadow-[0_6px_14px_rgb(0_0_0/0.18)]">
             <Icon size={iconSize} weight="duotone" />
           </span>
         </>
       )}
-      {children && <div className="relative">{children}</div>}
+      {/* Escurece a parte de baixo para o texto ler bem em qualquer foto */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      {children && <div className="absolute inset-0 flex flex-col justify-end p-4 text-white">{children}</div>}
     </div>
   )
 }

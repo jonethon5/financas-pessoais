@@ -78,11 +78,14 @@ export function Tour({ id, steps, delay = 900 }: { id: string; steps: TourStep[]
       const r = el.getBoundingClientRect()
       setBox({ top: r.top - 6, left: r.left - 6, width: r.width + 12, height: r.height + 12 })
     }
+    // Mede de novo depois que a rolagem e a animação de "subir" terminam
     const t = setTimeout(measure, 380)
+    const t2 = setTimeout(measure, 1000)
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
     return () => {
       clearTimeout(t)
+      clearTimeout(t2)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }

@@ -447,3 +447,105 @@ body {
     animation: none;
   }
 }
+
+/* Blocos que sobem ao aparecer na tela (Reveal) */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px) scale(0.985);
+  transition:
+    opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Abertura do app (Splash) */
+.splash {
+  background: radial-gradient(120% 80% at 50% 30%, #4a86ff 0%, #2f6feb 45%, #1a4fc4 100%);
+  transition:
+    opacity 450ms ease,
+    transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.splash-out {
+  opacity: 0;
+  transform: scale(1.06);
+}
+.splash-pig {
+  animation: splash-drop 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: 50% 100%;
+}
+@keyframes splash-drop {
+  0% { transform: translateY(-120px) scale(0.6); opacity: 0; }
+  55% { transform: translateY(6px) scale(1.04, 0.94); opacity: 1; }
+  75% { transform: translateY(-6px) scale(0.98, 1.03); }
+  100% { transform: none; opacity: 1; }
+}
+.splash-ring {
+  position: absolute;
+  inset: 12%;
+  border-radius: 9999px;
+  border: 3px solid rgb(255 255 255 / 0.6);
+  animation: splash-ring 1100ms 450ms ease-out both;
+}
+@keyframes splash-ring {
+  0% { transform: scale(0.6); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.splash-coin {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #ffe68a, #f2b705 60%, #c98a06);
+  color: #8a5a06;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.4);
+  opacity: 0;
+  animation: splash-coin 1000ms calc(500ms + var(--i) * 70ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes splash-coin {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  25% { opacity: 1; }
+  100% {
+    transform: rotate(calc(-70deg + var(--i) * 35deg)) translateY(-118px) rotate(calc(70deg - var(--i) * 35deg)) scale(1);
+    opacity: 0;
+  }
+}
+.splash-word span {
+  display: inline-block;
+  animation: splash-letter 600ms calc(650ms + var(--i) * 55ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes splash-letter {
+  0% { transform: translateY(28px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+.splash-tag {
+  animation: splash-fade 600ms 1150ms ease both;
+}
+@keyframes splash-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-pig,
+  .splash-ring,
+  .splash-coin,
+  .splash-word span,
+  .splash-tag {
+    animation: none;
+  }
+  .splash-coin,
+  .splash-ring {
+    display: none;
+  }
+}

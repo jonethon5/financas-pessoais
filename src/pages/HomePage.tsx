@@ -7,6 +7,7 @@ import {
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
 import { MenuButton } from '../components/MenuContext'
 import { Tour, type TourStep } from '../components/Tour'
+import { Reveal } from '../components/Reveal'
 import { BankLogo } from '../components/BankLogo'
 import { findInstitution } from '../lib/institutions'
 import { lessonOfDay } from '../lib/learn'
@@ -65,6 +66,7 @@ function Section({ title, to, children, tour }: { title: string; to?: string; ch
     </span>
   )
   return (
+    <Reveal>
     <section data-tour={tour} className="-mx-4 border-t border-line px-4 py-5">
       {to ? (
         <Link to={to} className="block active:opacity-70">
@@ -78,6 +80,7 @@ function Section({ title, to, children, tour }: { title: string; to?: string; ch
         </>
       )}
     </section>
+    </Reveal>
   )
 }
 

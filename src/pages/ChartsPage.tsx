@@ -18,6 +18,7 @@ import { friendlyError } from '../lib/supabase'
 import { liftForDark, useIsDark } from '../lib/theme'
 import { HealthRing, scoreColor } from './HealthPage'
 import { Tour } from '../components/Tour'
+import { Reveal } from '../components/Reveal'
 
 const SERIES = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -32,11 +33,13 @@ const short = (c: number) => (Math.abs(c) >= 100000 ? `${(c / 100000).toLocaleSt
 
 function ChartCard({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
   return (
+    <Reveal>
     <section className="rounded-[1.25rem] bg-surface p-4">
       <h2 className="text-[1.0625rem] font-extrabold">{title}</h2>
       {hint && <p className="mt-0.5 text-[0.875rem] leading-snug text-muted">{hint}</p>}
       <div className="mt-3">{children}</div>
     </section>
+    </Reveal>
   )
 }
 

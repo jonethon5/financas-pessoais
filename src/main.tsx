@@ -11,6 +11,7 @@ import { captureAuthLink } from './lib/authLink'
 import { applyFont, applyTheme } from './lib/theme'
 import { ToastProvider } from './components/Toast'
 import { CelebrationProvider } from './components/Celebration'
+import { Splash } from './components/Splash'
 import { App } from './App'
 import './index.css'
 
@@ -50,6 +51,7 @@ createRoot(document.getElementById('root')!).render(
             <ToastProvider>
               <CelebrationProvider>
                 <App />
+                <Splash />
               </CelebrationProvider>
             </ToastProvider>
           </BackendProvider>
