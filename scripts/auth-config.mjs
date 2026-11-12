@@ -21,18 +21,19 @@ const config = {
   password_min_length: 8,
   mailer_autoconfirm: !smtp,
   mailer_secure_email_change_enabled: true,
-  mailer_subjects_confirmation: subjects.confirmation,
-  mailer_templates_confirmation_content: template('confirmation'),
-  mailer_subjects_recovery: subjects.recovery,
-  mailer_templates_recovery_content: template('recovery'),
-  mailer_subjects_email_change: subjects.email_change,
-  mailer_templates_email_change_content: template('email_change'),
-  mailer_subjects_invite: subjects.invite,
-  mailer_templates_invite_content: template('invite'),
 }
 
+// No plano grátis, os modelos de e-mail só podem ser trocados com SMTP próprio
 if (smtp) {
   Object.assign(config, {
+    mailer_subjects_confirmation: subjects.confirmation,
+    mailer_templates_confirmation_content: template('confirmation'),
+    mailer_subjects_recovery: subjects.recovery,
+    mailer_templates_recovery_content: template('recovery'),
+    mailer_subjects_email_change: subjects.email_change,
+    mailer_templates_email_change_content: template('email_change'),
+    mailer_subjects_invite: subjects.invite,
+    mailer_templates_invite_content: template('invite'),
     smtp_host: env.SMTP_HOST,
     smtp_port: env.SMTP_PORT || '587',
     smtp_user: env.SMTP_USER,
