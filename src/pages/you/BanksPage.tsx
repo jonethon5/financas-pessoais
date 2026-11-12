@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle, Info, MagnifyingGlass, ShieldCheck } from '@phosphor-icons/react'
 import { useAuth } from '../../auth/AuthProvider'
@@ -26,7 +26,7 @@ const ago = (iso: string | null) => {
 }
 
 /** Linha de uma conta: saldo da conta corrente ou fatura do cartão. */
-export function AccountRow({ a, label }: { a: BankAccount; label?: string }) {
+export function AccountRow({ a, label, to }: { a: BankAccount; label?: string; to?: string }) {
   const credit = a.type === 'CREDIT'
   const inst = findInstitution(a.name, label)
   return (
@@ -35,6 +35,16 @@ export function AccountRow({ a, label }: { a: BankAccount; label?: string }) {
       title={accountTitle(inst, a.type, a.name)}
       subtitle={credit ? `Fatura atual${a.due_date ? ` · vence ${formatDateShort(a.due_date)}` : ''}${a.available_cents != null ? ` · limite livre ${formatBRLShort(a.available_cents)}` : ''}` : 'Saldo na conta'}
       trailing={a.balance_cents != null ? <Money cents={a.balance_cents} className="text-[1.0625rem] font-semibold" /> : <span className="text-muted">—</span>}
+      chevron={Boolean(to)}
+      as={
+        to
+          ? (content, className) => (
+              <Link to={to} className={className}>
+                {content}
+              </Link>
+            )
+          : undefined
+      }
     />
   )
 }
@@ -269,7 +279,7 @@ export function BanksPage() {
                   >
                     {c.status !== 'ok' && <Row title={<Badge tone="warn">{c.status === 'expirado' ? 'Autorização vencida' : 'Não atualizou'}</Badge>} />}
                     {(accounts.data ?? []).filter((a) => a.connection_id === c.id).map((a) => (
-                      <AccountRow key={a.id} a={a} label={c.label} />
+                      <AccountRow key={a.id} a={a} label={c.label} to={`/voce/bancos/${a.id}`} />
                     ))}
                   </List>
                 ))}

@@ -1,10 +1,14 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { SquaresFour } from '@phosphor-icons/react'
 import { DuoIcon } from '../components/CategoryIcon'
 import { haptic } from '../lib/motion'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmSheet } from '../components/ConfirmSheet'
+import { Sheet } from '../components/Sheet'
+import { CategorySheet } from './you/MoneySettingsPages'
+import { EXTRA_CATEGORIES, categoryRow, type CategoryDef } from '../lib/categories'
 import { useToast } from '../components/Toast'
 import { Button, Chip, ErrorBox, Field, List, NavBar, NavButton, Notice, Row, Segmented, Spinner, Switch } from '../components/ui'
 import { useBackend } from '../data/backend'
@@ -82,8 +86,30 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
 
-  const cats = categories.filter((c) => !c.archived && c.kind === (income ? 'income' : 'expense'))
+  // "Outros" é sempre a última opção; as mais usadas ficam na frente e o resto abre no "Mais"
+  const cats = categories.filter((c) => !c.archived && c.kind === (income ? 'income' : 'expense')).sort((a, b) => Number(a.name === 'Outros') - Number(b.name === 'Outros'))
+  const QUICK = 8
+  const picked = cats.find((c) => c.id === categoryId)
+  const quick = cats.length <= QUICK + 1 ? cats : picked && cats.indexOf(picked) >= QUICK ? [...cats.slice(0, QUICK - 1), picked] : cats.slice(0, QUICK)
+  const plainName = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const suggestions = EXTRA_CATEGORIES.filter((d) => (d.kind ?? 'expense') === (income ? 'income' : 'expense') && !categories.some((c) => !c.archived && plainName(c.name) === plainName(d.name)))
+
+  /** Categoria pronta: cria (ou reaproveita a arquivada com o mesmo nome) e já escolhe. */
+  async function addSuggestion(d: CategoryDef) {
+    const old = categories.find((c) => c.archived && plainName(c.name) === plainName(d.name))
+    const id = old?.id ?? crypto.randomUUID()
+    try {
+      await write.mutateAsync((b) => (old ? b.update('categories', old.id, { archived: false }) : b.insert('categories', [{ ...categoryRow(d), id }])))
+      setCategoryId(id)
+      setMoreOpen(false)
+      toast(`${d.name} adicionada às suas categorias`)
+    } catch (err) {
+      setError(friendlyError(err))
+    }
+  }
   const descriptions = useMemo(() => [...new Set((history.data ?? []).map((t) => t.description))].slice(0, 40), [history.data])
 
   const cents = parseBRL(amount)
@@ -292,7 +318,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             </Link>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {cats.map((c) => {
+            {quick.map((c) => {
               const on = categoryId === c.id
               return (
                 <button
@@ -312,6 +338,12 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
                 </button>
               )
             })}
+            <button type="button" onClick={() => setMoreOpen(true)} className="press flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-[1rem] border-2 border-dashed border-line px-1.5 py-2.5 text-center">
+              <span className="grid size-11 place-items-center rounded-[0.8rem] bg-surface-2 text-muted">
+                <SquaresFour size={26} weight="duotone" />
+              </span>
+              <span className="text-[0.8125rem] leading-tight font-semibold">Mais</span>
+            </button>
           </div>
         </div>
 
@@ -386,6 +418,59 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         )}
         {tx?.type === 'salario' && <p className="px-1 text-center text-[0.875rem] text-muted">O salário entra sozinho todo mês. Para mudar o valor dos próximos meses, vá em Você › Salário.</p>}
       </form>
+
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Categorias">
+        <div className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto overscroll-contain pb-1">
+          <div>
+            <p className="mb-1.5 px-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Suas categorias</p>
+            <div className="grid grid-cols-3 gap-2">
+              {cats.map((c) => {
+                const on = categoryId === c.id
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      haptic(8)
+                      setCategoryId(c.id)
+                      setMoreOpen(false)
+                    }}
+                    className={`press flex min-h-[5rem] flex-col items-center justify-center gap-1.5 rounded-[1rem] border-2 bg-surface px-1.5 py-2 text-center ${on ? 'border-ink' : 'border-transparent'}`}
+                  >
+                    <DuoIcon name={c.icon} color={c.color} size={26} />
+                    <span className="line-clamp-2 text-[0.8125rem] leading-tight font-semibold">{c.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          {suggestions.length > 0 && (
+            <div>
+              <p className="mb-1.5 px-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Adicionar com um toque</p>
+              <div className="grid grid-cols-3 gap-2">
+                {suggestions.map((d) => (
+                  <button key={d.name} type="button" disabled={write.isPending} onClick={() => addSuggestion(d)} className="press flex min-h-[5rem] flex-col items-center justify-center gap-1.5 rounded-[1rem] border border-dashed border-line px-1.5 py-2 text-center">
+                    <DuoIcon name={d.icon} color={d.color} size={26} />
+                    <span className="line-clamp-2 text-[0.8125rem] leading-tight font-semibold">{d.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setMoreOpen(false)
+              setCreating(true)
+            }}
+          >
+            Criar uma categoria nova
+          </Button>
+          <p className="px-1 text-center text-[0.8125rem] leading-snug text-muted">No que vem do banco, escolher a categoria uma vez ensina o app: os próximos do mesmo lugar já entram nela.</p>
+        </div>
+      </Sheet>
+      <CategorySheet category={creating ? 'new' : null} kind={income ? 'income' : 'expense'} onCreated={setCategoryId} onClose={() => setCreating(false)} />
 
       {tx && (
         <ConfirmSheet

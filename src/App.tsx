@@ -18,7 +18,9 @@ import { AssistantPage } from './pages/AssistantPage'
 import { PigPage } from './pages/PigPage'
 import { ChartsPage } from './pages/ChartsPage'
 import { StatementPage } from './pages/StatementPage'
+import { PremiumPage } from './pages/PremiumPage'
 import { BanksPage } from './pages/you/BanksPage'
+import { AccountPage } from './pages/you/AccountPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { useProfile } from './data/hooks'
 import { PrivacyPage, TermsPage } from './pages/legal/LegalPages'
@@ -85,10 +87,12 @@ function LoggedIn() {
         <Route path="porquinho" element={<PigPage />} />
         <Route path="graficos" element={<ChartsPage />} />
         <Route path="extrato" element={<StatementPage />} />
+        <Route path="premium" element={<PremiumPage />} />
         <Route path="aprender/:id" element={<LessonPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />
         <Route path="voce/bancos" element={<BanksPage />} />
+        <Route path="voce/bancos/:id" element={<AccountPage />} />
         <Route path="voce" element={<YouPage />} />
         <Route path="ajustes" element={<SettingsPage />} />
         <Route path="ajustes/:secao" element={<SettingsPage />} />

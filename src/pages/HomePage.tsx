@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import {
-  Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, EyeSlash, Flame, Heart, Heartbeat, Hourglass,
-  Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon,
-} from '@phosphor-icons/react'
+import { Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, EyeSlash, Flame, Heart, Heartbeat, Hourglass, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon, Crown } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
+import { APP_NAME } from '../brand'
 import { MenuButton } from '../components/MenuContext'
 import { Tour, type TourStep } from '../components/Tour'
 import { Reveal } from '../components/Reveal'
@@ -200,19 +198,21 @@ export function HomePage() {
   // Carrossel: cartões feitos com os dados da pessoa (passam sozinhos)
   const slides: Slide[] = []
   const why = goals.find((g) => g.goal.motivation && !g.status.done)
-  if (why) slides.push({ id: 'porque', to: `/caixinhas/${why.goal.id}`, kicker: `Seu porquê · ${why.goal.name}`, title: `“${why.goal.motivation}”`, text: why.status.progress != null ? `Você já está em ${Math.floor(why.status.progress * 100)}%. Continue.` : 'Continue guardando um pouco por vez.', icon: Heart, from: why.goal.color, to2: '#0F2433' })
+  if (why) slides.push({ id: 'porque', to: `/caixinhas/${why.goal.id}`, kicker: `Seu porquê · ${why.goal.name}`, title: `“${why.goal.motivation}”`, text: why.status.progress != null ? `Você já está em ${Math.floor(why.status.progress * 100)}%. Continue.` : 'Continue guardando um pouco por vez.', icon: Heart, from: why.goal.color, to2: '#0F2433', art: 'rosto-feliz', cta: 'Ver a caixinha' })
   const proj = projection(view.data.goalMoves, today)
-  if (proj.pace > 0) slides.push({ id: 'futuro', to: '/caixinhas', kicker: 'Seu futuro', title: `Em dezembro você terá ${money(proj.projected)}`, text: `Mantendo o ritmo de ${money(proj.pace)} por mês nas caixinhas.`, icon: ChartLineUp, from: '#0F9D6B', to2: '#0B4F3A' })
+  if (proj.pace > 0) slides.push({ id: 'futuro', to: '/caixinhas', kicker: 'Seu futuro', title: `Em dezembro você terá ${money(proj.projected)}`, text: `Mantendo o ritmo de ${money(proj.pace)} por mês nas caixinhas.`, icon: ChartLineUp, from: '#0F9D6B', to2: '#0B4F3A', art: 'tela-economia', cta: 'Ver caixinhas' })
   const subs = subscriptions(recurrings.data ?? [], view.data.history)
-  if (subs.yearlyCents > 0) slides.push({ id: 'assinaturas', to: '/mes?aba=orcamento', kicker: 'O que se repete', title: `${money(subs.yearlyCents)} por ano`, text: `${subs.items.length} ${subs.items.length === 1 ? 'gasto que se repete' : 'gastos que se repetem'}. Vale cancelar algum?`, icon: Repeat, from: '#6E56F0', to2: '#2D2275' })
+  if (subs.yearlyCents > 0) slides.push({ id: 'assinaturas', to: '/mes?aba=orcamento', kicker: 'O que se repete', title: `${money(subs.yearlyCents)} por ano`, text: `${subs.items.length} ${subs.items.length === 1 ? 'gasto que se repete' : 'gastos que se repetem'}. Vale cancelar algum?`, icon: Repeat, from: '#6E56F0', to2: '#2D2275', art: 'rosto-pensativo', cta: 'Revisar' })
   slides.push(activeChallenges > 0
-    ? { id: 'desafio', to: '/habitos', kicker: 'Desafio em andamento', title: activeChallenges === 1 ? 'Você tem 1 desafio ativo' : `Você tem ${activeChallenges} desafios ativos`, text: 'Veja como está indo e não quebre a sequência.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' }
-    : { id: 'desafio', to: '/habitos', kicker: 'Desafio da semana', title: '7 dias sem delivery', text: 'Topa? Em média dá para guardar uns R$ 150 por semana.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14' })
+    ? { id: 'desafio', to: '/habitos', kicker: 'Desafio em andamento', title: activeChallenges === 1 ? 'Você tem 1 desafio ativo' : `Você tem ${activeChallenges} desafios ativos`, text: 'Veja como está indo e não quebre a sequência.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14', art: 'rosto-animado', cta: 'Acompanhar' }
+    : { id: 'desafio', to: '/habitos', kicker: 'Desafio da semana', title: '7 dias sem delivery', text: 'Topa? Em média dá para guardar uns R$ 150 por semana.', icon: Trophy, from: '#FF6B4A', to2: '#8A2A14', art: 'rosto-animado', cta: 'Topar o desafio' })
   const lesson = lessonOfDay(Math.floor(Date.parse(`${today}T12:00:00Z`) / 86_400_000))
-  slides.push({ id: 'dica', to: `/aprender/${lesson.id}`, kicker: 'Aprenda em 2 minutos', title: lesson.title, text: lesson.short, icon: BookOpenText, from: '#2F6FEB', to2: '#163A8A' })
-  if ((mode === 'demo' || p.is_admin) && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52' })
+  slides.push({ id: 'dica', to: `/aprender/${lesson.id}`, kicker: 'Aprenda em 2 minutos', title: lesson.title, text: lesson.short, icon: BookOpenText, from: '#2F6FEB', to2: '#163A8A', art: 'modo-moderado', cta: 'Ler agora' })
+  if ((mode === 'demo' || p.is_admin) && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52', art: 'tela-conexao', cta: 'Conectar' })
+  // Prévia do plano pago (ainda não existe cobrança): serve para ver como o cartão fica e medir o interesse
+  slides.push({ id: 'premium', to: '/premium', kicker: `${APP_NAME} Premium`, title: 'Tudo no automático', text: 'Banco conectado, assistente sem limite e roupas exclusivas.', icon: Crown, from: '#1B2F5E', to2: '#0E1830', art: 'loja-terno', cta: 'Conhecer', badge: 'Em breve' })
   // Ordem: o porquê da pessoa, a lição do dia (ajuda financeira em primeiro lugar), depois o resto
-  const ORDER = ['porque', 'dica', 'futuro', 'assinaturas', 'desafio', 'banco']
+  const ORDER = ['porque', 'dica', 'futuro', 'assinaturas', 'desafio', 'banco', 'premium']
   slides.sort((x, y) => ORDER.indexOf(x.id) - ORDER.indexOf(y.id))
 
   return (
@@ -324,7 +324,7 @@ export function HomePage() {
       )}
 
       {cards.map((c) => (
-        <Section key={c.id} title="Cartão de crédito" to="/voce/bancos">
+        <Section key={c.id} title="Cartão de crédito" to={`/voce/bancos/${c.id}`}>
           <div className="flex items-start gap-3">
             <BankLogo inst={instOf(c)} credit />
             <div className="min-w-0">

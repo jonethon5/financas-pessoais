@@ -55,21 +55,22 @@ export function CategoriesPage() {
   )
 }
 
-export function CategorySheet({ category, onClose }: { category: Category | 'new' | null; onClose: () => void }) {
+/** `kind`: tipo da categoria nova (gasto ou renda). `onCreated` recebe o id da que acabou de ser criada. */
+export function CategorySheet({ category, onClose, kind = 'expense', onCreated }: { category: Category | 'new' | null; onClose: () => void; kind?: Category['kind']; onCreated?: (id: string) => void }) {
   return (
     <Sheet open={category != null} onClose={onClose} title={category === 'new' ? 'Nova categoria' : 'Editar categoria'}>
-      {category != null && <CategoryForm key={category === 'new' ? 'new' : category.id} category={category === 'new' ? null : category} onDone={onClose} />}
+      {category != null && <CategoryForm key={category === 'new' ? 'new' : category.id} category={category === 'new' ? null : category} newKind={kind} onCreated={onCreated} onDone={onClose} />}
     </Sheet>
   )
 }
 
-function CategoryForm({ category, onDone }: { category: Category | null; onDone: () => void }) {
+function CategoryForm({ category, onDone, newKind, onCreated }: { category: Category | null; onDone: () => void; newKind: Category['kind']; onCreated?: (id: string) => void }) {
   const write = useWrite()
   const toast = useToast()
   const [name, setName] = useState(category?.name ?? '')
   const [icon, setIcon] = useState(category?.icon ?? 'receipt')
   const [color, setColor] = useState(category?.color ?? CATEGORY_COLORS[0])
-  const [kind] = useState(category?.kind ?? 'expense')
+  const [kind] = useState(category?.kind ?? newKind)
   const [grp, setGrp] = useState<CategoryGroup>(category?.grp ?? 'desejo')
   const [monthly, setMonthly] = useState(centsToInput(category?.monthly_limit_cents))
   const [weekly, setWeekly] = useState(centsToInput(category?.weekly_limit_cents))
@@ -84,7 +85,9 @@ function CategoryForm({ category, onDone }: { category: Category | null; onDone:
     setError(null)
     const row = { name: name.trim(), icon, color, kind, grp, monthly_limit_cents: m, weekly_limit_cents: w }
     try {
-      await write.mutateAsync((b) => (category ? b.update('categories', category.id, row) : b.insert('categories', [{ ...row, sort: 100, archived: false }])))
+      const id = category?.id ?? crypto.randomUUID()
+      await write.mutateAsync((b) => (category ? b.update('categories', category.id, row) : b.insert('categories', [{ ...row, id, sort: 90, archived: false }])))
+      if (!category) onCreated?.(id)
       toast('Categoria salva')
       onDone()
     } catch (err) {
@@ -109,7 +112,7 @@ function CategoryForm({ category, onDone }: { category: Category | null; onDone:
       <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />
       <div>
         <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">Ícone</p>
-        <div className="grid grid-cols-8 gap-1.5">
+        <div className="grid max-h-44 grid-cols-7 gap-1.5 overflow-y-auto overscroll-contain rounded-[0.9rem] bg-surface-2/60 p-1.5">
           {CATEGORY_ICONS.map((name) => (
             <button key={name} type="button" aria-label={name} aria-pressed={icon === name} onClick={() => setIcon(name)} className={`grid aspect-square place-items-center rounded-[0.7rem] border-2 bg-surface transition ${icon === name ? 'border-ink' : 'border-transparent'}`}>
               <DuoIcon name={name} color={color} size={22} />

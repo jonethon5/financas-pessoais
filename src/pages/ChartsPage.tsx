@@ -24,14 +24,14 @@ const SERIES = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
 const pct = (x: number) => `${Math.round(x * 100)}%`
 
 /** Valor em reais respeitando o "esconder valores" (olho). */
-function useMoney() {
+export function useMoney() {
   const hidden = useHiddenValues()
   return (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
 }
 // Eixo: "2,4 mil" com espaço que não quebra (senão o rótulo vira duas linhas)
-const short = (c: number) => (Math.abs(c) >= 100000 ? `${(c / 100000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil` : `${Math.round(c / 100)}`)
+export const short = (c: number) => (Math.abs(c) >= 100000 ? `${(c / 100000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil` : `${Math.round(c / 100)}`)
 
-function ChartCard({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
+export function ChartCard({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <Reveal>
     <section className="rounded-[1.25rem] bg-surface p-4">
@@ -43,7 +43,7 @@ function ChartCard({ title, hint, children }: { title: string; hint?: ReactNode;
   )
 }
 
-function TipBox({ title, rows }: { title: string; rows: { label: string; value: string; color?: string; dashed?: boolean }[] }) {
+export function TipBox({ title, rows }: { title: string; rows: { label: string; value: string; color?: string; dashed?: boolean }[] }) {
   return (
     <div className="rounded-[0.75rem] border border-line bg-bg px-3 py-2 text-[0.8125rem] shadow-lg">
       <p className="mb-1 font-semibold">{title}</p>
@@ -59,7 +59,7 @@ function TipBox({ title, rows }: { title: string; rows: { label: string; value: 
 }
 
 /** Ranking por categoria: ícone, nome, valor, % e uma barra fina na cor da categoria. */
-function Ranking({ items, max = 8 }: { items: CatShare[]; max?: number }) {
+export function Ranking({ items, max = 8 }: { items: CatShare[]; max?: number }) {
   const money = useMoney()
   const dark = useIsDark()
   const [all, setAll] = useState(false)
@@ -122,7 +122,7 @@ function PartsBar({ parts, colors = SERIES, empty = 'Nada neste mês.' }: { part
 }
 
 /** Evolução de uma série por mês (barras), com a média tracejada e o mês escolhido em destaque. */
-function MonthBars({ data, field, selectedKey, label }: { data: { key: string; label: string; [k: string]: number | string }[]; field: string; selectedKey: string; label: string }) {
+export function MonthBars({ data, field, selectedKey, label }: { data: { key: string; label: string; [k: string]: number | string }[]; field: string; selectedKey: string; label: string }) {
   const money = useMoney()
   const avg = average(data.map((d) => d[field] as number))
   return (

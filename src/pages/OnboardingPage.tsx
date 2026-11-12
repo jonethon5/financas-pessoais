@@ -90,10 +90,10 @@ export function OnboardingPage({ onFinish }: { onFinish?: () => void }) {
   const categories = useCategories()
   if (profile.isPending || categories.isPending) return <Spinner />
   if (profile.isError || categories.isError) return <ErrorBox message="Não foi possível carregar. Tente de novo." />
-  return <Flow categories={categories.data} initialAbout={profile.data.about ?? {}} salary={profile.data.salary_cents} payday={profile.data.payday} nickname={profile.data.nickname ?? ''} prefs={profile.data.prefs} onFinish={onFinish} />
+  return <Flow categories={categories.data} initialAbout={profile.data.about ?? {}} salary={profile.data.salary_cents} payday={profile.data.payday} hoursWeek={profile.data.work_hours_week} nickname={profile.data.nickname ?? ''} prefs={profile.data.prefs} onFinish={onFinish} />
 }
 
-function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFinish }: { categories: Category[]; initialAbout: About; salary: number | null; payday: number | null; nickname: string; prefs: Prefs; onFinish?: () => void }) {
+function Flow({ categories, initialAbout, salary, payday, hoursWeek, nickname, prefs, onFinish }: { categories: Category[]; initialAbout: About; salary: number | null; payday: number | null; hoursWeek: number | null; nickname: string; prefs: Prefs; onFinish?: () => void }) {
   const navigate = useNavigate()
   const toast = useToast()
   const celebrate = useCelebrate()
@@ -104,6 +104,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFin
   const [about, setAbout] = useState<About>({ ...initialAbout, answers: { ...initialAbout.answers } })
   const [salaryText, setSalaryText] = useState(centsToInput(salary))
   const [paydayText, setPaydayText] = useState(payday ? String(payday) : '5')
+  const [hoursText, setHoursText] = useState(String(hoursWeek ?? 44))
   const [fixed, setFixed] = useState<Record<string, string>>({})
   const [wantsReserve, setWantsReserve] = useState(true)
   const [wantsDream, setWantsDream] = useState(true)
@@ -138,9 +139,9 @@ function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFin
     if (step === 1) return Boolean(about.age && about.work && about.home)
     if (step === 2) return Boolean(about.goal) && (about.goal !== 'Realizar um sonho' || Boolean(about.dream))
     if (step >= 3 && step < RESULT) return Boolean(about.answers?.[QUIZ[step - 3].id])
-    if (step === SALARY) return salaryCents != null && Number(paydayText) >= 1 && Number(paydayText) <= 31
+    if (step === SALARY) return salaryCents != null && Number(paydayText) >= 1 && Number(paydayText) <= 31 && Number(hoursText) >= 1 && Number(hoursText) <= 100
     return true
-  }, [step, about, RESULT, SALARY, salaryCents, paydayText])
+  }, [step, about, RESULT, SALARY, salaryCents, paydayText, hoursText])
 
   async function finish() {
     setSaving(true)
@@ -159,6 +160,7 @@ function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFin
         prefs: pigPrefs,
         salary_cents: salaryCents,
         payday: Number(paydayText),
+        work_hours_week: Math.round(Number(hoursText)) || 44,
         onboarded_at: new Date().toISOString(),
       })
       await write.mutateAsync(async (b) => {
@@ -306,9 +308,10 @@ function Flow({ categories, initialAbout, salary, payday, nickname, prefs, onFin
     )
   } else if (step === SALARY) {
     content = (
-      <Step art={<Art icon={CalendarCheck} color="#0B7F5A" />} title="Quanto entra e quando?" text="O salário entra sozinho todo mês nesse dia. Rendas extras você lança à parte.">
+      <Step art={<Art icon={CalendarCheck} color="#0B7F5A" />} title="Quanto entra e quando?" text="Esse salário é a base de todas as contas do app e entra sozinho todo mês nesse dia. Renda extra só conta quando você lança.">
         <Field label="Salário líquido (o que cai na conta)" prefix="R$" inputMode="decimal" value={salaryText} onChange={(e) => setSalaryText(e.target.value)} placeholder="0,00" />
         <Field label="Dia do pagamento" inputMode="numeric" value={paydayText} onChange={(e) => setPaydayText(e.target.value)} />
+        <Field label="Horas de trabalho por semana" inputMode="numeric" value={hoursText} onChange={(e) => setHoursText(e.target.value)} hint="Com isso o app mostra quanto do seu trabalho custa cada compra (ex.: esse lanche = 2 horas). A jornada mais comum é 44." />
       </Step>
     )
   } else if (step === FIXED_STEP) {
