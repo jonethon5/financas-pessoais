@@ -3,9 +3,10 @@
 //   { action: 'connect', itemId, label }    → liga uma conexão do Meu Pluggy (o "Item ID") e já sincroniza
 //   { action: 'sync', force? }              → busca contas e lançamentos novos de todas as conexões da pessoa
 //   { action: 'reconcile' }                 → o salário mudou em Você: confere de novo o que veio do banco
+//   { action: 'connect_token' }             → token para abrir a tela da Pluggy no app (só o conector Meu Pluggy)
 // As regras ficam em ../_shared/banksync.ts e ../_shared/bankmap.ts.
 import { UserError, adminClient, callerUserId, handle, json } from '../_shared/common.ts'
-import { CLIENT_ID, CLIENT_SECRET, PluggyError, ensurePastSalaries, itemProblem, loadCtx, pluggy, relinkSalary, syncConnection, syncUser, tidySalary, type PluggyItem } from '../_shared/banksync.ts'
+import { CLIENT_ID, CLIENT_SECRET, MEU_PLUGGY_CONNECTOR, PluggyError, ensurePastSalaries, itemProblem, loadCtx, pluggy, pluggyPost, relinkSalary, syncConnection, syncUser, tidySalary, type PluggyItem } from '../_shared/banksync.ts'
 
 Deno.serve(
   handle(async (req) => {
@@ -13,8 +14,9 @@ Deno.serve(
     const uid = await callerUserId(req, admin)
     const body = await req.json().catch(() => ({}))
     const configured = Boolean(CLIENT_ID && CLIENT_SECRET)
-    const { data: me } = await admin.from('profiles').select('is_admin').eq('id', uid).single()
-    const allowed = Boolean(me?.is_admin)
+    // No beta: o administrador e quem entrou com um convite que libera o banco
+    const { data: canUse } = await admin.rpc('can_use_bank', { p_user: uid })
+    const allowed = Boolean(canUse)
 
     if (body.action === 'status') return json({ configured, allowed })
     // Salário mudou em Você: confere de novo o que veio do banco (não chama a Pluggy)
@@ -25,7 +27,13 @@ Deno.serve(
       return json({ ok: true, changed })
     }
     if (!configured) throw new UserError('A conexão com o banco ainda não foi ligada: faltam as chaves da Pluggy nos secrets.', 503)
-    if (!allowed) throw new UserError('No beta, a conexão com o banco está disponível só para a conta de administrador.', 403)
+    if (!allowed) throw new UserError('No beta, a conexão com o banco está liberada só para quem recebeu um convite com banco.', 403)
+
+    // Tela de conexão da Pluggy dentro do app: a pessoa entra com a própria conta do Meu Pluggy e escolhe o banco
+    if (body.action === 'connect_token') {
+      const res = await pluggyPost<{ accessToken: string }>('/connect_token', { clientUserId: uid })
+      return json({ accessToken: res.accessToken, connectorId: MEU_PLUGGY_CONNECTOR })
+    }
 
     if (body.action === 'connect') {
       const itemId = String(body.itemId ?? '').trim()

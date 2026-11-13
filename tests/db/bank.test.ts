@@ -64,6 +64,7 @@ function startMock(): Promise<void> {
     }
     if (req.method === 'POST' && u.pathname === '/auth') return send(200, { apiKey: 'chave-de-teste' })
     if (req.headers['x-api-key'] !== 'chave-de-teste') return send(401, { code: 'UNAUTHORIZED' })
+    if (req.method === 'POST' && u.pathname === '/connect_token') return send(200, { accessToken: 'token-da-janela' })
     if (u.pathname === `/items/${ITEM}`) return send(200, { id: ITEM, status: 'UPDATED', executionStatus: 'SUCCESS', connector: { name: 'Nubank' } })
     if (u.pathname === `/items/${SLOW_ITEM}`) return send(200, { id: SLOW_ITEM, status: 'UPDATING', executionStatus: 'LOGIN_IN_PROGRESS', connector: { name: 'Neon' } })
     if (u.pathname === '/identity') return send(200, { fullName: 'Dono Da Silva' })
@@ -155,6 +156,24 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
     const r = await tester.client.functions.invoke('bank-sync', { body: { action: 'connect', itemId: ITEM } })
     expect(r.error).toBeTruthy()
     expect((await admin.from('bank_connections').select('id').eq('user_id', tester.id)).data).toEqual([])
+  })
+
+  it('convite com "libera banco": a pessoa pode conectar e abrir a janela da Pluggy (só o Meu Pluggy)', async () => {
+    const BANK_CODE = `SOCIO-${run.toUpperCase()}`
+    await admin.from('beta_codes').insert({ code: BANK_CODE, max_uses: 1, bank_access: true })
+    const email = `socio-${run}@teste.local`
+    const { data: created_, error } = await admin.auth.admin.createUser({ email, password: 'senha-de-teste-123', email_confirm: true, user_metadata: { name: 'Sócio', beta_code: BANK_CODE } })
+    expect(error).toBeNull()
+    created.push(created_.user!.id)
+    const socio = createClient(URL, ANON, opts)
+    await socio.auth.signInWithPassword({ email, password: 'senha-de-teste-123' })
+    expect((await socio.functions.invoke('bank-sync', { body: { action: 'status' } })).data).toEqual({ configured: true, allowed: true })
+    expect((await socio.functions.invoke('bank-sync', { body: { action: 'connect_token' } })).data).toEqual({ accessToken: 'token-da-janela', connectorId: 200 })
+    // quem não tem o convite não pega o token
+    expect((await tester.client.functions.invoke('bank-sync', { body: { action: 'connect_token' } })).error).toBeTruthy()
+    // o código não fica visível nem editável para quem não é administrador
+    expect((await socio.from('beta_codes').select('code')).data).toEqual([])
+    await admin.from('beta_codes').delete().eq('code', BANK_CODE)
   })
 
   it('recusa Item ID que não existe', async () => {

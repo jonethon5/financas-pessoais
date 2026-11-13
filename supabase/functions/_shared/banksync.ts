@@ -22,6 +22,8 @@ export const CLIENT_ID = Deno.env.get('PLUGGY_CLIENT_ID') ?? ''
 export const CLIENT_SECRET = Deno.env.get('PLUGGY_CLIENT_SECRET') ?? ''
 const FIRST_SYNC_DAYS = 90
 export const COOLDOWN_MIN = 15
+/** Conector "MeuPluggy": a pessoa autoriza os bancos que já conectou no Meu Pluggy (uso pessoal, grátis). */
+export const MEU_PLUGGY_CONNECTOR = 200
 
 let cachedKey: { key: string; until: number } | null = null
 
@@ -38,6 +40,15 @@ export class PluggyError extends Error {
   constructor(public status: number, public code: string, message: string) {
     super(message)
   }
+}
+
+export async function pluggyPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API}${path}`, { method: 'POST', headers: { 'X-API-KEY': await apiKey(), 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(30_000) })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new PluggyError(res.status, String(data?.code ?? ''), String(data?.message ?? `Pluggy ${res.status}`))
+  }
+  return res.json()
 }
 
 export async function pluggy<T>(path: string, retry = true): Promise<T> {

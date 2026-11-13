@@ -112,7 +112,7 @@ function AdminPanel() {
                       {c.code} <Copy className="size-4 text-faint" aria-hidden />
                     </button>
                   }
-                  subtitle={`${c.uses} de ${c.max_uses} usos${c.expires_at ? ` · até ${formatDateShort(c.expires_at.slice(0, 10))}` : ''}${c.note ? ` · ${c.note}` : ''}`}
+                  subtitle={`${c.uses} de ${c.max_uses} usos${c.bank_access ? ' · libera banco' : ''}${c.expires_at ? ` · até ${formatDateShort(c.expires_at.slice(0, 10))}` : ''}${c.note ? ` · ${c.note}` : ''}`}
                   trailing={
                     <div className="flex items-center gap-2">
                       <button type="button" aria-label={`Apagar ${c.code}`} className="grid size-9 place-items-center rounded-full text-muted active:bg-surface-2" onClick={() => setRemoving(c)}>
@@ -207,6 +207,7 @@ function NewCodeSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const [code, setCode] = useState(randomBetaCode)
   const [note, setNote] = useState('')
   const [uses, setUses] = useState('20')
+  const [bank, setBank] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function onSubmit(e: FormEvent) {
@@ -217,10 +218,11 @@ function NewCodeSheet({ open, onClose }: { open: boolean; onClose: () => void })
     if (!Number.isInteger(max) || max < 1 || max > 10000) return setError('Quantidade de usos: de 1 a 10.000.')
     setError(null)
     try {
-      await createCode.mutateAsync({ code: normalized, note: note.trim() || null, max_uses: max })
+      await createCode.mutateAsync({ code: normalized, note: note.trim() || null, max_uses: max, bank_access: bank })
       toast((await copyText(normalized)) ? 'Código criado e copiado' : 'Código criado')
       setCode(randomBetaCode())
       setNote('')
+      setBank(false)
       onClose()
     } catch (err) {
       setError(/duplicate|already exists/i.test(String((err as Error).message)) ? 'Esse código já existe.' : friendlyError(err))
@@ -234,6 +236,9 @@ function NewCodeSheet({ open, onClose }: { open: boolean; onClose: () => void })
         <Field label="Código" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" spellCheck={false} hint="Gerado ao acaso. Pode trocar por algo fácil, como AMIGOS-2026." />
         <Field label="Para quem (opcional)" placeholder="ex.: turma da faculdade" value={note} onChange={(e) => setNote(e.target.value)} maxLength={80} />
         <Field label="Quantas pessoas podem usar" inputMode="numeric" value={uses} onChange={(e) => setUses(e.target.value)} />
+        <List footer="Quem entrar com este código pode conectar o próprio banco pelo Meu Pluggy. Use só para pessoas de confiança (ex.: o sócio): no beta, a conexão usa as suas chaves da Pluggy, e o Meu Pluggy aceita até 5 bancos conectados.">
+          <Row title="Libera banco conectado" trailing={<Switch label="Libera banco conectado" checked={bank} onChange={setBank} />} />
+        </List>
         <Button type="submit" loading={createCode.isPending}>
           Criar e copiar
         </Button>

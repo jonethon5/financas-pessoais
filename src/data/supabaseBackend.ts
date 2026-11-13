@@ -136,9 +136,9 @@ export const supabaseBackend: Backend = {
     async codes() {
       return check(await supabase.from('beta_codes').select('*').order('created_at', { ascending: false })) as BetaCode[]
     },
-    async createCode({ code, note, max_uses }) {
+    async createCode({ code, note, max_uses, bank_access = false }) {
       const created_by = await uid()
-      check(await supabase.from('beta_codes').insert({ code, note, max_uses, created_by }))
+      check(await supabase.from('beta_codes').insert({ code, note, max_uses, bank_access, created_by }))
     },
     async setCodeActive(code, active) {
       check(await supabase.from('beta_codes').update({ active }).eq('code', code))

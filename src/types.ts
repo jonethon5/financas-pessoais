@@ -58,6 +58,8 @@ export type BetaCode = {
   uses: number
   expires_at: string | null
   active: boolean
+  /** quem entra com este código pode conectar banco no beta */
+  bank_access?: boolean
   created_at: string
 }
 

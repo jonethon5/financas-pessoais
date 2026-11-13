@@ -106,7 +106,8 @@ export function useBankAutoSync(onImported: (n: number) => void) {
   const conns = useTable('bank_connections')
   const qc = useQueryClient()
   useEffect(() => {
-    if (mode !== 'supabase' || !profile.data?.is_admin || !conns.data?.length) return
+    // Quem tem conexão (o administrador ou quem recebeu convite com banco); o servidor confere a permissão
+    if (mode !== 'supabase' || !profile.data || !conns.data?.length) return
     const stale = conns.data.some((c) => !c.last_sync_at || Date.now() - Date.parse(c.last_sync_at) > 6 * 3600_000)
     if (!stale) return
     let alive = true
@@ -121,7 +122,7 @@ export function useBankAutoSync(onImported: (n: number) => void) {
       alive = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, profile.data?.is_admin, conns.data?.length])
+  }, [mode, Boolean(profile.data), conns.data?.length])
 }
 
 /**

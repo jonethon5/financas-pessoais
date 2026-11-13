@@ -100,7 +100,7 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
       else await b.remove('transactions', [id])
     })
     // Com banco conectado: o salário que veio do extrato passa a contar como salário (sem duplicar)
-    if (mode === 'supabase' && next.is_admin) await callFunction('bank-sync', { action: 'reconcile' }).catch(() => undefined)
+    if (mode === 'supabase') await callFunction('bank-sync', { action: 'reconcile' }).catch(() => undefined)
   }
   const { email, mode, configured, signOut } = useAuth()
   const [sheet, setSheet] = useState<SheetName>(null)

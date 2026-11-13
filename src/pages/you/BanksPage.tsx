@@ -257,7 +257,7 @@ export function BanksPage() {
         {!configured ? (
           <Notice tone="warn">A conexão ainda não foi ligada: faltam as chaves da Pluggy (PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET) nos secrets. O passo a passo está no README.</Notice>
         ) : !allowed ? (
-          <Notice>No beta, a conexão com o banco está disponível só para a conta de administrador. Em breve para todos.</Notice>
+          <Notice>No beta, a conexão com o banco está liberada só para quem recebeu um convite com banco. Em breve para todos.</Notice>
         ) : (
           <>
             {(conns.data ?? []).length === 0 ? (
@@ -326,49 +326,106 @@ function ConnectForm({ inst, onDone }: { inst: Institution; onDone: () => void }
   const [itemId, setItemId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState<string | null>(null)
 
-  async function submit(e: FormEvent) {
-    e.preventDefault()
+  /** Liga a conexão no app. Logo depois de autorizar, o Meu Pluggy ainda pode estar buscando: tenta de novo por até 1 minuto. */
+  async function connect(id: string) {
     setError(null)
     setLoading(true)
     try {
-      const r = await callFunction<{ imported: number; matched: number; accounts: number }>('bank-sync', { action: 'connect', itemId, label })
-      await qc.invalidateQueries({ queryKey: ['t'] })
-      toast(`${label} conectado: ${r.accounts} ${r.accounts === 1 ? 'conta' : 'contas'}, ${r.imported} lançamentos`)
-      onDone()
+      for (let tryNo = 0; ; tryNo++) {
+        try {
+          setStep(tryNo ? 'O Meu Pluggy ainda está buscando os dados do banco…' : 'Buscando contas e lançamentos…')
+          const r = await callFunction<{ imported: number; matched: number; accounts: number }>('bank-sync', { action: 'connect', itemId: id, label })
+          await qc.invalidateQueries({ queryKey: ['t'] })
+          toast(`${label} conectado: ${r.accounts} ${r.accounts === 1 ? 'conta' : 'contas'}, ${r.imported} lançamentos`)
+          onDone()
+          return
+        } catch (err) {
+          if (tryNo < 6 && /ainda está buscando/.test(friendlyError(err))) {
+            await new Promise((ok) => setTimeout(ok, 10_000))
+            continue
+          }
+          throw err
+        }
+      }
     } catch (err) {
       setError(friendlyError(err))
     } finally {
       setLoading(false)
+      setStep(null)
     }
+  }
+
+  /** Abre a janela da Pluggy: a pessoa entra com a conta dela do Meu Pluggy e escolhe os bancos. */
+  async function openPluggy() {
+    setError(null)
+    setLoading(true)
+    setStep('Abrindo a Pluggy…')
+    try {
+      const [{ accessToken, connectorId }, { PluggyConnect }] = await Promise.all([
+        callFunction<{ accessToken: string; connectorId: number }>('bank-sync', { action: 'connect_token' }),
+        import('pluggy-connect-sdk'),
+      ])
+      let created: string | null = null
+      const widget = new PluggyConnect({
+        connectToken: accessToken,
+        connectorIds: [connectorId],
+        language: 'pt',
+        onSuccess: (data: { item: { id: string } }) => {
+          created = data.item.id
+        },
+        onError: (e: { message: string }) => setError(`A Pluggy não conseguiu conectar: ${e.message}`),
+        onClose: () => {
+          if (created) void connect(created)
+          else {
+            setLoading(false)
+            setStep(null)
+          }
+        },
+      })
+      await widget.init()
+    } catch (err) {
+      setError(friendlyError(err))
+      setLoading(false)
+      setStep(null)
+    }
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    void connect(itemId)
   }
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <BankLogo inst={inst} />
-        <p className="leading-snug text-muted">Conecte o {inst.name} no Meu Pluggy e cole aqui o código da conexão.</p>
+        <p className="leading-snug text-muted">A conexão passa pelo Meu Pluggy (grátis). Se ainda não tem, crie a conta em <strong className="text-ink">meu.pluggy.ai</strong> e conecte o {inst.name} por lá primeiro.</p>
       </div>
-      <ol className="list-decimal space-y-1.5 pl-5 text-[0.9375rem] leading-snug text-muted">
-        <li>
-          Em <strong className="text-ink">meu.pluggy.ai</strong>, conecte o {inst.name} (autoriza no app do banco).
-        </li>
-        <li>
-          No painel <strong className="text-ink">dashboard.pluggy.ai</strong>: sua aplicação › Demo › Connect Account › escolha <strong className="text-ink">MeuPluggy</strong>.
-        </li>
-        <li>
-          Em “Connected Items”, toque no item › <strong className="text-ink">Copiar Item ID</strong> e cole abaixo.
-        </li>
-      </ol>
       {error && <ErrorBox message={error} />}
-      <Field label="Nome" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={40} placeholder="ex.: Nubank" />
-      <Field label="Item ID" value={itemId} onChange={(e) => setItemId(e.target.value.trim())} autoCapitalize="none" spellCheck={false} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-      <Button type="submit" loading={loading} disabled={itemId.length < 30}>
-        Conectar e buscar lançamentos
+      <Field label="Nome no app" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={40} placeholder="ex.: Nubank" />
+      <Button onClick={openPluggy} loading={loading}>
+        Entrar com o Meu Pluggy
       </Button>
-      <p className="text-center text-[0.8125rem] leading-snug text-muted">
-        Na primeira vez o app busca os últimos 3 meses. Se este banco está no mesmo Meu Pluggy de uma conexão que você já tem aqui, o Item ID é o mesmo: basta tocar em “Atualizar agora” que as contas novas aparecem.
-      </p>
+      {step && <p className="-mt-2 text-center text-[0.875rem] text-muted" aria-live="polite">{step}</p>}
+      <ol className="list-decimal space-y-1.5 pl-5 text-[0.9375rem] leading-snug text-muted">
+        <li>Na janela da Pluggy, entre com o e-mail da sua conta do Meu Pluggy.</li>
+        <li>
+          Marque o banco (um por vez) e toque em <strong className="text-ink">Autorizar</strong>.
+        </li>
+        <li>Feche a janela: o app busca os últimos 3 meses sozinho.</li>
+      </ol>
+      <details className="rounded-[1rem] bg-surface px-4 py-3">
+        <summary className="cursor-pointer text-[0.9375rem] font-semibold">Já tenho o código da conexão (Item ID)</summary>
+        <div className="mt-3 flex flex-col gap-3">
+          <Field label="Item ID" value={itemId} onChange={(e) => setItemId(e.target.value.trim())} autoCapitalize="none" spellCheck={false} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+          <Button type="submit" variant="secondary" loading={loading} disabled={itemId.length < 30}>
+            Conectar com o código
+          </Button>
+        </div>
+      </details>
+      <p className="text-center text-[0.8125rem] leading-snug text-muted">Cada banco é uma conexão. Para o segundo banco, toque em “Conectar outro” e repita.</p>
     </form>
   )
 }

@@ -9,7 +9,7 @@ export type FeedbackInput = {
   screenshot?: Blob | null
 }
 
-export type NewBetaCode = { code: string; note: string | null; max_uses: number }
+export type NewBetaCode = { code: string; note: string | null; max_uses: number; bank_access?: boolean }
 
 /** Filtros simples, iguais no Supabase e na demonstração. */
 export type ListQuery = {
