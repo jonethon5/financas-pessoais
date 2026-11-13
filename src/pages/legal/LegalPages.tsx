@@ -126,7 +126,7 @@ export function PrivacyPage() {
       <ul>
         <li>Fazer o app funcionar: cálculos, metas, avisos e o seu histórico (execução do serviço que você pediu).</li>
         <li>Melhorar o app durante o beta, a partir das sugestões e problemas relatados (legítimo interesse).</li>
-        <li>Enviar notificações e usar o assistente de IA, somente se você ligar essas funções (consentimento).</li>
+        <li>Enviar notificações, somente se você ligar essa função (consentimento).</li>
         <li>Manter a segurança da conta, como confirmar o e-mail e trocar a senha.</li>
       </ul>
       <p>Não vendemos seus dados, não usamos para propaganda e não compartilhamos com anunciantes.</p>
@@ -138,18 +138,21 @@ export function PrivacyPage() {
         app é hospedado no GitHub Pages, e os e-mails de confirmação e de nova senha são enviados por um provedor de e-mail.
       </p>
 
-      <h2>5. Assistente de IA</h2>
+      <h2>5. Conexão com o banco e serviços de terceiros</h2>
       <p>
-        Quando você usa o assistente, o app manda para o Google Gemini só um resumo dos números necessários para a resposta (totais,
-        categorias e metas), sem seu nome, e-mail ou foto. No plano gratuito do Gemini, o Google pode usar esse conteúdo para melhorar os
-        produtos dele. Se preferir, simplesmente não use o assistente.
+        Se você conectar um banco, a leitura é feita pelo Open Finance por meio da Pluggy, só com a sua autorização e só para leitura: o
+        app recebe saldos e lançamentos, mas não consegue movimentar dinheiro. Você pode desconectar quando quiser.
+      </p>
+      <p>
+        Para mostrar o logo das empresas no extrato (ex.: Uber, iFood), o app busca o ícone no serviço do DuckDuckGo, que recebe só o
+        site da empresa, nunca os seus dados. O app não usa inteligência artificial no momento; se isso mudar, você será avisado antes.
       </p>
 
       <h2>6. Seus direitos</h2>
       <ul>
         <li>Ver e corrigir seus dados a qualquer momento no próprio app.</li>
         <li>Exportar seus lançamentos para planilha.</li>
-        <li>Desligar notificações e deixar de usar o assistente quando quiser.</li>
+        <li>Desligar notificações e desconectar bancos quando quiser.</li>
         <li>Excluir a conta em <strong>Você › Excluir conta</strong>: login, perfil, lançamentos, caixinhas, fotos e sugestões são apagados na hora.</li>
         <li>Pedir informações sobre o uso dos seus dados <Contact />.</li>
       </ul>

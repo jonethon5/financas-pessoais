@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, EyeSlash, Flame, Heart, Heartbeat, Hourglass, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon, Crown } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
+import { AI_ENABLED } from '../lib/features'
 import { TxIcon } from '../components/TxIcon'
 import { Wallet } from '../components/Wallet'
 import { FromAccount } from '../components/FromAccount'
@@ -41,7 +42,7 @@ const HOME_TOUR: TourStep[] = [
   { target: 'hoje', title: 'Quanto você pode gastar hoje', text: 'O número mais importante: já desconta as contas fixas e o que você vai guardar. Gastou menos hoje? Sobra mais amanhã.' },
   { target: 'mais', title: 'Lance em 2 toques', text: 'Toque no + para lançar um gasto, uma renda ou guardar dinheiro numa caixinha.' },
   { target: 'porquinho', title: 'Esse sou eu!', text: 'Cada meta do dia vale moedas para eu ganhar roupinhas. Guardou o que combinou? Eu fico gordinho.' },
-  { target: 'atalhos', title: 'Atalhos', text: 'Aprender, Assistente, Saúde financeira e mais, a um toque.' },
+  { target: 'atalhos', title: 'Atalhos', text: 'Aprender, Saúde financeira, Desafios e mais, a um toque.' },
   { target: 'menu', title: 'Tudo do app', text: 'No menu você encontra todas as telas: cartões, caixinhas, gráficos e ajustes.' },
   { target: 'aba-graficos', title: 'Seus gráficos', text: 'Veja para onde foi o dinheiro e como o mês deve fechar.' },
 ]
@@ -49,7 +50,7 @@ const HOME_TOUR: TourStep[] = [
 // Atalhos: o que o "+" não tem (lançar e guardar ficam no "+")
 const SHORTCUTS: { to: string; label: string; icon: PhosphorIcon }[] = [
   { to: '/aprender', label: 'Aprender', icon: BookOpenText },
-  { to: '/assistente', label: 'Assistente', icon: ChatCircleDots },
+  ...(AI_ENABLED ? [{ to: '/assistente', label: 'Assistente', icon: ChatCircleDots }] : []),
   { to: '/saude', label: 'Saúde', icon: Heartbeat },
   { to: '/separar', label: 'Separar', icon: SplitHorizontal },
   { to: '/revisao', label: 'Revisão', icon: CalendarCheck },
@@ -215,7 +216,7 @@ export function HomePage() {
   slides.push({ id: 'dica', to: `/aprender/${lesson.id}`, kicker: 'Aprenda em 2 minutos', title: lesson.title, text: lesson.short, icon: BookOpenText, from: '#2F6FEB', to2: '#163A8A', art: 'modo-moderado', cta: 'Ler agora' })
   if ((mode === 'demo' || p.is_admin) && !(bankAccounts.data ?? []).length) slides.push({ id: 'banco', to: '/voce/bancos', kicker: 'Mais fácil', title: 'Conecte seu banco', text: 'Seus gastos entram sozinhos, só leitura.', icon: Bank, from: '#0E9AA7', to2: '#0A4A52', art: 'tela-conexao', cta: 'Conectar' })
   // Prévia do plano pago (ainda não existe cobrança): serve para ver como o cartão fica e medir o interesse
-  slides.push({ id: 'premium', to: '/premium', kicker: `${APP_NAME} Premium`, title: 'Tudo no automático', text: 'Banco conectado, assistente sem limite e roupas exclusivas.', icon: Crown, from: '#1B2F5E', to2: '#0E1830', art: 'loja-terno', cta: 'Conhecer', badge: 'Em breve' })
+  slides.push({ id: 'premium', to: '/premium', kicker: `${APP_NAME} Premium`, title: 'Tudo no automático', text: 'Bancos e cartões entrando sozinhos e roupas exclusivas.', icon: Crown, from: '#1B2F5E', to2: '#0E1830', art: 'loja-terno', cta: 'Conhecer', badge: 'Em breve' })
   // Ordem: o porquê da pessoa, a lição do dia (ajuda financeira em primeiro lugar), depois o resto
   const ORDER = ['porque', 'dica', 'futuro', 'assinaturas', 'desafio', 'banco', 'premium']
   slides.sort((x, y) => ORDER.indexOf(x.id) - ORDER.indexOf(y.id))

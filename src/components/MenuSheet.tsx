@@ -3,6 +3,7 @@ import {
   Bank, BookOpenText, Brain, ChartBar, Heartbeat, CalendarCheck, ChartDonut, ChatCircleText, CoinVertical, CreditCard, GearSix, Hourglass, UserCircle, ListBullets, PiggyBank, Repeat,
   Tag, TrendUp, Trophy, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
+import { AI_ENABLED } from '../lib/features'
 import { Sheet } from './Sheet'
 
 type Item = { label: string; icon: PhosphorIcon; to?: string; soon?: boolean }
@@ -24,7 +25,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: 'Hábitos e dicas',
     items: [
-      { label: 'Assistente', icon: Brain, to: '/assistente' },
+      ...(AI_ENABLED ? [{ label: 'Assistente', icon: Brain, to: '/assistente' }] : []),
       { label: 'Porquinho e loja', icon: PiggyBank, to: '/porquinho' },
       { label: 'Aprender', icon: BookOpenText, to: '/aprender' },
       { label: 'Desafios', icon: Trophy, to: '/habitos' },

@@ -10,7 +10,7 @@ import { friendlyError } from '../lib/supabase'
 
 const PERKS: { icon: PhosphorIcon; title: string; text: string }[] = [
   { icon: Bank, title: 'Banco conectado', text: 'Gastos da conta e do cartão entram sozinhos, já com categoria.' },
-  { icon: Sparkle, title: 'Assistente sem limite', text: 'Pergunte quantas vezes quiser: plano de corte, compra grande, dívida.' },
+  { icon: Sparkle, title: 'Até 3 bancos', text: 'Conta e cartão de mais de um banco no mesmo lugar, com o painel de cada um.' },
   { icon: ChartBar, title: 'Histórico de 12 meses', text: 'Gráficos do ano inteiro e relatório para baixar.' },
   { icon: TShirt, title: 'Roupas exclusivas', text: 'Peças que só quem assina tem na lojinha do mascote.' },
 ]

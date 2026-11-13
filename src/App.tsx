@@ -15,6 +15,7 @@ import { HabitsPage } from './pages/HabitsPage'
 import { LearnPage, LessonPage } from './pages/LearnPages'
 import { HealthPage } from './pages/HealthPage'
 import { AssistantPage } from './pages/AssistantPage'
+import { AI_ENABLED } from './lib/features'
 import { PigPage } from './pages/PigPage'
 import { ChartsPage } from './pages/ChartsPage'
 import { StatementPage } from './pages/StatementPage'
@@ -84,7 +85,7 @@ function LoggedIn() {
         <Route path="habitos" element={<HabitsPage />} />
         <Route path="aprender" element={<LearnPage />} />
         <Route path="saude" element={<HealthPage />} />
-        <Route path="assistente" element={<AssistantPage />} />
+        <Route path="assistente" element={AI_ENABLED ? <AssistantPage /> : <Navigate to="/" replace />} />
         <Route path="porquinho" element={<PigPage />} />
         <Route path="graficos" element={<ChartsPage />} />
         <Route path="extrato" element={<StatementPage />} />

@@ -13,7 +13,7 @@ export const HELP: HelpGroup[] = [
     title: 'Começando',
     items: [
       { q: `Para que serve o ${APP_NAME}?`, a: `Para ajudar você a organizar o dinheiro do mês, gastar sem culpa o que pode e guardar um pouco por vez. As dicas seguem o que os estudos mostram que funciona, e o ${MASCOT_NAME} acompanha você. Não é um banco: o app não guarda nem movimenta seu dinheiro.` },
-      { q: 'O app é de graça?', a: 'Sim. Lançar gastos, acompanhar o mês, caixinhas, gráficos, extrato e dicas são de graça. Um plano Premium está sendo preparado (banco conectado para todos, assistente sem limite e roupas exclusivas para o mascote), mas ainda não existe cobrança.', to: { label: 'Ver a prévia do Premium', path: '/premium' } },
+      { q: 'O app é de graça?', a: 'Sim. Lançar gastos, acompanhar o mês, caixinhas, gráficos, extrato e dicas são de graça. Um plano Premium está sendo preparado (bancos e cartões conectados para todos e roupas exclusivas para o mascote), mas ainda não existe cobrança.', to: { label: 'Ver a prévia do Premium', path: '/premium' } },
       { q: 'Como instalo o app no celular?', a: 'No Android, abra o site no Chrome, toque nos três pontinhos e em "Instalar app" (ou "Adicionar à tela inicial"). No iPhone, abra no Safari, toque em Compartilhar e em "Adicionar à Tela de Início". Ele abre como um app normal.' },
       { q: 'O que é o modo demonstração?', a: 'É o app com dados de exemplo, para conhecer sem criar conta. Tudo fica só no seu aparelho. Para usar com seus dados de verdade, toque em "Criar conta" no topo.' },
       { q: 'Como vejo o guia das telas de novo?', a: `Em Ajustes, toque em "Ver o guia do app de novo". O ${MASCOT_NAME} volta a explicar cada tela na primeira vez que você abrir.`, to: { label: 'Abrir os ajustes', path: '/ajustes' } },
@@ -102,14 +102,6 @@ export const HELP: HelpGroup[] = [
       { q: `Quem é o ${MASCOT_NAME}?`, a: 'O mascote que dá as dicas. Ele engorda conforme você chega perto da meta que você mesmo definiu, comemora com você e fica tristinho quando o mês aperta, mas nunca morre.' },
       { q: 'Como ganho moedas?', a: 'Cumprindo as metas do dia (lançar os gastos, ficar dentro do valor do dia, guardar). Com as moedas você compra roupas para o mascote na lojinha.', to: { label: 'Abrir o porquinho', path: '/porquinho' } },
       { q: 'O que muda nos modos suave, equilibrado e agressivo?', a: 'O jeito das dicas. Suave: gentil, sem pressão. Equilibrado: direto, com números e prazos realistas. Agressivo: cortes fortes para chegar mais rápido. Troque em Ajustes › Porquinho e dicas.' },
-    ],
-  },
-  {
-    id: 'assistente',
-    title: 'Assistente',
-    items: [
-      { q: 'O que o assistente faz?', a: 'Responde dúvidas sobre o seu mês usando os seus números: se cabe uma compra, um plano para cortar gastos, como sair de uma dívida. As contas são feitas pelo app; a inteligência artificial só escreve a explicação.', to: { label: 'Abrir o assistente', path: '/assistente' } },
-      { q: 'Tem limite de perguntas?', a: 'Sim, até 20 perguntas por dia, para manter o app de graça. Quando a inteligência artificial não está disponível, o assistente responde com as contas prontas do app.' },
     ],
   },
   {
