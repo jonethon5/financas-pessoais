@@ -1,20 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
+import { INTERNAL_REASON, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
 
 const tx = (p: Partial<PluggyTx>): PluggyTx => ({ id: 'abc', description: 'Compra', amount: -10, date: '2026-11-04T00:00:00.000Z', ...p })
 
 describe('conta corrente', () => {
-  it('saída vira gasto do dia a dia, entrada vira renda', () => {
+  it('saída vira gasto do dia a dia, entrada vira renda; a descrição fica igual à do banco', () => {
     expect(mapTransaction(tx({ description: 'IFOOD *RESTAURANTE', amount: -42.9 }), 'BANK')).toMatchObject({
-      external_id: 'pluggy:abc', kind: 'expense', type: 'dia', amount_cents: 4290, date: '2026-11-04', description: 'Ifood Restaurante', categoryHint: 'Delivery',
+      external_id: 'pluggy:abc', kind: 'expense', type: 'dia', amount_cents: 4290, date: '2026-11-04', description: 'IFOOD *RESTAURANTE', categoryHint: 'Delivery', internal: null, own: false,
     })
-    expect(mapTransaction(tx({ description: 'Pix recebido Maria', amount: 150 }), 'BANK')).toMatchObject({ kind: 'income', type: 'extra', amount_cents: 15000, categoryHint: 'Renda extra' })
+    expect(mapTransaction(tx({ description: 'Transferência Recebida|MARIA  SOUZA', amount: 150 }), 'BANK')).toMatchObject({ kind: 'income', type: 'extra', amount_cents: 15000, description: 'Transferência Recebida|MARIA SOUZA', categoryHint: 'Renda extra' })
   })
-  it('ignora pagamento de fatura e caixinhas do banco (não conta duas vezes)', () => {
-    expect(mapTransaction(tx({ description: 'Pagamento de fatura', amount: -1200 }), 'BANK')).toBeNull()
-    expect(mapTransaction(tx({ description: 'Aplicação RDB', amount: -300 }), 'BANK')).toBeNull()
-    expect(mapTransaction(tx({ description: 'Resgate RDB', amount: 300 }), 'BANK')).toBeNull()
-    expect(mapTransaction(tx({ description: 'Pagamento', amount: -900, operationType: 'PAGAMENTO_FATURA' }), 'BANK')).toBeNull()
+  it('fatura, caixinha, resgate e aplicação aparecem no extrato, marcados como "não conta" (nada é descartado)', () => {
+    expect(mapTransaction(tx({ description: 'Pagamento de fatura', amount: -1200 }), 'BANK')).toMatchObject({ kind: 'expense', internal: INTERNAL_REASON.bill })
+    expect(mapTransaction(tx({ description: 'Pagamento', amount: -900, operationType: 'PAGAMENTO_FATURA' }), 'BANK')).toMatchObject({ internal: INTERNAL_REASON.bill })
+    // Do jeito que o Nubank manda: "Resgate RDB" e "Aplicação RDB", com a operação RESGATE_APLIC_FINANCEIRA
+    expect(mapTransaction(tx({ description: 'Resgate RDB', amount: 10, operationType: 'RESGATE_APLIC_FINANCEIRA' }), 'BANK')).toMatchObject({ kind: 'income', amount_cents: 1000, internal: INTERNAL_REASON.savings })
+    expect(mapTransaction(tx({ description: 'Aplicação RDB', amount: -300, operationType: 'RESGATE_APLIC_FINANCEIRA' }), 'BANK')).toMatchObject({ kind: 'expense', internal: INTERNAL_REASON.savings })
+    expect(countsInMonth({ kind: 'income', own: false, description: 'Resgate RDB', internal: INTERNAL_REASON.savings }, new Set([countKey('Resgate RDB')]))).toBe(false)
+    expect(mapTransaction(tx({ amount: 0 }), 'BANK')).toBeNull()
   })
 })
 
@@ -63,10 +66,10 @@ describe('o que conta no mês', () => {
 })
 
 describe('cartão de crédito', () => {
-  it('compra vira gasto; pagamento e estorno são ignorados', () => {
-    expect(mapTransaction(tx({ description: 'UBER *TRIP', amount: 18.4 }), 'CREDIT')).toMatchObject({ kind: 'expense', type: 'dia', amount_cents: 1840, categoryHint: 'Transporte' })
-    expect(mapTransaction(tx({ description: 'Pagamento recebido', amount: -500 }), 'CREDIT')).toBeNull()
-    expect(mapTransaction(tx({ description: 'Estorno loja', amount: -30 }), 'CREDIT')).toBeNull()
+  it('compra vira gasto; pagamento e estorno aparecem como entrada que não conta', () => {
+    expect(mapTransaction(tx({ description: 'UBER *TRIP', amount: 18.4 }), 'CREDIT')).toMatchObject({ kind: 'expense', type: 'dia', amount_cents: 1840, categoryHint: 'Transporte', internal: null })
+    expect(mapTransaction(tx({ description: 'Pagamento recebido', amount: -500 }), 'CREDIT')).toMatchObject({ kind: 'income', internal: INTERNAL_REASON.bill })
+    expect(mapTransaction(tx({ description: 'Estorno loja', amount: -30 }), 'CREDIT')).toMatchObject({ kind: 'income', internal: INTERNAL_REASON.refund })
   })
   it('parcela da compra vira "3/10" e as parcelas da mesma compra se juntam', () => {
     const m = mapTransaction(tx({ description: 'MAGAZINE LUIZA', amount: 150, creditCardMetadata: { installmentNumber: 3, totalInstallments: 10, purchaseDate: '2026-09-02T00:00:00Z' } }), 'CREDIT')
@@ -87,6 +90,9 @@ describe('categorias', () => {
     expect(learnKey('Pão de Açúcar 123')).toBe('pao acucar')
     expect(learnKey('Pix para Maria Aparecida Coutinho')).toBe('maria aparecida')
     expect(learnKey('Pix para Caren Coutinho')).not.toBe(learnKey('Pix para Maria Aparecida Coutinho'))
+    // formato do banco "tipo|quem": a chave é de quem, e é a mesma da versão antiga já limpa
+    expect(learnKey('Transferência enviada pelo Pix|MARIA APARECIDA COUTINHO')).toBe('maria aparecida')
+    expect(learnKey('Transferência Recebida|JOÃO DA SILVA')).toBe(learnKey('Pix de João da Silva'))
   })
   it('limpa a descrição (inclusive o formato do Nubank "tipo|quem")', () => {
     expect(cleanDescription('  PAGTO   CONTA VIVO ')).toBe('Pagto Conta Vivo')
@@ -132,6 +138,15 @@ describe('sem duplicar com o que o app já lança sozinho', () => {
     // parcela e entrada não se juntam com gasto lançado à mão
     expect(findManualMatch({ ...buy, type: 'parcela' }, manual)).toBeNull()
     expect(findManualMatch({ ...buy, kind: 'income', type: 'extra' }, manual)).toBeNull()
+  })
+  it('compra que sumiu do banco e voltou com outro id é reconhecida (não duplica)', () => {
+    const gone = [
+      { id: 'x', kind: 'expense', amount_cents: 5990, date: '2026-11-03' },
+      { id: 'y', kind: 'income', amount_cents: 5990, date: '2026-11-03' },
+    ]
+    expect(findVanished({ kind: 'expense', amount_cents: 5990, date: '2026-11-05' }, gone)?.id).toBe('x')
+    expect(findVanished({ kind: 'expense', amount_cents: 5990, date: '2026-11-10' }, gone)).toBeNull()
+    expect(findVanished({ kind: 'expense', amount_cents: 6000, date: '2026-11-03' }, gone)).toBeNull()
   })
   it('acha o fixo em aberto que o gasto está pagando', () => {
     const fixed = [

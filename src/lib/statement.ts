@@ -9,6 +9,22 @@ const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 const plain = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 // ---------------------------------------------------------------------------
+// Texto do lançamento
+// ---------------------------------------------------------------------------
+
+/**
+ * O banco manda "tipo|quem" (ex.: "Transferência enviada pelo Pix|MARIA SOUZA"). Na tela, quem vira o título
+ * e o tipo vai embaixo, como no app do banco. O texto guardado continua igual ao do banco.
+ */
+export function txText(description: string): { title: string; detail: string | null } {
+  const i = description.indexOf('|')
+  if (i < 0) return { title: description, detail: null }
+  const head = description.slice(0, i).trim()
+  const who = description.slice(i + 1).trim()
+  return who ? { title: who, detail: head || null } : { title: head || description, detail: null }
+}
+
+// ---------------------------------------------------------------------------
 // Como foi pago
 // ---------------------------------------------------------------------------
 
@@ -20,7 +36,7 @@ export function methodOf(t: Pick<Transaction, 'bank_account_id' | 'description'>
   const account = accounts.find((a) => a.id === t.bank_account_id)
   if (!account) return 'manual'
   if (account.type === 'CREDIT') return 'credito'
-  return /^(pix|transfer)/i.test(t.description) ? 'pix' : 'debito'
+  return /pix|transfer/i.test(txText(t.description).detail ?? t.description) ? 'pix' : 'debito'
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +84,7 @@ export function statementCSV(txs: Transaction[], categories: Category[], account
     lines.push(
       [
         brDate(t.date),
-        `${t.description}${t.installment_no ? ` ${t.installment_no}/${t.installment_total}` : ''}`,
+        `${txText(t.description).title}${t.installment_no ? ` ${t.installment_no}/${t.installment_total}` : ''}`,
         cat.get(t.category_id ?? '') ?? '',
         t.kind === 'income' ? 'Entrada' : 'Gasto',
         METHOD_LABEL[methodOf(t, accounts)],
@@ -115,7 +131,7 @@ const SMALL_CENTS = 3000
 
 /** Junta o mesmo lugar: tira números e códigos do fim ("Uber Trip 8842" e "Uber Trip 1120" viram "Uber Trip"). */
 const placeKey = (description: string) =>
-  plain(description)
+  plain(txText(description).title)
     .replace(/[^a-z ]+/g, ' ')
     .split(' ')
     .filter((w) => w.length > 1)
@@ -130,7 +146,7 @@ export function insights(txs: Transaction[]): Insights {
   const places = new Map<string, { name: string; cents: number; count: number }>()
   for (const t of spends) {
     const key = placeKey(t.description) || plain(t.description)
-    const p = places.get(key) ?? { name: t.description, cents: 0, count: 0 }
+    const p = places.get(key) ?? { name: txText(t.description).title, cents: 0, count: 0 }
     p.cents += t.amount_cents
     p.count++
     places.set(key, p)
@@ -157,7 +173,7 @@ export function insights(txs: Transaction[]): Insights {
     spent,
     count: spends.length,
     ticket: spends.length ? Math.round(spent / spends.length) : 0,
-    biggest: top ? { description: top.description, cents: top.amount_cents, date: top.date } : null,
+    biggest: top ? { description: txText(top.description).title, cents: top.amount_cents, date: top.date } : null,
     topPlaces: [...places.values()].sort((a, b) => b.cents - a.cents).slice(0, 5),
     weekdays,
     topWeekday: best && best.cents > 0 ? { label: best.label, cents: best.cents, share: spent ? best.cents / spent : 0 } : null,

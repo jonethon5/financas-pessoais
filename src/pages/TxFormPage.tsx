@@ -16,6 +16,7 @@ import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite 
 import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
 import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
+import { txText } from '../lib/statement'
 import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, relativeDay, todayISO } from '../lib/dates'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
@@ -76,6 +77,9 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   // Veio do banco: a pessoa decide se entra na conta do mês (entrada não conta sozinha; gasto conta)
   const fromBank = tx?.source === 'banco' && tx.type !== 'salario' && tx.type !== 'fixo'
   const [counts, setCounts] = useState(tx ? !tx.skipped : true)
+  // Regra: os próximos da mesma pessoa ou loja chegam na mesma categoria (ex.: o Pix mensal da pensão)
+  const [remember, setRemember] = useState(true)
+  const bankWho = tx?.source === 'banco' ? txText(tx.description).title : null
   // Fixo
   const [day, setDay] = useState(String(dayOf(today)))
   const [remind, setRemind] = useState(true)
@@ -164,7 +168,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             const pattern = income ? countKey(tx.description) : ignoreKey(tx.description)
             const teach = income ? counts : !counts
             const ruleCategory = categoryId ?? tx.category_id ?? cats[0]?.id ?? null
-            if (pattern && teach && ruleCategory) await b.upsert('category_rules', { pattern, category_id: ruleCategory }, 'user_id,pattern')
+            if (pattern && teach && remember && ruleCategory) await b.upsert('category_rules', { pattern, category_id: ruleCategory }, 'user_id,pattern')
             if (pattern && !teach) {
               const old = (await b.list('category_rules')).filter((r) => r.pattern === pattern)
               if (old.length) await b.remove('category_rules', old.map((r) => r.id))
@@ -177,7 +181,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           }
           await b.update('transactions', tx.id, patch)
           // Veio do banco e a categoria mudou: aprende para os próximos e corrige os parecidos
-          if (tx.source === 'banco' && categoryId && categoryId !== tx.category_id) {
+          if (tx.source === 'banco' && remember && categoryId && categoryId !== tx.category_id) {
             const key = learnKey(tx.description)
             if (key) {
               await b.upsert('category_rules', { pattern: key, category_id: categoryId }, 'user_id,pattern')
@@ -186,7 +190,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             }
           }
         })
-        const who = tx.description.replace(/^(Pix|Transferência) (de|para) /i, '')
+        const who = txText(tx.description).title.replace(/^(Pix|Transferência) (de|para) /i, '')
         toast(
           fromBank && counts === tx.skipped
             ? income
@@ -286,6 +290,11 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         {fromBank && (
           <List footer={income ? 'Sua renda do mês é o salário (em Você) mais o que você lançar. Dinheiro que entra na conta do banco só conta se você ligar aqui.' : 'Desligue se for dinheiro que só mudou de lugar (por exemplo, um Pix para outra conta sua).'}>
             <Row title={income ? 'Contar como renda do mês' : 'Contar como gasto do mês'} trailing={<Switch label={income ? 'Contar como renda do mês' : 'Contar como gasto do mês'} checked={counts} onChange={setCounts} />} />
+          </List>
+        )}
+        {tx?.source === 'banco' && bankWho && (
+          <List footer={remember ? `Ao mudar a categoria, os próximos lançamentos de ${bankWho} já chegam nela${income ? ' (e, se "Contar" estiver ligado, contando como renda)' : ''}. Os parecidos que já estão no app também mudam.` : 'Só este lançamento muda.'}>
+            <Row title={`Lembrar para os próximos de ${bankWho}`} trailing={<Switch label="Lembrar para os próximos" checked={remember} onChange={setRemember} />} />
           </List>
         )}
 

@@ -33,7 +33,7 @@ export function AccountRow({ a, label, to }: { a: BankAccount; label?: string; t
     <Row
       icon={<BankLogo inst={inst} credit={credit} size="sm" />}
       title={accountTitle(inst, a.type, a.name)}
-      subtitle={credit ? `Fatura atual${a.due_date ? ` · vence ${formatDateShort(a.due_date)}` : ''}${a.available_cents != null ? ` · limite livre ${formatBRLShort(a.available_cents)}` : ''}` : 'Saldo na conta'}
+      subtitle={credit ? `Fatura atual${a.due_date ? ` · vence ${formatDateShort(a.due_date)}` : ''}${a.available_cents != null ? ` · limite livre ${formatBRLShort(a.available_cents)}` : ''}` : a.type === 'INVESTMENT' ? 'Guardado ou investido' : `Saldo na conta${a.overdraft_used_cents ? ` · cheque especial usado ${formatBRLShort(a.overdraft_used_cents)}` : ''}`}
       trailing={a.balance_cents != null ? <Money cents={a.balance_cents} className="text-[1.0625rem] font-semibold" /> : <span className="text-muted">—</span>}
       chevron={Boolean(to)}
       as={
@@ -279,7 +279,7 @@ export function BanksPage() {
                   >
                     {c.status !== 'ok' && <Row title={<Badge tone="warn">{c.status === 'expirado' ? 'Autorização vencida' : 'Não atualizou'}</Badge>} />}
                     {(accounts.data ?? []).filter((a) => a.connection_id === c.id).map((a) => (
-                      <AccountRow key={a.id} a={a} label={c.label} to={`/voce/bancos/${a.id}`} />
+                      <AccountRow key={a.id} a={a} label={c.label} to={a.type === 'INVESTMENT' ? undefined : `/voce/bancos/${a.id}`} />
                     ))}
                   </List>
                 ))}

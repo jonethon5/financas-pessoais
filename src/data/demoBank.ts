@@ -46,6 +46,8 @@ export async function connectDemoBank(b: Backend, inst: Institution): Promise<{ 
   await b.insert('bank_accounts', [
     { id: bankId, connection_id: connId, external_id: `demo:${bankId}`, type: 'BANK', subtype: 'CHECKING_ACCOUNT', name: `${inst.name} conta`, balance_cents: money(80, 1900), credit_limit_cents: null, available_cents: null, due_date: null, close_date: null, updated_at: new Date().toISOString() },
     { id: cardId, connection_id: connId, external_id: `demo:${cardId}`, type: 'CREDIT', subtype: 'CREDIT_CARD', name: `${inst.name} cartão`, balance_cents: invoice, credit_limit_cents: limit, available_cents: Math.max(0, limit - invoice), due_date: due, close_date: addDaysISO(due, -7), updated_at: new Date().toISOString() },
+    // Dinheiro guardado no banco (caixinha): aparece separado do saldo da conta
+    { id: crypto.randomUUID(), connection_id: connId, external_id: `demo:inv:${connId}`, type: 'INVESTMENT', subtype: 'CDB', name: 'Caixinha Reserva', balance_cents: money(150, 900), credit_limit_cents: null, available_cents: null, due_date: null, close_date: null, updated_at: new Date().toISOString() },
   ])
 
   // Lançamentos dos últimos 12 dias (débito/Pix na conta e compras no cartão)
@@ -68,7 +70,7 @@ export async function connectDemoBank(b: Backend, inst: Institution): Promise<{ 
     paid: true, skipped: false, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: cardId,
   })
   rows.push({
-    kind: 'income' as const, type: 'extra' as const, amount_cents: money(50, 200), date: addDaysISO(today, -5), description: 'Pix de Maria',
+    kind: 'income' as const, type: 'extra' as const, amount_cents: money(50, 200), date: addDaysISO(today, -5), description: 'Transferência Recebida|MARIA SOUZA',
     category_id: catId('Renda extra'), recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null,
     // Como no app de verdade: dinheiro que entra na conta aparece no extrato, mas não vira renda sozinho
     paid: true, skipped: true, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: bankId,

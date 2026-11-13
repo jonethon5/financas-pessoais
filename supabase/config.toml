@@ -447,5 +447,8 @@ verify_jwt = false
 [functions.bank-sync]
 verify_jwt = false
 
+[functions.bank-webhook]
+verify_jwt = false
+
 [functions.ask]
 verify_jwt = false

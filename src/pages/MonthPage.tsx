@@ -2,6 +2,10 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryIcon } from '../components/CategoryIcon'
+import { TxIcon } from '../components/TxIcon'
+import { FromAccount } from '../components/FromAccount'
+import { useAccounts } from '../data/accounts'
+import { txText } from '../lib/statement'
 import { MascotArt } from '../components/Pig'
 import { Tour } from '../components/Tour'
 import { Sheet } from '../components/Sheet'
@@ -190,6 +194,7 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
   const out = txs.filter((t) => t.skipped && t.source === 'banco')
 
   const catOf = (id: string | null) => categories.find((c) => c.id === id)
+  const accounts = useAccounts()
   const incomes = live.filter((t) => t.kind === 'income')
   const fixed = live.filter((t) => t.type === 'fixo')
   const parcels = live.filter((t) => t.type === 'parcela')
@@ -199,9 +204,9 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
   const row = (t: MonthTx, subtitle?: ReactNode) => (
     <Row
       key={t.id}
-      icon={<CategoryIcon category={catOf(t.category_id)} size="sm" />}
-      title={`${t.description}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
-      subtitle={subtitle ?? catOf(t.category_id)?.name}
+      icon={<TxIcon description={t.description} category={catOf(t.category_id)} />}
+      title={`${txText(t.description).title}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
+      subtitle={subtitle ?? (t.bank_account_id ? <FromAccount info={accounts.byId(t.bank_account_id)} extra={catOf(t.category_id)?.name ?? null} /> : catOf(t.category_id)?.name)}
       trailing={<Money cents={t.amount_cents} className={`text-[1.0625rem] ${t.kind === 'income' ? 'text-primary-strong' : ''}`} />}
       as={t.virtual ? undefined : link(`/lancamento/${t.id}`)}
     />
@@ -222,17 +227,19 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
           </Button>
         </div>
       )}
-      <div className="grid grid-cols-3 gap-2.5">
-
+      {/* Os três números do mês: nome em cima, valor embaixo, todos na mesma linha e no mesmo alinhamento */}
+      <div className="shadow-soft grid grid-cols-3 divide-x divide-line rounded-[1.25rem] bg-surface py-3.5">
         {[
-          ['Entrou', s.income, ''],
+          ['Entrou', s.income, 'text-primary-strong'],
           ['Saiu', s.committed + s.daily, ''],
-          ['Sobra', s.free, s.free < 0 ? 'text-danger-strong' : 'text-primary-strong'],
+          ['Sobra', s.free, s.free < 0 ? 'text-danger-strong' : 'text-ink'],
         ].map(([label, cents, cls]) => (
-          <Card key={label as string} className="px-3 py-3">
-            <p className="text-[0.8125rem] text-muted">{label}</p>
-            <p className={`num text-[1.0625rem] font-semibold ${cls}`}>{formatBRL(cents as number)}</p>
-          </Card>
+          <div key={label as string} className="flex min-w-0 flex-col items-center gap-1 px-1.5 text-center">
+            <p className="text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">{label}</p>
+            <p className={`num w-full truncate text-[0.9375rem] leading-tight font-bold ${cls}`}>
+              <Money cents={cents as number} />
+            </p>
+          </div>
         ))}
       </div>
       {future && <p className="-mt-3 px-1 text-[0.875rem] text-muted">Mês que ainda não chegou: salário e fixos aparecem como previstos.</p>}

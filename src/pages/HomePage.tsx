@@ -2,12 +2,15 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, EyeSlash, Flame, Heart, Heartbeat, Hourglass, Repeat, SplitHorizontal, Sun, Target, Trophy, type Icon as PhosphorIcon, Crown } from '@phosphor-icons/react'
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
+import { TxIcon } from '../components/TxIcon'
+import { Wallet } from '../components/Wallet'
+import { FromAccount } from '../components/FromAccount'
+import { useAccounts } from '../data/accounts'
+import { txText } from '../lib/statement'
 import { APP_NAME } from '../brand'
 import { MenuButton } from '../components/MenuContext'
 import { Tour, type TourStep } from '../components/Tour'
 import { Reveal } from '../components/Reveal'
-import { BankLogo } from '../components/BankLogo'
-import { findInstitution } from '../lib/institutions'
 import { lessonOfDay } from '../lib/learn'
 import { financialHealth } from '../lib/health'
 import { HealthRing, scoreColor } from './HealthPage'
@@ -16,7 +19,6 @@ import { useToast } from '../components/Toast'
 import { usePig } from '../data/pig'
 import { DAILY_KINDS, pigLine } from '../lib/pig'
 import { CoinBadge, PigSays } from './PigPage'
-import type { BankAccount } from '../types'
 import { useRecurrings } from '../data/finance'
 import { subscriptions, type TodayBudget } from '../lib/budget'
 import { projection } from '../lib/psych'
@@ -24,10 +26,10 @@ import { useAuth } from '../auth/AuthProvider'
 import { ChevronRight } from 'lucide-react'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
-import { AnimatedMoney, Badge, ErrorBox, List, Money, Row, Spinner } from '../components/ui'
+import { AnimatedMoney, Badge, ErrorBox, HelpButton, List, Money, Row, Spinner } from '../components/ui'
 import { useTable } from '../data/finance'
 import { useMonthView } from '../data/monthView'
-import { currentYearMonth, dayOf, daysBetweenISO, formatDateShort, relativeDay, weekdayOf } from '../lib/dates'
+import { currentYearMonth, dayOf, daysBetweenISO, relativeDay, weekdayOf } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
 import { toggleHidden, useHiddenValues } from '../lib/privacy'
@@ -56,7 +58,8 @@ const SHORTCUTS: { to: string; label: string; icon: PhosphorIcon }[] = [
 ]
 
 /** Seção da tela inicial no estilo de app de banco: título com seta e conteúdo, separada por uma linha fina. */
-function Section({ title, to, children, tour }: { title: string; to?: string; children: ReactNode; tour?: string }) {
+/** `links`: o conteúdo tem os próprios links (aí só o título leva para `to`, sem link dentro de link). */
+function Section({ title, to, children, tour, links }: { title: string; to?: string; children: ReactNode; tour?: string; links?: boolean }) {
   const head = (
     <span className="flex items-center justify-between">
       <span className="text-[1.1875rem] font-extrabold tracking-tight">{title}</span>
@@ -66,7 +69,14 @@ function Section({ title, to, children, tour }: { title: string; to?: string; ch
   return (
     <Reveal>
     <section data-tour={tour} className="-mx-4 border-t border-line px-4 py-5">
-      {to ? (
+      {to && links ? (
+        <>
+          <Link to={to} className="block active:opacity-70">
+            {head}
+          </Link>
+          <div className="mt-2.5">{children}</div>
+        </>
+      ) : to ? (
         <Link to={to} className="block active:opacity-70">
           {head}
           <div className="mt-2.5">{children}</div>
@@ -159,7 +169,7 @@ export function HomePage() {
   const wishes = useTable('wishes')
   const challenges = useTable('challenges')
   const bankAccounts = useTable('bank_accounts')
-  const bankConns = useTable('bank_connections')
+  const wallet = useAccounts()
   const recurrings = useRecurrings()
   const { mode } = useAuth()
   const hidden = useHiddenValues()
@@ -172,11 +182,6 @@ export function HomePage() {
   const name = displayName(p)
   const hasSalary = p.salary_cents != null && p.payday != null
   const catOf = (id: string | null) => categories.find((c) => c.id === id)
-  const banks = (bankAccounts.data ?? []).filter((a) => a.type === 'BANK')
-  const cards = (bankAccounts.data ?? []).filter((a) => a.type === 'CREDIT')
-  const bankBalance = banks.reduce((a, b) => a + (b.balance_cents ?? 0), 0)
-  const instOf = (a: BankAccount) => findInstitution(a.name, (bankConns.data ?? []).find((c) => c.id === a.connection_id)?.label)
-  const bankInsts = [...new Map(banks.map((b) => instOf(b)).filter((i) => i != null).map((i) => [i.key, i])).values()]
 
   const alerts = statuses.filter((x) => x.level !== 'ok' || x.weekLevel !== 'ok').slice(0, 3)
   const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && daysBetweenISO(today, x.date) >= -3 && daysBetweenISO(today, x.date) <= 7)
@@ -227,6 +232,7 @@ export function HomePage() {
             <button type="button" onClick={toggleHidden} aria-label={hidden ? 'Mostrar valores' : 'Esconder valores'} className="grid size-11 place-items-center rounded-full active:bg-white/15">
               {hidden ? <EyeSlash size={24} /> : <Eye size={24} />}
             </button>
+            <HelpButton className="size-11 text-white active:bg-white/15" />
             <span data-tour="menu">
               <MenuButton className="size-11 text-white active:bg-white/15" />
             </span>
@@ -236,15 +242,9 @@ export function HomePage() {
         <TodayHero t={t && hasSalary ? t : null} monthFree={s.free} hidden={hidden} onSetSalary={() => navigate('/voce')} />
       </header>
 
-      {banks.length > 0 && (
-        <Section title="Conta" to="/voce/bancos">
-          <div className="flex items-center gap-3">
-            <BankLogo inst={bankInsts[0] ?? null} />
-            <div className="min-w-0">
-              <AnimatedMoney cents={bankBalance} className="block text-[1.75rem] leading-tight font-extrabold tracking-[-0.02em]" />
-              <p className="text-[0.875rem] text-muted">{bankInsts.length ? bankInsts.map((i) => i.name).join(' + ') : 'Saldo na conta'}</p>
-            </div>
-          </div>
+      {wallet.list.length > 0 && (
+        <Section title="Contas e cartões" to="/voce/bancos" links>
+          <Wallet accounts={wallet.list} />
         </Section>
       )}
 
@@ -322,28 +322,6 @@ export function HomePage() {
           </div>
         </Section>
       )}
-
-      {cards.map((c) => (
-        <Section key={c.id} title="Cartão de crédito" to={`/voce/bancos/${c.id}`}>
-          <div className="flex items-start gap-3">
-            <BankLogo inst={instOf(c)} credit />
-            <div className="min-w-0">
-              <p className="text-muted">{instOf(c)?.name ?? c.name}</p>
-              <p className="text-[1.25rem] font-bold">
-                Fatura atual <Money cents={c.balance_cents ?? 0} />
-              </p>
-              <p className="text-[0.9375rem] text-muted">
-                {c.due_date ? `Vence ${formatDateShort(c.due_date)}` : ''}
-                {c.available_cents != null && (
-                  <>
-                    {c.due_date ? ' · ' : ''}Limite disponível <Money cents={c.available_cents} />
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
-        </Section>
-      ))}
 
       <Section title="Seu mês" to="/mes">
         {/* A conta fecha: renda − gastos − caixinhas = sobra */}
@@ -440,9 +418,9 @@ export function HomePage() {
             {recent.map((x) => (
               <Row
                 key={x.id}
-                icon={<CategoryIcon category={catOf(x.category_id)} size="sm" />}
-                title={x.description}
-                subtitle={relativeDay(x.date, today)}
+                icon={<TxIcon description={x.description} category={catOf(x.category_id)} />}
+                title={txText(x.description).title}
+                subtitle={<FromAccount day={relativeDay(x.date, today)} info={wallet.byId(x.bank_account_id)} />}
                 trailing={<Money cents={x.amount_cents} className="text-[1.0625rem]" />}
                 as={(c, cls) => <Link to={`/lancamento/${x.id}`} className={cls}>{c}</Link>}
               />

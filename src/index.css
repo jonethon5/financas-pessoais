@@ -564,3 +564,30 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .slide-sheen { animation: none; opacity: 0; }
 }
+
+/* Topo azul de todas as telas (o mesmo azul da tela inicial). Os botões do topo ficam brancos. */
+.brand-bar {
+  background: #2f6feb;
+  color: #fff;
+}
+.brand-band {
+  background: linear-gradient(#2f6feb, #1d5fd6);
+  color: #fff;
+}
+:is(.brand-bar, .brand-band) :is(.text-primary, .text-ink) {
+  color: #fff;
+}
+:is(.brand-bar, .brand-band) .text-muted {
+  color: rgb(255 255 255 / 0.8);
+}
+.brand-bar .bg-primary {
+  background: #fff;
+  color: #1d5fd6;
+}
+.brand-bar .bg-surface {
+  background: rgb(255 255 255 / 0.18);
+  box-shadow: none;
+}
+.brand-bar :is(button, a):active {
+  background-color: rgb(255 255 255 / 0.15);
+}

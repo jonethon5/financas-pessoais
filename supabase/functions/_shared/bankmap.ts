@@ -37,6 +37,8 @@ export type MappedTx = {
   installmentKey: string | null
   /** transferência entre contas da própria pessoa: aparece no extrato, mas não conta */
   own: boolean
+  /** movimentação que não é gasto nem renda (fatura, resgate, aplicação, estorno): o motivo, para mostrar à pessoa */
+  internal: string | null
 }
 
 export const normalize = (s: string) =>
@@ -53,7 +55,8 @@ const GENERIC = new Set(['pix', 'para', 'de', 'do', 'da', 'transferencia', 'envi
 
 /** Chave para aprender a categoria: as 2 primeiras palavras que identificam a loja ou pessoa ("Pix para Maria Souza" → "maria souza"). */
 export function learnKey(description: string): string {
-  return normalize(description)
+  const who = description.includes('|') ? description.split('|').slice(1).join(' ') : description
+  return normalize(who.trim() ? who : description)
     .split(' ')
     .filter((w) => w.length > 1 && !/^\d+$/.test(w) && !GENERIC.has(w))
     .slice(0, 2)
@@ -86,17 +89,30 @@ export function cleanDescription(raw: string): string {
   return (out || 'Sem descrição').slice(0, 60)
 }
 
-// Movimentações que não são gasto nem renda de verdade (contariam duas vezes): nem entram no app
-const INTERNAL = [
-  'pagamento de fatura', 'pagamento fatura', 'pagamento recebido', 'credit card payment', 'fatura do cartao', 'pgto fatura',
-  'aplicacao', 'resgate', 'investment', 'rdb', 'dinheiro guardado', 'guardado na caixinha', 'caixinha', 'estorno de pagamento',
-]
-const INTERNAL_OPERATIONS = new Set(['PAGAMENTO_FATURA', 'RESGATE_APLIC_FINANCEIRA', 'APLICACAO_FINANCEIRA'])
+// Movimentações que não são gasto nem renda de verdade (contariam duas vezes).
+// Elas aparecem no extrato como "não conta", com o motivo: o extrato fica igual ao do banco.
+const BILL = ['pagamento de fatura', 'pagamento fatura', 'pagamento recebido', 'credit card payment', 'fatura do cartao', 'pgto fatura']
+const SAVINGS = ['aplicacao', 'resgate', 'investment', 'rdb', 'dinheiro guardado', 'guardado na caixinha', 'caixinha', 'poupanca']
+export const INTERNAL_REASON = {
+  bill: 'Pagamento da fatura do cartão: o gasto já contou no dia da compra.',
+  savings: 'Dinheiro guardado no banco (caixinha, poupança ou investimento) mudando de lugar: não é renda nem gasto.',
+  refund: 'Estorno no cartão: o dinheiro da compra voltou.',
+}
 
-export function isInternal(tx: PluggyTx): boolean {
-  if (tx.operationType && INTERNAL_OPERATIONS.has(tx.operationType)) return true
+/** Por que essa movimentação não conta (ou null se ela é gasto ou renda de verdade). */
+export function internalReason(tx: PluggyTx, account: AccountType = 'BANK'): string | null {
   const text = normalize(`${tx.description} ${tx.descriptionRaw ?? ''} ${tx.category ?? ''}`)
-  return INTERNAL.some((w) => text.includes(w))
+  if (tx.operationType === 'PAGAMENTO_FATURA' || BILL.some((w) => text.includes(w))) return INTERNAL_REASON.bill
+  if (tx.operationType === 'RESGATE_APLIC_FINANCEIRA' || tx.operationType === 'APLICACAO_FINANCEIRA' || SAVINGS.some((w) => text.includes(w))) return INTERNAL_REASON.savings
+  if (/estorno de pagamento/.test(text)) return INTERNAL_REASON.bill
+  // No cartão, valor negativo que não é pagamento é estorno
+  if (account === 'CREDIT' && tx.amount < 0) return INTERNAL_REASON.refund
+  return null
+}
+
+/** Compatível com a versão anterior: true quando não é gasto nem renda. */
+export function isInternal(tx: PluggyTx): boolean {
+  return internalReason(tx) != null
 }
 
 // Transferência entre contas da própria pessoa, do jeito que o Open Finance descreve
@@ -153,25 +169,29 @@ export function categoryHint(tx: PluggyTx, kind: 'income' | 'expense'): string |
   return null
 }
 
+/** Descrição como o banco mandou (só junta espaços repetidos). Ex.: "Transferência enviada pelo Pix|MARIA SOUZA". */
+export function bankText(tx: Pick<PluggyTx, 'description' | 'merchant'>): string {
+  const base = tx.merchant?.businessName && tx.description.trim().length < 4 ? tx.merchant.businessName : tx.description
+  return (base.replace(/\s+/g, ' ').trim() || 'Sem descrição').slice(0, 140)
+}
+
 /**
- * Uma transação do banco → um lançamento do app (ou null para ignorar).
+ * Uma transação do banco → um lançamento do app (null só para valor zero).
  * Conta corrente: saída (valor negativo) = gasto; entrada = renda.
- * Cartão de crédito: compra (valor positivo) = gasto; pagamento ou estorno (negativo) = ignorado.
+ * Cartão de crédito: compra (valor positivo) = gasto; pagamento ou estorno (negativo) = entrada que não conta.
+ * Nada do que o banco manda é descartado: o que não é gasto nem renda vem marcado em `internal` ou `own`.
  * `ownerNames` (nome da pessoa no banco e no app) ajuda a reconhecer o Pix entre contas próprias.
  */
 export function mapTransaction(tx: PluggyTx, account: AccountType, ownerNames: (string | null | undefined)[] = []): MappedTx | null {
   const cents = Math.round(Math.abs(tx.amount) * 100)
-  if (!cents || isInternal(tx)) return null
-  let kind: 'income' | 'expense'
-  if (account === 'CREDIT') {
-    if (tx.amount < 0) return null
-    kind = 'expense'
-  } else kind = tx.amount < 0 ? 'expense' : 'income'
+  if (!cents) return null
+  const kind: 'income' | 'expense' = account === 'CREDIT' ? (tx.amount < 0 ? 'income' : 'expense') : tx.amount < 0 ? 'expense' : 'income'
+  const internal = internalReason(tx, account)
 
   const meta = tx.creditCardMetadata
   const total = meta?.totalInstallments ?? null
   const isParcel = kind === 'expense' && total != null && total > 1 && meta?.installmentNumber != null
-  const description = cleanDescription(tx.merchant?.businessName && tx.description.length < 4 ? tx.merchant.businessName : tx.description)
+  const description = bankText(tx)
   return {
     external_id: `pluggy:${tx.id}`,
     kind,
@@ -183,7 +203,8 @@ export function mapTransaction(tx: PluggyTx, account: AccountType, ownerNames: (
     installment_no: isParcel ? meta!.installmentNumber! : null,
     installment_total: isParcel ? total : null,
     installmentKey: isParcel ? `${normalize(description)}|${(meta?.purchaseDate ?? '').slice(0, 10)}|${total}` : null,
-    own: account === 'BANK' && isOwnTransfer(tx, ownerNames),
+    own: !internal && account === 'BANK' && isOwnTransfer(tx, ownerNames),
+    internal,
   }
 }
 
@@ -238,8 +259,8 @@ export const ignoreKey = (description: string) => {
  *    A renda do mês é o salário do cadastro mais o que a pessoa lança à mão;
  *  - gasto: sim, a não ser que a pessoa tenha dito para não contar os daquele destino.
  */
-export function countsInMonth(m: Pick<MappedTx, 'kind' | 'own' | 'description'>, rules: { has(pattern: string): boolean }): boolean {
-  if (m.own) return false
+export function countsInMonth(m: Pick<MappedTx, 'kind' | 'own' | 'description'> & { internal?: string | null }, rules: { has(pattern: string): boolean }): boolean {
+  if (m.own || m.internal) return false
   if (m.kind === 'income') return rules.has(countKey(m.description))
   return !rules.has(ignoreKey(m.description))
 }
@@ -262,4 +283,13 @@ export function salaryMonths(tx: Pick<MappedTx, 'kind' | 'amount_cents' | 'date'
   return [month, shiftMonth(month, -1), shiftMonth(month, 1)]
     .filter((m) => isSalaryMatch(tx, { amount_cents: salaryCents, date: paydayIn(m, payday) }))
     .sort((a, b) => daysApart(tx.date, paydayIn(a, payday)) - daysApart(tx.date, paydayIn(b, payday)))
+}
+
+/**
+ * Transação que sumiu do banco e voltou com outro id (acontece com compra do cartão que estava pendente
+ * e foi lançada, ou no fechamento da fatura): acha a mesma (mesmo tipo, mesmo valor, até 5 dias de diferença).
+ */
+export function findVanished<T extends { id: string; kind: string; amount_cents: number; date: string }>(tx: Pick<MappedTx, 'kind' | 'amount_cents' | 'date'>, vanished: T[]): T | null {
+  const c = vanished.filter((v) => v.kind === tx.kind && v.amount_cents === tx.amount_cents && daysApart(v.date, tx.date) <= 5).sort((a, b) => daysApart(a.date, tx.date) - daysApart(b.date, tx.date))
+  return c[0] ?? null
 }

@@ -295,7 +295,8 @@ export type BankAccount = {
   user_id: string
   connection_id: string
   external_id: string
-  type: 'BANK' | 'CREDIT'
+  /** BANK = conta (corrente, poupança); CREDIT = cartão; INVESTMENT = dinheiro guardado ou investido */
+  type: 'BANK' | 'CREDIT' | 'INVESTMENT'
   subtype: string | null
   name: string
   balance_cents: number | null
@@ -303,6 +304,11 @@ export type BankAccount = {
   available_cents: number | null
   due_date: string | null
   close_date: string | null
+  /** conta: quanto o banco guardou sozinho (ex.: Nubank) */
+  invested_cents?: number | null
+  /** conta: cheque especial contratado e usado */
+  overdraft_limit_cents?: number | null
+  overdraft_used_cents?: number | null
   updated_at: string
   created_at: string
 }

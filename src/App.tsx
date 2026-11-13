@@ -19,6 +19,7 @@ import { PigPage } from './pages/PigPage'
 import { ChartsPage } from './pages/ChartsPage'
 import { StatementPage } from './pages/StatementPage'
 import { PremiumPage } from './pages/PremiumPage'
+import { HelpPage } from './pages/HelpPage'
 import { BanksPage } from './pages/you/BanksPage'
 import { AccountPage } from './pages/you/AccountPage'
 import { StoriesPage } from './pages/StoriesPage'
@@ -88,6 +89,7 @@ function LoggedIn() {
         <Route path="graficos" element={<ChartsPage />} />
         <Route path="extrato" element={<StatementPage />} />
         <Route path="premium" element={<PremiumPage />} />
+        <Route path="ajuda" element={<HelpPage />} />
         <Route path="aprender/:id" element={<LessonPage />} />
         <Route path="voce/categorias" element={<CategoriesPage />} />
         <Route path="voce/fixos" element={<FixedPage />} />

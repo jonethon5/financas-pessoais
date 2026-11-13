@@ -74,7 +74,8 @@ export function searchBanks(query: string): Institution[] {
 }
 
 /** Nome amigável de uma conta: "Nubank · Conta" em vez de "Nu Pagamentos S.A. - Instituição de Pagamento". */
-export function accountTitle(inst: Institution | null, type: 'BANK' | 'CREDIT', fallback: string): string {
+export function accountTitle(inst: Institution | null, type: 'BANK' | 'CREDIT' | 'INVESTMENT', fallback: string): string {
+  if (type === 'INVESTMENT') return inst ? `${inst.name} · ${fallback}` : fallback
   if (!inst) return fallback
   return `${inst.name} · ${type === 'CREDIT' ? 'Cartão' : 'Conta'}`
 }

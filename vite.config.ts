@@ -56,7 +56,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // Da fonte, só os caracteres usados em português vão para o modo offline
         // Fontes em teste (Manrope, Jakarta, DM Sans, Nunito) baixam só se forem escolhidas
-        globIgnores: ['**/*cyrillic*', '**/*greek*', '**/*vietnamese*', '**/*latin-ext*', '**/*manrope*', '**/*plus-jakarta*', '**/*dm-sans*', '**/*nunito*'],
+        globIgnores: ['**/*cyrillic*', '**/*greek*', '**/*vietnamese*', '**/*latin-ext*', '**/*manrope*', '**/*plus-jakarta*', '**/*dm-sans*', '**/*nunito*',
+          // Gerador de PDF: só baixa quando a pessoa exporta o extrato (não entra no modo offline)
+          '**/jspdf*', '**/html2canvas*', '**/purify.es*', '**/index.es-*'],
         navigateFallback: `${base}index.html`,
         // Recebe as notificações push (avisos)
         importScripts: ['push-sw.js'],
@@ -68,6 +70,12 @@ export default defineConfig({
             urlPattern: ({ url }) => url.pathname.includes('/mascote/'),
             handler: 'CacheFirst',
             options: { cacheName: 'mascote', expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 90 }, cacheableResponse: { statuses: [200] } },
+          },
+          // Logos de bancos e empresas: ficam guardados (mudam quase nunca)
+          {
+            urlPattern: ({ url }) => url.hostname === 'icons.duckduckgo.com' || url.hostname === 'cdn.pluggy.ai',
+            handler: 'CacheFirst',
+            options: { cacheName: 'logos', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 60 }, cacheableResponse: { statuses: [0, 200] } },
           },
           {
             urlPattern: ({ url, request }) =>

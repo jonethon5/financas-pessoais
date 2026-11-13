@@ -3,6 +3,8 @@ import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { formatBRL } from '../lib/money'
 import { useCountUp, useGrow } from '../lib/motion'
 import { useHiddenValues } from '../lib/privacy'
+import { Link, useLocation } from 'react-router'
+import { Question } from '@phosphor-icons/react'
 import { MenuButton } from './MenuContext'
 
 const variants = {
@@ -357,10 +359,13 @@ export function NavBar({
   right,
   large = true,
   menu = true,
+  help = true,
   children,
 }: {
   /** false: sem o botão ☰ (ele já aparece sozinho nas telas com barra de abas) */
   menu?: boolean
+  /** false: sem o botão de ajuda (?) */
+  help?: boolean
   title: string
   subtitle?: ReactNode
   left?: ReactNode
@@ -382,30 +387,39 @@ export function NavBar({
 
   return (
     <>
-      <div
-        className={`pt-safe sticky top-0 z-30 -mx-4 transition-colors duration-200 print:hidden ${
-          compact ? 'border-b border-line bg-bg/80 backdrop-blur-xl backdrop-saturate-150' : 'border-b border-transparent bg-bg'
-        }`}
-      >
+      {/* Topo azul em todas as telas, igual ao da tela inicial (identidade do app, como o roxo do Nubank) */}
+      <div className={`brand-bar pt-safe sticky top-0 z-30 -mx-4 print:hidden ${compact ? 'shadow-[0_6px_16px_-10px_rgb(15_36_51/0.5)]' : ''}`}>
         <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex min-w-0 justify-start overflow-hidden">{left}</div>
           <p className={`max-w-[42vw] truncate px-2 text-[1.0625rem] font-semibold transition-opacity duration-200 ${compact ? 'opacity-100' : 'opacity-0'}`}>{title}</p>
-          <div className="flex min-w-0 items-center justify-end gap-1 overflow-hidden">
+          <div className="flex min-w-0 items-center justify-end gap-0.5 overflow-hidden">
             {right}
+            {help && <HelpButton />}
             {menu && <MenuButton />}
           </div>
         </div>
       </div>
       {large && (
-        <header className="mb-5 px-1 pt-1">
-          {subtitle && <p className="text-[0.9375rem] text-muted">{subtitle}</p>}
-          <h1 ref={sentinel} className="text-[2.125rem] leading-[1.15] font-bold tracking-[-0.025em]">
+        <header className="brand-band -mx-4 mb-5 px-5 pt-0.5 pb-5">
+          {subtitle && <p className="text-[0.9375rem]">{subtitle}</p>}
+          <h1 ref={sentinel} className="text-[1.875rem] leading-[1.15] font-extrabold tracking-[-0.025em]">
             {title}
           </h1>
           {children}
         </header>
       )}
     </>
+  )
+}
+
+/** Botão de ajuda (?) do topo: abre a central de ajuda. */
+export function HelpButton({ className = 'text-primary active:bg-surface-2' }: { className?: string }) {
+  const { pathname } = useLocation()
+  if (pathname.startsWith('/ajuda')) return null
+  return (
+    <Link to="/ajuda" aria-label="Ajuda" className={`grid size-10 shrink-0 place-items-center rounded-full ${className}`}>
+      <Question size={25} />
+    </Link>
   )
 }
 

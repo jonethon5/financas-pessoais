@@ -1,5 +1,6 @@
 // Conexão com o banco de ponta a ponta, contra o Supabase LOCAL e uma "Pluggy de mentira" (servidor HTTP local).
-// A Edge Function bank-sync lê PLUGGY_API_BASE do supabase/functions/.env (aponta para este servidor).
+// As funções precisam rodar com PLUGGY_API_BASE=http://host.docker.internal:55399 (supabase functions serve --env-file …).
+import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -15,8 +16,12 @@ const CODE = `BANK-${run.toUpperCase()}`
 const ITEM = '11111111-2222-4333-8444-555555555555'
 const SLOW_ITEM = '22222222-2222-4333-8444-555555555555'
 const now = new Date()
-const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+// Tudo no mês passado: assim nenhuma data cai no futuro (o que é futuro não entra), seja qual for o dia de hoje
+const base = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+const ym = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`
 const day = (d: number) => `${ym}-${String(d).padStart(2, '0')}`
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const WEBHOOK_KEY = createHash('sha256').update(`${process.env.PLUGGY_CLIENT_SECRET ?? 'segredo-de-teste'}:poupei-webhook`).digest('hex').slice(0, 40)
 
 // ---- Pluggy de mentira -------------------------------------------------------
 const TXS: Record<string, { page1: unknown[]; page2?: unknown[] }> = {
@@ -27,7 +32,9 @@ const TXS: Record<string, { page1: unknown[]; page2?: unknown[] }> = {
       { id: 'b3', description: 'Pagamento VIVO', amount: -39.9, date: `${day(14)}T00:00:00.000Z`, type: 'DEBIT', status: 'POSTED' },
       { id: 'b4', description: 'Pagamento de fatura', amount: -500, date: `${day(10)}T00:00:00.000Z`, type: 'DEBIT', status: 'POSTED' },
       { id: 'b5', description: 'Pix recebido Maria', amount: 150, date: `${day(7)}T00:00:00.000Z`, type: 'CREDIT', status: 'POSTED' },
+      // Pendente com data de hoje ou antes entra (como no app do banco); com data futura, não
       { id: 'b6', description: 'Compra pendente', amount: -10, date: `${day(8)}T00:00:00.000Z`, type: 'DEBIT', status: 'PENDING' },
+      { id: 'b-futura', description: 'Pix agendado', amount: -99, date: '2999-01-01T00:00:00.000Z', type: 'DEBIT', status: 'PENDING' },
     ],
     page2: [
       { id: 'b7', description: 'UBER *TRIP', amount: -18.4, date: `${day(9)}T00:00:00.000Z`, type: 'DEBIT', status: 'POSTED' },
@@ -60,11 +67,19 @@ function startMock(): Promise<void> {
     if (u.pathname === `/items/${ITEM}`) return send(200, { id: ITEM, status: 'UPDATED', executionStatus: 'SUCCESS', connector: { name: 'Nubank' } })
     if (u.pathname === `/items/${SLOW_ITEM}`) return send(200, { id: SLOW_ITEM, status: 'UPDATING', executionStatus: 'LOGIN_IN_PROGRESS', connector: { name: 'Neon' } })
     if (u.pathname === '/identity') return send(200, { fullName: 'Dono Da Silva' })
+    if (u.pathname === '/investments') {
+      return send(200, {
+        results: [
+          { id: 'inv1', name: 'Caixinha Viagem', type: 'FIXED_INCOME', subtype: 'CDB', balance: 300.5, status: 'ACTIVE' },
+          { id: 'inv2', name: 'Resgatada', type: 'FIXED_INCOME', subtype: 'CDB', balance: 0, status: 'TOTAL_WITHDRAWAL' },
+        ],
+      })
+    }
     if (u.pathname === '/accounts') {
       if (u.searchParams.get('itemId') !== ITEM) return send(404, { code: 'ITEM_NOT_FOUND', message: 'not found' })
       return send(200, {
         results: [
-          { id: 'acc-bank', type: 'BANK', subtype: 'CHECKING_ACCOUNT', name: 'Conta Nubank', balance: 1234.56 },
+          { id: 'acc-bank', type: 'BANK', subtype: 'CHECKING_ACCOUNT', name: 'Conta Nubank', balance: 1234.56, bankData: { automaticallyInvestedBalance: 100, overdraftContractedLimit: 500, overdraftUsedLimit: 0 } },
           { id: 'acc-card', type: 'CREDIT', subtype: 'CREDIT_CARD', name: 'Cartão Nubank', balance: 456.78, creditData: { creditLimit: 3000, availableCreditLimit: 2543.22, balanceDueDate: `${day(20)}T00:00:00Z` } },
         ],
       })
@@ -72,8 +87,11 @@ function startMock(): Promise<void> {
     if (u.pathname === '/v2/transactions') {
       const acc = TXS[u.searchParams.get('accountId') ?? '']
       if (!acc) return send(200, { results: [], next: null })
-      if (u.searchParams.get('after')) return send(200, { results: acc.page2 ?? [], next: null })
-      return send(200, { results: acc.page1, next: acc.page2 ? `?accountId=${u.searchParams.get('accountId')}&after=pagina2` : null })
+      // Como a Pluggy: só a partir da data pedida
+      const from = u.searchParams.get('dateFrom') ?? '0000'
+      const since = (xs: unknown[]) => (xs as { date: string }[]).filter((t) => t.date.slice(0, 10) >= from)
+      if (u.searchParams.get('after')) return send(200, { results: since(acc.page2 ?? []), next: null })
+      return send(200, { results: since(acc.page1), next: acc.page2 ? `?accountId=${u.searchParams.get('accountId')}&dateFrom=${from}&after=pagina2` : null })
     }
     send(404, {})
   })
@@ -120,6 +138,10 @@ beforeAll(async () => {
   manualId = byHand!.id
 }, 60_000)
 
+/** Faz a próxima atualização ler tudo de novo (sem isso, só os últimos 10 dias) */
+const readAll = () => admin.from('bank_connections').update({ last_sync_at: null }).eq('user_id', owner.id)
+const sync = () => owner.client.functions.invoke('bank-sync', { body: { action: 'sync', force: true } })
+
 afterAll(async () => {
   server?.close()
   for (const id of created) await admin.auth.admin.deleteUser(id).catch(() => undefined)
@@ -152,10 +174,12 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
     expect(error).toBeNull()
     expect(data).toMatchObject({ ok: true, accounts: 2, matched: 3 })
 
-    const { data: accounts } = await owner.client.from('bank_accounts').select('name, type, balance_cents, credit_limit_cents, available_cents, due_date').order('type')
+    const { data: accounts } = await owner.client.from('bank_accounts').select('name, type, balance_cents, credit_limit_cents, available_cents, due_date, invested_cents, overdraft_limit_cents, overdraft_used_cents').order('type')
     expect(accounts).toEqual([
-      { name: 'Conta Nubank', type: 'BANK', balance_cents: 123456, credit_limit_cents: null, available_cents: null, due_date: null },
-      { name: 'Cartão Nubank', type: 'CREDIT', balance_cents: 45678, credit_limit_cents: 300000, available_cents: 254322, due_date: day(20) },
+      { name: 'Conta Nubank', type: 'BANK', balance_cents: 123456, credit_limit_cents: null, available_cents: null, due_date: null, invested_cents: 10000, overdraft_limit_cents: 50000, overdraft_used_cents: 0 },
+      { name: 'Cartão Nubank', type: 'CREDIT', balance_cents: 45678, credit_limit_cents: 300000, available_cents: 254322, due_date: day(20), invested_cents: null, overdraft_limit_cents: null, overdraft_used_cents: null },
+      // dinheiro guardado: só o que ainda tem saldo
+      { name: 'Caixinha Viagem', type: 'INVESTMENT', balance_cents: 30050, credit_limit_cents: null, available_cents: null, due_date: null, invested_cents: null, overdraft_limit_cents: null, overdraft_used_cents: null },
     ])
 
     // Salário: o lançado pelo app foi confirmado (não virou outra renda)
@@ -165,18 +189,24 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
     const { data: fx } = await owner.client.from('transactions').select('paid, amount_cents, external_id').eq('id', fixedId).single()
     expect(fx).toEqual({ paid: true, amount_cents: 3990, external_id: 'pluggy:b3' })
 
-    // O que conta no mês: os gastos. Entrada do banco e Pix entre contas próprias aparecem, mas não contam.
-    const { data: imported } = await owner.client.from('transactions').select('description, kind, type, amount_cents, skipped, installment_no, installment_total, categories(name)').eq('source', 'banco').is('recurring_id', null).neq('type', 'salario').order('description')
-    expect(imported).toEqual([
-      { description: 'Ifood Restaurante', kind: 'expense', type: 'dia', amount_cents: 4290, skipped: false, installment_no: null, installment_total: null, categories: { name: 'Delivery' } },
-      { description: 'Magazine Luiza', kind: 'expense', type: 'parcela', amount_cents: 15000, skipped: false, installment_no: 3, installment_total: 10, categories: { name: 'Outros' } },
-      { description: 'Pix de Dono Da Silva', kind: 'income', type: 'extra', amount_cents: 80000, skipped: true, installment_no: null, installment_total: null, categories: { name: 'Renda extra' } },
-      { description: 'Pix de Empresa Ltda', kind: 'income', type: 'extra', amount_cents: 210000, skipped: true, installment_no: null, installment_total: null, categories: { name: 'Renda extra' } },
-      { description: 'Pix para Outro Banco', kind: 'expense', type: 'dia', amount_cents: 30000, skipped: true, installment_no: null, installment_total: null, categories: { name: 'Outros' } },
-      { description: 'Pix recebido Maria', kind: 'income', type: 'extra', amount_cents: 15000, skipped: true, installment_no: null, installment_total: null, categories: { name: 'Renda extra' } },
-      { description: 'Shopee Loja', kind: 'expense', type: 'dia', amount_cents: 5970, skipped: false, installment_no: null, installment_total: null, categories: { name: 'Compras online' } },
+    // Tudo o que o banco mandou aparece, com a descrição do banco. Contam só os gastos de verdade:
+    // fatura, pagamento do cartão, entrada na conta e Pix entre contas próprias aparecem, mas não contam.
+    const { data: imported } = await owner.client.from('transactions').select('description, kind, type, amount_cents, skipped, note').eq('source', 'banco').is('recurring_id', null).neq('type', 'salario')
+    const rows = (imported ?? []).sort((x, y) => (x.description < y.description ? -1 : 1)).map((r) => ({ ...r, note: r.note ? r.note.split(':')[0] : null }))
+    expect(rows).toEqual([
+      { description: 'Compra pendente', kind: 'expense', type: 'dia', amount_cents: 1000, skipped: false, note: null },
+      { description: 'IFOOD *RESTAURANTE', kind: 'expense', type: 'dia', amount_cents: 4290, skipped: false, note: null },
+      { description: 'MAGAZINE LUIZA', kind: 'expense', type: 'parcela', amount_cents: 15000, skipped: false, note: null },
+      { description: 'Pagamento de fatura', kind: 'expense', type: 'dia', amount_cents: 50000, skipped: true, note: 'Pagamento da fatura do cartão' },
+      { description: 'Pagamento recebido', kind: 'income', type: 'extra', amount_cents: 50000, skipped: true, note: 'Pagamento da fatura do cartão' },
+      { description: 'Pix recebido Maria', kind: 'income', type: 'extra', amount_cents: 15000, skipped: true, note: null },
+      { description: 'SHOPEE *LOJA', kind: 'expense', type: 'dia', amount_cents: 5970, skipped: false, note: null },
+      { description: 'Transferência enviada pelo Pix|OUTRO BANCO', kind: 'expense', type: 'dia', amount_cents: 30000, skipped: true, note: 'Transferência entre contas suas' },
+      { description: 'Transferência recebida pelo Pix|DONO DA SILVA', kind: 'income', type: 'extra', amount_cents: 80000, skipped: true, note: 'Transferência entre contas suas' },
+      // outra entrada do tamanho do salário no mesmo mês: o mês só tem um salário
+      { description: 'Transferência recebida pelo Pix|EMPRESA LTDA', kind: 'income', type: 'extra', amount_cents: 210000, skipped: true, note: null },
       // o Uber não entrou de novo: confirmou o que a pessoa tinha lançado à mão (nome, dia e sentimento dela)
-      { description: 'Uber para o trabalho', kind: 'expense', type: 'dia', amount_cents: 1840, skipped: false, installment_no: null, installment_total: null, categories: null },
+      { description: 'Uber para o trabalho', kind: 'expense', type: 'dia', amount_cents: 1840, skipped: false, note: null },
     ])
     const { data: byHand } = await owner.client.from('transactions').select('date, emotion, external_id').eq('id', manualId).single()
     expect(byHand).toEqual({ date: day(8), emotion: 'cansado', external_id: 'pluggy:b7' })
@@ -192,18 +222,19 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
       { id: 'b11', description: 'Transferência recebida pelo Pix|CLIENTE JOAO', amount: 250, date: `${day(9)}T00:00:00.000Z`, type: 'CREDIT', status: 'POSTED' },
       { id: 'b12', description: 'Transferência recebida pelo Pix|FULANO DE TAL', amount: 90, date: `${day(9)}T00:00:00.000Z`, type: 'CREDIT', status: 'POSTED' },
     )
-    const { data } = await owner.client.functions.invoke('bank-sync', { body: { action: 'sync', force: true } })
+    await readAll()
+    const { data } = await sync()
     expect(data).toMatchObject({ ok: true, imported: 2, errors: [] })
-    const { data: rows } = await owner.client.from('transactions').select('description, skipped').in('external_id', ['pluggy:b11', 'pluggy:b12']).order('description')
+    const { data: rows } = await owner.client.from('transactions').select('external_id, skipped').in('external_id', ['pluggy:b11', 'pluggy:b12']).order('external_id')
     expect(rows).toEqual([
-      { description: 'Pix de Cliente Joao', skipped: false },
-      { description: 'Pix de Fulano De Tal', skipped: true },
+      { external_id: 'pluggy:b11', skipped: false },
+      { external_id: 'pluggy:b12', skipped: true },
     ])
   })
 
   it('salário cadastrado depois: a entrada parecida passa a confirmar o salário do mês (sem virar outra renda)', async () => {
     // Mês passado: o banco trouxe uma entrada do tamanho do salário, e o app ainda não tinha o salário daquele mês
-    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 5)
+    const prev = new Date(base.getFullYear(), base.getMonth() - 1, 5)
     const prevYm = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
     const { data: account } = await admin.from('bank_accounts').select('id').eq('user_id', owner.id).eq('type', 'BANK').single()
     await admin.from('transactions').insert({ user_id: owner.id, kind: 'income', type: 'extra', amount_cents: 205000, date: `${prevYm}-06`, description: 'Pix de Empresa Ltda', skipped: true, source: 'banco', external_id: 'pluggy:antigo', bank_account_id: account!.id })
@@ -216,20 +247,54 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
 
   it('sincronizar de novo não duplica nada', async () => {
     const before = (await owner.client.from('transactions').select('id')).data!.length
-    const { data } = await owner.client.functions.invoke('bank-sync', { body: { action: 'sync', force: true } })
+    await readAll()
+    const { data } = await sync()
     expect(data).toMatchObject({ ok: true, imported: 0, matched: 0, errors: [] })
     expect((await owner.client.from('transactions').select('id')).data!.length).toBe(before)
+  })
+
+  it('compra que o banco lançou com outro id não duplica, e o que o banco desfez sai do app', async () => {
+    const card = TXS['acc-card'].page1 as { id: string }[]
+    card.find((t) => t.id === 'c1')!.id = 'c1-lancada'
+    TXS['acc-bank'].page1 = (TXS['acc-bank'].page1 as { id: string }[]).filter((t) => t.id !== 'b6')
+    await readAll()
+    const { data } = await sync()
+    expect(data).toMatchObject({ ok: true, imported: 0, errors: [] })
+    const { data: shopee } = await owner.client.from('transactions').select('external_id').eq('description', 'SHOPEE *LOJA')
+    expect(shopee).toEqual([{ external_id: 'pluggy:c1-lancada' }])
+    expect((await owner.client.from('transactions').select('id').eq('external_id', 'pluggy:b6')).data).toEqual([])
   })
 
   it('arruma o que a versão antiga gravou: a entrada que tinha virado um segundo salário deixa de contar', async () => {
     const { data: account } = await admin.from('bank_accounts').select('id').eq('user_id', owner.id).eq('type', 'BANK').single()
     await admin.from('transactions').insert({ user_id: owner.id, kind: 'income', type: 'salario', amount_cents: 187800, date: day(6), description: 'Pix de Outra Conta', source: 'banco', external_id: 'pluggy:velho', bank_account_id: account!.id })
-    const { data } = await owner.client.functions.invoke('bank-sync', { body: { action: 'sync', force: true } })
+    TXS['acc-bank'].page1.push({ id: 'velho', description: 'Transferência recebida pelo Pix|OUTRA PESSOA', amount: 1878, date: `${day(6)}T00:00:00.000Z`, type: 'CREDIT', status: 'POSTED' })
+    await readAll()
+    const { data } = await sync()
     expect(data).toMatchObject({ ok: true, errors: [] })
     const { data: old } = await owner.client.from('transactions').select('type, skipped').eq('external_id', 'pluggy:velho').single()
     expect(old).toEqual({ type: 'extra', skipped: true })
     const { data: salaries } = await owner.client.from('transactions').select('id, amount_cents').eq('type', 'salario').gte('date', day(1)).eq('skipped', false)
     expect(salaries).toEqual([{ id: salaryId, amount_cents: 211300 }])
+  })
+
+  it('aviso da Pluggy (webhook): sem a chave certa não faz nada; com ela, busca os lançamentos novos na hora', async () => {
+    const hook = (key: string, body: unknown) => fetch(`${URL}/functions/v1/bank-webhook?chave=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    expect((await hook('errada', { event: 'item/updated', itemId: ITEM })).status).toBe(401)
+    const yesterday = iso(new Date(now.getTime() - 86_400_000))
+    TXS['acc-bank'].page1.push({ id: 'b-aviso', description: 'PADARIA DO BAIRRO', amount: -12.5, date: `${yesterday}T00:00:00.000Z`, type: 'DEBIT', status: 'POSTED' })
+    const r = await hook(WEBHOOK_KEY, { event: 'item/updated', itemId: ITEM })
+    expect(r.status).toBe(200)
+    expect(await r.json()).toMatchObject({ ok: true, users: 1 })
+    // O trabalho termina em segundo plano: espera aparecer
+    let found: unknown[] = []
+    for (let i = 0; i < 40 && !found.length; i++) {
+      found = (await owner.client.from('transactions').select('id').eq('external_id', 'pluggy:b-aviso')).data ?? []
+      if (!found.length) await new Promise((ok) => setTimeout(ok, 250))
+    }
+    expect(found).toHaveLength(1)
+    // item que ninguém tem: responde e não faz nada
+    expect((await hook(WEBHOOK_KEY, { event: 'item/updated', itemId: '33333333-2222-4333-8444-555555555555' })).status).toBe(200)
   })
 
   it('aprende a categoria corrigida e usa nas próximas sincronizações', async () => {

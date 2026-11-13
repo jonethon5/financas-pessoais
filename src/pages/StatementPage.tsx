@@ -1,55 +1,54 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { DownloadSimple, FilePdf, MagnifyingGlass, X } from '@phosphor-icons/react'
-import { CategoryIcon } from '../components/CategoryIcon'
+import { ArrowDown, ArrowUp, Export, MagnifyingGlass } from '@phosphor-icons/react'
+import { BankLogo } from '../components/BankLogo'
+import { FromAccount } from '../components/FromAccount'
 import { MascotArt } from '../components/Pig'
+import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { BackButton, Card, Chip, ErrorBox, List, Money, NavBar, Notice, Row, Spinner } from '../components/ui'
-import { useCategories, useMonthTxs, useTable } from '../data/finance'
-import { addMonths, monthKey, monthLabel, parseMonthKey, currentYearMonth, relativeDay, todayISO } from '../lib/dates'
+import { TxIcon } from '../components/TxIcon'
+import { BackButton, Button, Card, ErrorBox, Field, List, Money, NavBar, Notice, Row, Segmented, Spinner } from '../components/ui'
+import { useAccounts } from '../data/accounts'
+import { useBackend } from '../data/backend'
+import { useCategories, useMonthTxs } from '../data/finance'
+import { useProfile } from '../data/hooks'
+import { addMonths, currentYearMonth, firstDayISO, isValidISODate, lastDayISO, monthKey, monthLabel, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
-import { accountTitle, findInstitution } from '../lib/institutions'
 import { formatBRL } from '../lib/money'
-import { METHOD_LABEL, filterStatement, methodOf, statementCSV, statementTotals, type StatementView } from '../lib/statement'
+import { statementCSV, statementTotals, txText, filterStatement, type StatementView } from '../lib/statement'
 import { friendlyError } from '../lib/supabase'
 import { APP_NAME } from '../brand'
-
-const VIEWS: { value: StatementView; label: string }[] = [
-  { value: 'tudo', label: 'Tudo' },
-  { value: 'gastos', label: 'Gastos' },
-  { value: 'entradas', label: 'Entradas' },
-  { value: 'fora', label: 'Não contam' },
-]
+import type { Transaction } from '../types'
 
 /** Baixa um arquivo gerado no aparelho (nada vai para a internet). */
-function download(name: string, content: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }))
+function download(name: string, content: Blob) {
+  const url = URL.createObjectURL(content)
   const a = document.createElement('a')
   a.href = url
   a.download = name
   document.body.appendChild(a)
   a.click()
   a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 2000)
+  setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
 /**
- * /extrato: todos os lançamentos do mês (do banco e lançados à mão), com busca, filtros e arquivo para baixar.
- * Em "Não contam" ficam as entradas do banco e as transferências entre contas próprias.
+ * /extrato: tudo o que entrou e saiu no mês, de todas as contas e cartões (ou de um só), com busca.
+ * "Entrou" e "Saiu" filtram na hora; "Não contam" mostra o que aparece mas não entra na conta do mês.
  */
 export function StatementPage() {
   const navigate = useNavigate()
-  const toast = useToast()
   const [params, setParams] = useSearchParams()
   const ym = parseMonthKey(params.get('mes')) ?? currentYearMonth()
-  const view = (VIEWS.find((v) => v.value === params.get('ver'))?.value ?? 'tudo') as StatementView
+  const viewParam = params.get('ver')
+  const view: StatementView = viewParam === 'gastos' || viewParam === 'entradas' || viewParam === 'fora' ? viewParam : 'tudo'
   const accountId = params.get('conta')
   const [query, setQuery] = useState('')
+  const [exporting, setExporting] = useState(false)
   const txs = useMonthTxs(ym)
   const categories = useCategories()
-  const accounts = useTable('bank_accounts')
-  const conns = useTable('bank_connections')
+  const accounts = useAccounts()
   const today = todayISO()
 
   const set = (patch: Record<string, string | null>) => {
@@ -64,40 +63,32 @@ export function StatementPage() {
 
   const all = useMemo(() => (txs.data ?? []).filter((t) => !t.virtual), [txs.data])
   const cats = categories.data ?? []
-  const accs = accounts.data ?? []
   const shown = useMemo(() => filterStatement(all, { view, query, accountId }, cats), [all, view, query, accountId, cats])
+  const counted = useMemo(() => filterStatement(all, { view: 'tudo', accountId }, cats), [all, accountId, cats])
   const outCount = useMemo(() => filterStatement(all, { view: 'fora', accountId }, cats).length, [all, accountId, cats])
 
   if (txs.isPending || categories.isPending) return <Spinner />
   if (txs.isError) return <ErrorBox message={friendlyError(txs.error)} onRetry={() => txs.refetch()} />
 
   const catOf = (id: string | null) => cats.find((c) => c.id === id)
-  const account = accs.find((a) => a.id === accountId)
-  const accountName = account ? accountTitle(findInstitution(account.name, conns.data?.find((c) => c.id === account.connection_id)?.label), account.type, account.name) : null
-  const totals = statementTotals(shown)
+  const selectable = accounts.list.filter((a) => a.kind !== 'guardado')
+  const selected = accounts.byId(accountId)
+  const totals = statementTotals(counted)
   const days = [...new Set(shown.map((t) => t.date))]
-  const fileName = `${APP_NAME.toLowerCase()}-extrato-${monthKey(ym)}`
 
-  function exportSheet() {
-    // A planilha leva tudo do mês (o que conta e o que não conta, marcado numa coluna)
-    const rows = accountId ? all.filter((t) => t.bank_account_id === accountId) : all
-    if (!rows.length) return toast('Não há lançamentos neste mês para baixar.')
-    download(`${fileName}.csv`, statementCSV(rows, cats, accs), 'text/csv;charset=utf-8')
-    toast('Planilha baixada: abre no Excel e no Google Planilhas')
-  }
-
-  const row = (t: (typeof shown)[number]): ReactNode => {
-    const method = methodOf(t, accs)
-    const sub = [t.type === 'salario' ? 'Salário' : catOf(t.category_id)?.name, method === 'manual' ? null : METHOD_LABEL[method], t.skipped ? 'não conta' : null].filter(Boolean).join(' · ')
+  const row = (t: Transaction): ReactNode => {
+    const text = txText(t.description)
+    const extra = [t.type === 'salario' ? 'Salário' : (text.detail ?? catOf(t.category_id)?.name), t.skipped ? 'não conta' : null].filter(Boolean).join(' · ')
+    const income = t.kind === 'income'
     return (
       <Row
         key={t.id}
-        icon={<CategoryIcon category={catOf(t.category_id)} size="sm" />}
-        title={`${t.description}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
-        subtitle={sub || undefined}
+        icon={<TxIcon description={t.description} category={catOf(t.category_id)} />}
+        title={`${text.title}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
+        subtitle={<FromAccount info={accounts.byId(t.bank_account_id)} extra={extra || null} />}
         trailing={
-          <span className={`num text-[1.0625rem] whitespace-nowrap ${t.skipped ? 'text-muted' : t.kind === 'income' ? 'font-semibold text-primary-strong' : ''}`}>
-            {t.kind === 'income' ? '+ ' : ''}
+          <span className={`num text-[1.0625rem] whitespace-nowrap ${t.skipped ? 'text-muted' : income ? 'font-semibold text-primary-strong' : ''}`}>
+            {income ? '+ ' : '− '}
             <Money cents={t.amount_cents} />
           </span>
         }
@@ -110,11 +101,34 @@ export function StatementPage() {
     )
   }
 
+  const kpi = (which: 'entradas' | 'gastos', label: string, cents: number) => {
+    const on = view === which
+    const Icon = which === 'entradas' ? ArrowDown : ArrowUp
+    return (
+      <button
+        type="button"
+        aria-pressed={on}
+        onClick={() => set({ ver: on ? 'tudo' : which })}
+        className={`press flex flex-col gap-1 rounded-[1.1rem] border-2 px-3.5 py-3 text-left transition-colors ${on ? 'border-ink bg-surface' : 'shadow-soft border-transparent bg-surface'}`}
+      >
+        <span className="flex items-center gap-1.5 text-[0.8125rem] font-semibold text-muted">
+          <Icon size={14} weight="bold" className={which === 'entradas' ? 'text-primary-strong' : 'text-danger-strong'} aria-hidden />
+          {label}
+          {on && <span className="ml-auto text-[0.75rem] text-primary">filtrando</span>}
+        </span>
+        <span className={`num truncate text-[1.125rem] font-bold ${which === 'entradas' ? 'text-primary-strong' : ''}`}>
+          {which === 'entradas' ? '+ ' : '− '}
+          <Money cents={cents} />
+        </span>
+      </button>
+    )
+  }
+
   return (
     <>
       <NavBar title="Extrato" left={<BackButton onClick={() => navigate(-1)} />} />
       <div className="flex flex-col gap-4">
-        <div className="shadow-soft flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1 print:hidden">
+        <div className="shadow-soft flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">
           <button type="button" aria-label="Mês anterior" onClick={() => set({ mes: monthKey(addMonths(ym, -1)) })} className="press grid size-10 place-items-center rounded-full text-primary active:bg-surface-2">
             <ChevronLeft className="size-6" />
           </button>
@@ -123,50 +137,47 @@ export function StatementPage() {
             <ChevronRight className="size-6" />
           </button>
         </div>
-        <p className="hidden text-[1.125rem] font-bold print:block">
-          Extrato de {monthLabel(ym)}
-          {accountName ? ` · ${accountName}` : ''}
-        </p>
 
-        <label className="shadow-soft flex items-center gap-2.5 rounded-full bg-surface px-4 py-2.5 print:hidden">
-          <MagnifyingGlass size={20} className="shrink-0 text-muted" />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar (ex.: mercado, Uber, Pix)" aria-label="Buscar no extrato" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-muted" />
-        </label>
-
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 print:hidden">
-          {VIEWS.map((v) => (
-            <Chip key={v.value} selected={view === v.value} onClick={() => set({ ver: v.value })} className="shrink-0">
-              {v.label}
-              {v.value === 'fora' && outCount > 0 ? ` (${outCount})` : ''}
-            </Chip>
-          ))}
-        </div>
-        {accountName && (
-          <button type="button" onClick={() => set({ conta: null })} className="press -mt-1 flex items-center gap-2 self-start rounded-full bg-primary-soft px-3 py-1.5 text-[0.875rem] font-semibold text-primary-strong print:hidden">
-            Só {accountName} <X size={14} weight="bold" aria-label="Tirar o filtro da conta" />
-          </button>
-        )}
-
-        {view === 'fora' ? (
-          <Notice>
-            Aparecem aqui o dinheiro que entrou na conta do banco e as transferências entre contas suas. <strong>Não entram na conta do mês</strong>: sua renda é o salário mais o que você lançar. Para contar algum, toque nele e ligue “Contar”.
-          </Notice>
-        ) : (
-          <div className="grid grid-cols-2 gap-2.5">
-            <Card className="px-3.5 py-3">
-              <p className="text-[0.8125rem] text-muted">Entrou</p>
-              <p className="num text-[1.125rem] font-semibold text-primary-strong">
-                <Money cents={totals.income} />
-              </p>
-            </Card>
-            <Card className="px-3.5 py-3">
-              <p className="text-[0.8125rem] text-muted">Saiu</p>
-              <p className="num text-[1.125rem] font-semibold">
-                <Money cents={totals.expense} />
-              </p>
-            </Card>
+        {selectable.length > 0 && (
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4" role="group" aria-label="Escolher conta ou cartão">
+            <AccountPill on={!accountId} onClick={() => set({ conta: null })}>
+              Todas
+            </AccountPill>
+            {selectable.map((a) => (
+              <AccountPill key={a.account.id} on={accountId === a.account.id} onClick={() => set({ conta: a.account.id })}>
+                <BankLogo inst={a.inst} credit={a.kind === 'cartao'} size="xs" />
+                {a.short}
+              </AccountPill>
+            ))}
           </div>
         )}
+
+        <div className="grid grid-cols-2 gap-2.5">
+          {kpi('entradas', 'Entrou', totals.income)}
+          {kpi('gastos', 'Saiu', totals.expense)}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="shadow-soft flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-surface px-4 py-2.5">
+            <MagnifyingGlass size={20} className="shrink-0 text-muted" />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar (mercado, Uber, Pix…)" aria-label="Buscar no extrato" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-muted" />
+          </label>
+          <button
+            type="button"
+            aria-pressed={view === 'fora'}
+            onClick={() => set({ ver: view === 'fora' ? 'tudo' : 'fora' })}
+            className={`press shrink-0 rounded-full px-3.5 py-2.5 text-[0.875rem] font-semibold ${view === 'fora' ? 'bg-ink text-on-ink' : 'shadow-soft bg-surface'}`}
+          >
+            Não contam{outCount ? ` (${outCount})` : ''}
+          </button>
+        </div>
+
+        {view === 'fora' && (
+          <Notice>
+            Aqui ficam as movimentações que aparecem no banco mas <strong>não entram na conta do mês</strong>: dinheiro que entrou na conta, transferências entre contas suas, pagamento da fatura e caixinha. Sua renda é o salário mais o que você lançar. Para contar alguma, toque nela.
+          </Notice>
+        )}
+        {selected && <p className="-mt-1 px-1 text-[0.875rem] text-muted">Mostrando só {selected.title}.</p>}
 
         {days.length === 0 ? (
           <Card className="flex flex-col items-center gap-2 text-center text-muted">
@@ -176,25 +187,130 @@ export function StatementPage() {
         ) : (
           days.map((d) => {
             const ofDay = shown.filter((t) => t.date === d)
-            const out = ofDay.filter((t) => t.kind === 'expense').reduce((a, t) => a + t.amount_cents, 0)
+            const net = ofDay.filter((t) => !t.skipped).reduce((a, t) => a + (t.kind === 'income' ? t.amount_cents : -t.amount_cents), 0)
             return (
-              <List key={d} header={`${relativeDay(d, today)}${out && view !== 'fora' ? ` · ${formatBRL(out)}` : ''}`}>
+              <List key={d} header={`${relativeDay(d, today)}${net && view !== 'fora' ? ` · ${net > 0 ? '+' : '−'} ${formatBRL(Math.abs(net))}` : ''}`}>
                 {ofDay.map(row)}
               </List>
             )
           })
         )}
 
-        <div className="mt-1 grid grid-cols-2 gap-2.5 print:hidden">
-          <button type="button" onClick={exportSheet} className="press flex items-center justify-center gap-2 rounded-[1rem] bg-surface px-3 py-3.5 text-[0.9375rem] font-semibold shadow-soft">
-            <DownloadSimple size={20} weight="bold" className="text-primary" /> Planilha (Excel)
-          </button>
-          <button type="button" onClick={() => window.print()} className="press flex items-center justify-center gap-2 rounded-[1rem] bg-surface px-3 py-3.5 text-[0.9375rem] font-semibold shadow-soft">
-            <FilePdf size={20} weight="bold" className="text-primary" /> Salvar em PDF
-          </button>
-        </div>
-        <p className="px-1 text-center text-[0.8125rem] leading-snug text-muted print:hidden">O arquivo é gerado no seu aparelho. No PDF, escolha “Salvar como PDF” na tela de impressão.</p>
+        <Button variant="secondary" onClick={() => setExporting(true)} className="mt-1">
+          <Export size={20} weight="bold" aria-hidden /> Exportar extrato
+        </Button>
       </div>
+
+      <ExportSheet open={exporting} onClose={() => setExporting(false)} accountId={accountId} />
     </>
+  )
+}
+
+function AccountPill({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick} className={`press flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[0.875rem] font-semibold whitespace-nowrap ${on ? 'bg-ink text-on-ink' : 'shadow-soft bg-surface'}`}>
+      {children}
+    </button>
+  )
+}
+
+type Period = 'atual' | 'anterior' | 'tudo' | 'escolher'
+
+/** Exportar: escolhe o período (como nos apps de banco) e baixa o PDF (ou a planilha). */
+function ExportSheet({ open, onClose, accountId }: { open: boolean; onClose: () => void; accountId: string | null }) {
+  const backend = useBackend()
+  const toast = useToast()
+  const accounts = useAccounts()
+  const categories = useCategories()
+  const profile = useProfile()
+  const [period, setPeriod] = useState<Period>('atual')
+  const [format, setFormat] = useState<'pdf' | 'planilha'>('pdf')
+  const [onlyAccount, setOnlyAccount] = useState(true)
+  const today = todayISO()
+  const [from, setFrom] = useState(firstDayISO(currentYearMonth()))
+  const [to, setTo] = useState(today)
+  const [busy, setBusy] = useState(false)
+  const selected = accounts.byId(accountId)
+
+  const range = (): { gte?: string; lte: string; label: string } | null => {
+    const cur = currentYearMonth()
+    if (period === 'atual') return { gte: firstDayISO(cur), lte: lastDayISO(cur), label: monthLabel(cur) }
+    if (period === 'anterior') {
+      const prev = addMonths(cur, -1)
+      return { gte: firstDayISO(prev), lte: lastDayISO(prev), label: monthLabel(prev) }
+    }
+    if (period === 'tudo') return { lte: today, label: `Tudo até ${today.split('-').reverse().join('/')}` }
+    if (!isValidISODate(from) || !isValidISODate(to) || from > to) return null
+    return { gte: from, lte: to, label: `${from.split('-').reverse().join('/')} a ${to.split('-').reverse().join('/')}` }
+  }
+
+  async function run() {
+    const r = range()
+    if (!r) return toast('Escolha uma data inicial antes da final.')
+    setBusy(true)
+    try {
+      let txs = await backend.list('transactions', { ...(r.gte ? { gte: ['date', r.gte] as [string, string] } : {}), lte: ['date', r.lte], order: 'date' })
+      const account = onlyAccount && selected ? selected : null
+      if (account) txs = txs.filter((t) => t.bank_account_id === account.account.id)
+      if (!txs.length) return toast('Não há lançamentos nesse período.')
+      const accs = accounts.list.map((a) => ({ ...a.account, short: a.short }))
+      const name = `${APP_NAME.toLowerCase()}-extrato-${r.gte ?? 'inicio'}-a-${r.lte}`
+      if (format === 'pdf') {
+        const { statementPDF } = await import('../lib/pdf')
+        const blob = await statementPDF({ txs, categories: categories.data ?? [], accounts: accs, period: r.label, accountLabel: account?.short ?? null, person: profile.data?.name ?? null })
+        download(`${name}.pdf`, blob)
+        toast('PDF do extrato baixado')
+      } else {
+        download(`${name}.csv`, new Blob([statementCSV(txs, categories.data ?? [], accs)], { type: 'text/csv;charset=utf-8' }))
+        toast('Planilha baixada: abre no Excel e no Google Planilhas')
+      }
+      onClose()
+    } catch (err) {
+      toast(friendlyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const OPTIONS: { value: Period; label: string; hint: string }[] = [
+    { value: 'atual', label: 'Mês atual', hint: monthLabel(currentYearMonth()) },
+    { value: 'anterior', label: 'Mês anterior', hint: monthLabel(addMonths(currentYearMonth(), -1)) },
+    { value: 'tudo', label: 'Período completo', hint: 'Tudo o que está no app' },
+    { value: 'escolher', label: 'Escolher as datas', hint: 'De um dia até outro' },
+  ]
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Exportar extrato">
+      <div className="flex flex-col gap-4">
+        <div role="radiogroup" aria-label="Período" className="shadow-soft overflow-hidden rounded-[1.1rem] bg-surface">
+          {OPTIONS.map((o) => (
+            <button key={o.value} type="button" role="radio" aria-checked={period === o.value} onClick={() => setPeriod(o.value)} className="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left last:border-0 active:bg-surface-2">
+              <span className={`grid size-5 shrink-0 place-items-center rounded-full border-2 ${period === o.value ? 'border-primary' : 'border-line'}`}>{period === o.value && <span className="size-2.5 rounded-full bg-primary" />}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{o.label}</span>
+                <span className="block text-[0.8125rem] text-muted">{o.hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        {period === 'escolher' && (
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="De" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
+            <Field label="Até" type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        )}
+        <Segmented label="Formato" value={format} onChange={setFormat} options={[{ value: 'pdf', label: 'PDF' }, { value: 'planilha', label: 'Planilha (Excel)' }]} />
+        {selected && (
+          <label className="flex items-center gap-2.5 px-1 text-[0.9375rem]">
+            <input type="checkbox" checked={onlyAccount} onChange={(e) => setOnlyAccount(e.target.checked)} className="size-5 accent-[var(--color-primary)]" />
+            Só {selected.title}
+          </label>
+        )}
+        <Button onClick={run} loading={busy}>
+          Exportar
+        </Button>
+        <p className="text-center text-[0.8125rem] leading-snug text-muted">O arquivo é gerado no seu aparelho. O que não conta no mês aparece marcado e fica fora dos totais.</p>
+      </div>
+    </Sheet>
   )
 }
