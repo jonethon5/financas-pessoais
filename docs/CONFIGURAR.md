@@ -101,7 +101,20 @@ Com o app rodando (`npm run dev`), em outro terminal:
 npm run vitrine
 ```
 
-O script abre o app num Chrome invisível no tamanho de um celular, passa pelas telas principais da demonstração,
-tira os prints e monta `docs/img/telas.png` (mosaico) e `docs/img/demo.gif`. O mosaico e o GIF usam Python com
-Pillow (`pip install pillow`). Variáveis opcionais: `APP_URL` e `CHROME_PATH`.
+O script abre o app num Chrome invisível no tamanho de um celular, passa pelas telas principais da demonstração e
+tira os prints (variáveis opcionais: `APP_URL` e `CHROME_PATH`). As imagens do README ficam em `docs/img`: uma versão
+clara e uma escura de cada mosaico (`telas-claro.png`, `telas-escuro.png`…), que o GitHub troca conforme o tema.
+
+### Vídeo do README
+
+O vídeo é um projeto [HyperFrames](https://github.com/heygen-com/hyperframes) em `docs/video` (HTML + GSAP
+renderizado em MP4). Precisa de Node 22+ e FFmpeg.
+
+```bash
+cd docs/video
+npm run dev      # pré-visualização no navegador
+npm run render   # gera o MP4
+```
+
+O GIF do README sai do MP4 com o FFmpeg (12 quadros por segundo, 800 px de largura).
 

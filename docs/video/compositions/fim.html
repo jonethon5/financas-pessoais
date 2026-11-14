@@ -1,0 +1,26 @@
+<template>
+  <style>
+    @font-face { font-family: 'Maven Pro'; src: url('assets/fonts/maven-pro.woff2') format('woff2'); font-weight: 400 900; }
+    #root { position: absolute; inset: 0; font-family: 'Maven Pro', sans-serif; color: #fff; }
+    #fim-pig { position: absolute; left: 810px; top: 190px; width: 300px; height: 300px; }
+    #fim-pig img { width: 100%; height: 100%; object-fit: contain; }
+    #fim-name { position: absolute; left: 0; width: 1920px; top: 500px; text-align: center; font-size: 132px; font-weight: 800; letter-spacing: -0.04em; }
+    #fim-line { position: absolute; left: 0; width: 1920px; top: 662px; text-align: center; font-size: 40px; font-weight: 600; color: #c9d8ff; }
+    #fim-url { position: absolute; left: 0; width: 1920px; top: 770px; text-align: center; }
+    #fim-url-in { display: inline-block; padding: 18px 34px; border-radius: 999px; background: #ffffff; color: #1d5fd6; font-size: 34px; font-weight: 800; }
+  </style>
+  <div id="root" data-composition-id="fim" data-width="1920" data-height="1080">
+    <div id="fim-pig" class="clip" data-start="0" data-duration="4"><img id="fim-pig-img" src="assets/porquinho.webp" alt="" /></div>
+    <h1 id="fim-name" class="clip" data-start="0" data-duration="4"><span id="fim-name-in">Poupei</span></h1>
+    <p id="fim-line" class="clip" data-start="0" data-duration="4"><span id="fim-line-in">Finanças para quem ganha pouco. Sem culpa.</span></p>
+    <p id="fim-url" class="clip" data-start="0" data-duration="4"><span id="fim-url-in">github.com/jonethon5/financas-pessoais</span></p>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#fim-pig-img", { opacity: 0, y: -160, scale: 0.8 }, { opacity: 1, y: 0, scale: 1, duration: 0.75, ease: "back.out(1.7)" }, 0.1);
+    tl.fromTo("#fim-name-in", { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.6, ease: "power3.out" }, 0.7);
+    tl.fromTo("#fim-line-in", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.15);
+    tl.fromTo("#fim-url-in", { opacity: 0, y: 20, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 1.45);
+    window.__timelines["fim"] = tl;
+  </script>
+</template>

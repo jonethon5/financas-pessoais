@@ -5,10 +5,27 @@ hoje, ajuda a guardar dinheiro com objetivo e ensina, com um porquinho que reage
 científica, com exemplos para quem ganha por volta de R$ 3.000.
 
 **[Abrir a demonstração](https://jonethon5.github.io/financas-pessoais/)** (funciona no navegador do celular, sem criar conta)
+· **[Vídeo de 26 s (MP4)](docs/img/poupei.mp4)**
 
-![Telas do Poupei: início, menu de lançar, gráficos, lojinha do porquinho e conexão com bancos](docs/img/telas.png)
+[![Vídeo de apresentação do Poupei: quanto dá para gastar hoje, a conta do mês, banco e cartão juntos e caixinhas](docs/img/video.gif)](docs/img/poupei.mp4)
 
-> Projeto em beta fechado. Os dados da demonstração são de exemplo e ficam só no aparelho de quem abre.
+> Projeto em beta fechado. Os dados das imagens e da demonstração são de exemplo e ficam só no aparelho de quem abre.
+
+## Telas
+
+As imagens acompanham o tema do seu GitHub (claro ou escuro), como o próprio app.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/telas-escuro.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/img/telas-claro.png">
+  <img alt="Telas do Poupei: início com quanto dá para gastar hoje, a conta do mês, extrato com logos das empresas e caixinhas" src="docs/img/telas-claro.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/telas2-escuro.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/img/telas2-claro.png">
+  <img alt="Telas do Poupei: contas e cartões juntos, ranking de gastos por categoria e o porquinho com as metas do dia" src="docs/img/telas2-claro.png">
+</picture>
 
 ## O problema
 
@@ -21,22 +38,23 @@ nada de culpa, e o hábito vem antes do valor.
 
 - **Quanto posso gastar hoje:** renda do mês menos contas fixas, parcelas e o que a pessoa combinou guardar,
   dividido pelos dias que faltam. Gastou menos hoje? Amanhã sobra mais.
+- **A conta do mês, igual em todo o app:** renda − gastos − caixinhas = sobra, com a barra de para onde vai a renda.
+- **Contas e cartões juntos:** cada conta e cartão conectado vira um cartãozinho na cor do banco, com saldo, fatura,
+  limite livre, dinheiro guardado e o painel de cada um (onde, quando e com que sentimento mais se gasta).
+- **Extrato completo:** busca, filtro por conta ou cartão, "Entrou" e "Saiu" como filtro, logo das empresas
+  (Uber, iFood…) e **exportação em PDF ou planilha** por período.
 - **Caixinhas:** metas por data, por valor mensal ou livres, com foto, motivo ("o seu porquê") e previsão de quando
   chega. O plano se recalcula sozinho se um mês falhar.
 - **Porquinho (mascote):** engorda ou emagrece pela meta que a **própria pessoa** escolheu, não pelo valor em reais.
-  Metas do dia viram moedas para a lojinha de roupas. Três modos de falar: suave, moderado e rígido.
-- **Aprender:** 16 métodos de livros conhecidos e de estudos publicados (pague-se primeiro, reserva de emergência,
-  regra dos 30 dias, bola de neve…), cada um com fonte e exemplo em reais.
-- **Saúde financeira:** nota de 0 a 100 em 5 pilares, com o próximo passo e a lição certa para cada um.
-- **Assistente:** diagnóstico do mês, plano de corte com valores e "posso comprar isso?". O app faz as contas e a IA
-  (Gemini) só escreve, no tom escolhido, sem nunca recomendar investimento.
+  Metas do dia viram moedas para a lojinha de roupas. Três modos de falar: suave, equilibrado e agressivo.
+- **Aprender e Saúde financeira:** 16 métodos de livros e estudos (pague-se primeiro, reserva, regra dos 30 dias,
+  bola de neve…), cada um com fonte e exemplo em reais, e uma nota de 0 a 100 em 5 pilares com o próximo passo.
 - **Gráficos:** ranking por categoria, recorrência, débito × crédito, evolução de 6 ou 12 meses, mapa de calor dos dias
   e saldo previsto do mês.
-- **Conexão com bancos (Open Finance, só leitura):** os gastos entram sozinhos, sem duplicar o que já foi lançado;
-  o app aprende a categoria quando a pessoa corrige uma vez.
-- **Guia interativo** no primeiro acesso, **modo escuro**, **valores escondidos** com um toque e **funciona offline** (PWA).
-
-![Demonstração passando pelas telas](docs/img/demo.gif)
+- **Conexão com bancos (Open Finance, só leitura):** os gastos entram sozinhos, sem duplicar o que já foi lançado; o
+  app aprende a categoria quando a pessoa corrige uma vez.
+- **Central de ajuda** com busca, **guia interativo** no primeiro acesso, **modo escuro**, **valores escondidos** com
+  um toque e **funciona offline** (PWA).
 
 ## Destaques técnicos
 
@@ -46,12 +64,13 @@ nada de culpa, e o hábito vem antes do valor.
   contra o Supabase local. A loja do porquinho confere o saldo de moedas num gatilho do Postgres.
 - **Dois "back-ends" com a mesma interface:** Supabase (conta de verdade) e `localStorage` (demonstração). As telas
   não sabem qual estão usando.
-- **Open Finance:** Edge Function que lê contas e cartões pela Pluggy, mapeia descrições ("Pix para Maria"), ignora
-  pagamento de fatura e transferências entre as próprias contas e confirma salário e contas fixas já lançados, em vez
-  de duplicar.
-- **IA com rédea curta:** o app manda para o modelo só totais (sem nome nem descrição dos lançamentos), as contas vêm
-  prontas, a base de métodos é gerada a partir das lições do app e há limite de 20 perguntas por dia por pessoa,
-  controlado no banco.
+- **Open Finance fiel ao banco:** Edge Function lê contas, cartões, investimentos e cheque especial pela Pluggy. Nada
+  é descartado: fatura, resgate da caixinha, estorno e Pix entre as próprias contas (reconhecido pela categoria, pelo
+  mesmo CPF dos dois lados ou pelo nome) aparecem marcados como "não conta". A renda do mês é o salário cadastrado:
+  dinheiro que entra na conta só conta se a pessoa disser. Compra pendente relançada com outro id não duplica, e o
+  aviso da Pluggy (webhook) faz o app buscar assim que o banco atualiza.
+- **IA com rédea curta (desligada no beta, para conter o custo):** o app manda para o modelo só totais, as contas vêm
+  prontas e há limite de perguntas por dia controlado no banco. Liga com uma chave quando fizer sentido.
 - **Gráficos acessíveis:** paleta validada para daltonismo (claro e escuro), legenda com texto e valor, toque para ver
   os números.
 
@@ -59,11 +78,11 @@ nada de culpa, e o hábito vem antes do valor.
 
 | | |
 | --- | --- |
-| Testes de regra (Vitest) | 154 |
-| Testes contra o banco de dados real (RLS, banco, IA, moedas) | 33 |
+| Testes de regra (Vitest) | 177 |
+| Testes contra o banco de dados real (RLS, banco, IA, moedas) | 41 |
 | Tabelas com RLS | 21 |
-| Edge Functions | 4 (configuração, excluir conta, conexão com banco, assistente) |
-| Código | cerca de 13 mil linhas de TypeScript |
+| Edge Functions | 5 (configuração, excluir conta, conexão com banco, aviso da Pluggy, assistente) |
+| Código | cerca de 18 mil linhas de TypeScript |
 
 ## Tecnologias
 
@@ -80,16 +99,25 @@ nada de culpa, e o hábito vem antes do valor.
 
 ## Arquitetura em um minuto
 
-```
-Telas (src/pages) ──► hooks de dados (src/data) ──► interface Backend
-                              │                         ├─ supabaseBackend (conta de verdade)
-                              │                         └─ localBackend (demonstração, no aparelho)
-                              ▼
-                 Regras puras com testes (src/lib)
-                 dinheiro, datas, orçamento, caixinhas, saúde, porquinho, gráficos
-
-Supabase: Postgres + RLS (supabase/migrations) · Edge Functions (supabase/functions)
-          bank-sync ──► Pluggy (Open Finance)        ask ──► Gemini
+```mermaid
+flowchart LR
+  subgraph App["App (PWA, React)"]
+    T[Telas<br/>src/pages] --> D[Hooks de dados<br/>src/data]
+    D --> R[Regras puras com testes<br/>src/lib]
+    D --> B{{Interface Backend}}
+    B --> L[localBackend<br/>demonstração no aparelho]
+  end
+  B --> S[(Supabase<br/>Postgres + RLS)]
+  S -. tempo real .-> D
+  subgraph Funções["Edge Functions (Deno)"]
+    BS[bank-sync]
+    WH[bank-webhook]
+  end
+  D --> BS
+  BS --> P[Pluggy<br/>Open Finance]
+  P -- item atualizado --> WH
+  WH --> BS
+  BS --> S
 ```
 
 A explicação completa, com as principais funções e o porquê de cada decisão, está em
@@ -101,6 +129,12 @@ A explicação completa, com as principais funções e o porquê de cada decisã
 - Cadastro no beta exige código de acesso, validado num gatilho do banco.
 - Fotos em armazenamento privado. A chave de serviço só existe nas Edge Functions, nunca no app.
 - **Excluir conta** apaga tudo na hora. Nenhum segredo nem dado real no repositório.
+
+## Vídeo
+
+O vídeo do topo é código: HTML e animações (GSAP) renderizados quadro a quadro em MP4 pela
+[HyperFrames](https://github.com/heygen-com/hyperframes). As telas são capturas reais do app. O projeto está em
+[docs/video](docs/video).
 
 ## Como foi feito
 
@@ -120,8 +154,8 @@ Banco local, conexão com bancos, IA e publicação: **[docs/CONFIGURAR.md](docs
 
 ## Próximos passos
 
-Abrir o beta para os primeiros testadores com dados reais, notificações no celular, app para Android (Play Store) e,
-depois, a versão definitiva do mascote.
+Ambiente de testes separado, revisão de segurança e beta com 20 testadores; depois, notificações no celular, app
+para Android (Play Store), fila de atualização dos bancos para escala e a versão definitiva do mascote.
 
 ---
 
