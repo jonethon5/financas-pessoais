@@ -274,7 +274,7 @@ export function GoalDetailPage() {
           </GoalCover>
           <div className="p-5">
             {goal.motivation && (
-              <div className="mb-4 rounded-[1rem] border-l-4 bg-surface-2 px-4 py-3" style={{ borderColor: goal.color }}>
+              <div className="mb-4 rounded-[1rem] px-4 py-3" style={{ background: `color-mix(in srgb, ${goal.color} 12%, var(--surface-2))` }}>
                 <p className="text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Seu porquê</p>
                 <p className="mt-0.5 text-[1.0625rem] leading-snug font-semibold">{goal.motivation}</p>
               </div>

@@ -19,7 +19,8 @@ export function getThemePref(): ThemePref {
 export function applyTheme(pref = getThemePref()) {
   const isDark = pref === 'escuro' || (pref === 'sistema' && dark.matches)
   document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#000000' : '#FFFFFF')
+  // A barra de status acompanha o topo azul de todas as telas
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#1D5FD6' : '#2F6FEB')
 }
 
 export function setThemePref(pref: ThemePref) {

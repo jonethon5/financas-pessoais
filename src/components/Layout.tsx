@@ -42,14 +42,14 @@ function TabItem({ to, label, icon: Icon }: Tab) {
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `relative z-10 flex h-[3.25rem] flex-col items-center justify-center gap-[3px] text-[0.625rem] font-medium tracking-wide transition-colors duration-300 active:opacity-60 ${
-          isActive ? 'text-ink' : 'text-faint'
+        `relative z-10 flex h-[3.25rem] flex-col items-center justify-center gap-[3px] text-[0.75rem] font-semibold transition-colors duration-200 active:opacity-60 ${
+          isActive ? 'text-ink' : 'text-muted'
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon size={26} weight={isActive ? 'fill' : 'regular'} aria-hidden />
+          <Icon size={24} weight={isActive ? 'fill' : 'regular'} aria-hidden />
           {label}
         </>
       )}
@@ -86,7 +86,7 @@ export function Layout() {
     <MenuContext.Provider value={fullScreen ? null : () => setMenuOpen(true)}>
     <div className="mx-auto min-h-dvh w-full max-w-[30rem] bg-bg">
       {mode === 'demo' && (
-        <p className="pt-safe px-4 pt-1.5 text-center text-[0.75rem] font-medium text-muted">
+        <p className="pt-safe px-4 pt-1.5 text-center text-[0.8125rem] font-medium text-muted">
           Demonstração · dados de exemplo só neste aparelho
           {configured && (
             <>
@@ -127,8 +127,8 @@ export function Layout() {
           <ul className="relative grid grid-cols-5 items-center px-1 py-1">
             <span
               aria-hidden
-              className={`tab-glass absolute top-1 h-[3.25rem] transition-[left,opacity] duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)] ${slot < 0 ? 'opacity-0' : 'opacity-100'}`}
-              style={{ left: `calc(0.25rem + ${Math.max(0, slot)} * (100% - 0.5rem) / 5 + 0.125rem)`, width: 'calc((100% - 0.5rem) / 5 - 0.25rem)' }}
+              className={`tab-glass absolute top-1 left-[0.375rem] h-[3.25rem] transition-[transform,opacity] duration-[380ms] ease-[cubic-bezier(.32,.72,0,1)] ${slot < 0 ? 'opacity-0' : 'opacity-100'}`}
+              style={{ width: 'calc((100% - 0.5rem) / 5 - 0.25rem)', transform: `translateX(calc(${Math.max(0, slot)} * (100% + 0.25rem)))` }}
             />
             <li>
               <TabItem {...TABS[0]} />

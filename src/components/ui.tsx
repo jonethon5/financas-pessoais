@@ -39,7 +39,7 @@ export function Button({ variant = 'primary', loading, size = 'lg', className = 
 }
 
 const inputClass = (error?: string | null) =>
-  `min-h-[3.25rem] w-full rounded-[0.875rem] border bg-surface px-4 text-[1.0625rem] text-ink transition placeholder:text-faint disabled:bg-surface-2 disabled:text-muted ${
+  `min-h-[3.25rem] w-full rounded-[0.875rem] border bg-surface px-4 text-[16px] text-ink transition placeholder:text-faint disabled:bg-surface-2 disabled:text-muted ${
     error ? 'border-danger' : 'border-line'
   } focus:border-primary focus:outline-none`
 

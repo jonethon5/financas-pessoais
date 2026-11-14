@@ -119,7 +119,7 @@ function BankPicker({ onPick }: { onPick: (inst: Institution) => void }) {
           aria-label="Buscar banco pelo nome"
           autoComplete="off"
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-muted"
+          className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted"
         />
       </label>
       {!q && (

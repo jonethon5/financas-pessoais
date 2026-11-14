@@ -65,7 +65,7 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
                     style={{
                       transform: shown ? `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` : 'translate(-50%, -50%) scale(0.4)',
                       opacity: shown ? 1 : 0,
-                      transition: `transform 420ms cubic-bezier(.32,1.25,.5,1) ${i * 35}ms, opacity 200ms ease ${i * 35}ms`,
+                      transition: `transform 320ms cubic-bezier(0.23, 1, 0.32, 1) ${i * 30}ms, opacity 180ms ease-out ${i * 30}ms`,
                     }}
                   >
                     <span className="grid size-[3.25rem] place-items-center rounded-full bg-white shadow-[0_10px_24px_-10px_rgb(0_0_0/0.6)]" style={{ color: it.color }}>

@@ -160,7 +160,7 @@ export function StatementPage() {
         <div className="flex items-center gap-2">
           <label className="shadow-soft flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-surface px-4 py-2.5">
             <MagnifyingGlass size={20} className="shrink-0 text-muted" />
-            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar (mercado, Uber, Pix…)" aria-label="Buscar no extrato" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-muted" />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar (mercado, Uber, Pix…)" aria-label="Buscar no extrato" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted" />
           </label>
           <button
             type="button"

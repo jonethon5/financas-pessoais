@@ -65,6 +65,8 @@ export function HomeCarousel({ slides }: { slides: Slide[] }) {
               className="press slide-card relative flex min-h-[10.25rem] overflow-hidden rounded-[1.5rem] text-white shadow-[0_14px_30px_-18px_rgb(15_36_51/0.7)]"
               style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to2})` }}
             >
+              {/* Véu escuro atrás do texto: o texto branco fica legível com qualquer cor de fundo */}
+              <span aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgb(0_0_0/0.22),rgb(0_0_0/0.06)_65%,transparent)]" />
               {/* Fundo: brilho no canto, anel e uma faixa de luz bem leve */}
               <span aria-hidden className="absolute -top-16 -right-10 size-52 rounded-full bg-white/[0.13]" />
               <span aria-hidden className="absolute right-[-1.5rem] bottom-[-3.5rem] size-44 rounded-full border-[14px] border-white/[0.07]" />

@@ -25,7 +25,7 @@ export function HelpPage() {
         </div>
         <label className="shadow-soft flex items-center gap-2.5 rounded-full bg-surface px-4 py-3">
           <MagnifyingGlass size={20} className="shrink-0 text-muted" />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ex.: renda, extrato, conectar banco" aria-label="Buscar na ajuda" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-muted" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ex.: renda, extrato, conectar banco" aria-label="Buscar na ajuda" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted" />
         </label>
 
         {searching ? (
