@@ -52,11 +52,14 @@ export function HabitsPage() {
             { icon: Flame, value: weeks, label: weeks === 1 ? 'semana guardando' : 'semanas guardando', color: '#FF6B4A' },
             { icon: PencilSimpleLine, value: days, label: days === 1 ? 'dia lançando' : 'dias lançando', color: '#6E56F0' },
             { icon: CalendarCheck, value: cal.count, label: cal.count === 1 ? 'dia sem gastar' : 'dias sem gastar', color: '#0F9D6B' },
-          ].map((s) => (
+          ]
+            // A sequência mais forte primeiro: começar pelo que já deu certo motiva mais do que começar por um zero
+            .sort((a, b) => Number(b.value > 0) - Number(a.value > 0))
+            .map((s) => (
             <Card key={s.label} className="px-3 py-3.5 text-center">
               <s.icon size={26} weight="duotone" style={{ color: s.color }} className="mx-auto" />
               <p className="num mt-1 text-[1.625rem] leading-none font-extrabold">{s.value}</p>
-              <p className="mt-1 text-[0.75rem] leading-tight font-medium text-muted">{s.label}</p>
+              <p className="mt-1 text-[0.8125rem] leading-tight font-medium text-muted">{s.label}</p>
             </Card>
           ))}
         </div>

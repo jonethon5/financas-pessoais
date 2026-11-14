@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BankLogo } from '../components/BankLogo'
-import { CategoryDonut } from '../components/CategoryDonut'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { Chip, ErrorBox, NavBar, Segmented, Spinner } from '../components/ui'
 import { useHistory, useTable } from '../data/finance'
@@ -393,9 +392,6 @@ export function ChartsPage() {
       <div key={`${key}-${tab}`} className="stagger mt-5 flex flex-col gap-4 pb-4">
         {tab === 'despesas' && (
           <>
-            <ChartCard title="Gastos por categoria">
-              <CategoryDonut slices={byCategory(d.txs, 'expense', d.categories).map((c) => ({ id: c.id, name: c.name, color: c.color, cents: c.cents }))} label="Gastos do mês" />
-            </ChartCard>
             <ChartCard title="Ranking das categorias" hint="Onde o dinheiro mais foi neste mês.">
               <Ranking items={byCategory(d.txs, 'expense', d.categories)} />
             </ChartCard>
@@ -447,9 +443,6 @@ export function ChartsPage() {
 
         {tab === 'receitas' && (
           <>
-            <ChartCard title="Renda por categoria">
-              <CategoryDonut slices={byCategory(d.txs, 'income', d.categories).map((c) => ({ id: c.id, name: c.name, color: c.color, cents: c.cents }))} label="Renda do mês" />
-            </ChartCard>
             <ChartCard title="Ranking das rendas">
               <Ranking items={byCategory(d.txs, 'income', d.categories)} />
             </ChartCard>

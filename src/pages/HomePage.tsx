@@ -4,6 +4,7 @@ import { Bank, BookOpenText, ChatCircleDots, CalendarCheck, ChartLineUp, Eye, Ey
 import { HomeCarousel, type Slide } from '../components/HomeCarousel'
 import { AI_ENABLED } from '../lib/features'
 import { TxIcon } from '../components/TxIcon'
+import { MonthFlow } from '../components/MonthFlow'
 import { Wallet } from '../components/Wallet'
 import { FromAccount } from '../components/FromAccount'
 import { useAccounts } from '../data/accounts'
@@ -340,23 +341,8 @@ export function HomePage() {
       </section>
 
       <Section title="Seu mês" to="/mes">
-        {/* A conta fecha: renda − gastos − caixinhas = sobra */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-          {[
-            ['Renda do mês', s.income, '', ''],
-            ['Gastos do mês', s.committed + s.daily, '', '−'],
-            ['Para as caixinhas', s.save, '', '−'],
-            ['Sobra prevista', s.free, s.free < 0 ? 'text-danger-strong' : 'text-primary-strong', '='],
-          ].map(([label, cents, cls, op]) => (
-            <div key={label as string}>
-              <p className="text-[0.8125rem] text-muted">{label}</p>
-              <p className={`text-[1rem] font-bold ${cls}`}>
-                {op && <span className="mr-1 text-muted">{op}</span>}
-                <Money cents={cents as number} />
-              </p>
-            </div>
-          ))}
-        </div>
+        {/* A conta fecha: renda − gastos − caixinhas = sobra (igual ao Mês) */}
+        <MonthFlow s={s} />
         <p className="mt-2 text-[0.8125rem] text-muted">Contando as contas do mês que ainda vão vencer.</p>
         {alerts.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">

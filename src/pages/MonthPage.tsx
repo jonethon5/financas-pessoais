@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryIcon } from '../components/CategoryIcon'
+import { MonthFlow } from '../components/MonthFlow'
 import { TxIcon } from '../components/TxIcon'
 import { FromAccount } from '../components/FromAccount'
 import { useAccounts } from '../data/accounts'
@@ -105,12 +106,10 @@ export function MonthPage() {
 
 type ViewData = NonNullable<ReturnType<typeof useMonthView>['data']>
 
-/** Resumo: despesas, renda e balanço, com o gráfico de rosca por categoria. */
+/** Resumo: a conta do mês (igual à tela inicial) e, embaixo, para onde foi o dinheiro por categoria. */
 function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string) => void }) {
   const [kind, setKind] = useState<'expense' | 'income'>('expense')
   const { txs, categories, summary: s } = data
-  const expenses = s.committed + s.daily
-  const balance = s.income - expenses
   const byCat = new Map<string, number>()
   for (const t of txs) if (!t.skipped && t.kind === kind) byCat.set(t.category_id ?? 'sem', (byCat.get(t.category_id ?? 'sem') ?? 0) + t.amount_cents)
   const slices: Slice[] = [...byCat.entries()]
@@ -124,30 +123,9 @@ function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string
 
   return (
     <div className="stagger flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3" style={i(0)}>
-        <Card className="px-4 py-3.5">
-          <p className="text-[0.8125rem] text-muted">Despesas</p>
-          <p className="text-[1.25rem] font-bold">
-            −<AnimatedMoney cents={expenses} />
-          </p>
-        </Card>
-        <Card className="px-4 py-3.5">
-          <p className="text-[0.8125rem] text-muted">Renda</p>
-          <p className="text-[1.25rem] font-bold text-primary-strong">
-            +<AnimatedMoney cents={s.income} />
-          </p>
-        </Card>
-      </div>
-      <div style={i(1)}>
-        <Card className="flex items-center justify-between px-4 py-3.5">
-          <p className="text-[0.9375rem] leading-tight text-muted">
-            Balanço do mês
-            <span className="block text-[0.75rem]">renda − despesas, antes das caixinhas</span>
-          </p>
-          <p className={`text-[1.375rem] font-bold ${balance < 0 ? 'text-danger-strong' : ''}`}>
-            {balance < 0 ? '−' : '+'}
-            <AnimatedMoney cents={Math.abs(balance)} />
-          </p>
+      <div style={i(0)}>
+        <Card className="p-4">
+          <MonthFlow s={s} />
         </Card>
       </div>
       <div style={i(2)}>
@@ -281,7 +259,9 @@ function Budget({ ym, data }: { ym: YearMonth; data: ViewData }) {
   const [editing, setEditing] = useState<Category | null>(null)
   const r = rule503020(txs, categories, summary.save)
   const subs = subscriptions(recurrings.data ?? [], history)
-  const sorted = [...statuses].sort((a, b) => Number(b.limit != null) - Number(a.limit != null) || b.spent - a.spent)
+  // Com limite primeiro (é o que a pessoa acompanha); sem limite, do que mais pesa ao que menos pesa
+  const withLimit = statuses.filter((s) => s.limit != null).sort((a, b) => b.spent / (b.limit || 1) - a.spent / (a.limit || 1))
+  const noLimit = statuses.filter((s) => s.limit == null).sort((a, b) => b.spent - a.spent)
   const limited = statuses.filter((s) => s.limit != null)
   const totalLimit = limited.reduce((a, s) => a + (s.limit ?? 0), 0)
   const totalSpent = statuses.reduce((a, s) => a + s.spent, 0)
@@ -308,15 +288,35 @@ function Budget({ ym, data }: { ym: YearMonth; data: ViewData }) {
         </div>
       </Card>
 
-      <section>
-        <h2 className="mb-1.5 px-4 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Por categoria</h2>
-        <ul className="stagger shadow-soft overflow-hidden rounded-[1.25rem] bg-surface">
-          {sorted.map((s, i) => (
-            <BudgetRow key={s.category.id} s={s} i={i} onEdit={() => setEditing(s.category)} onCover={() => setCovering(s)} />
+      {withLimit.length > 0 && (
+        <section>
+          <h2 className="mb-1.5 px-4 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Com limite</h2>
+          <ul className="stagger shadow-soft overflow-hidden rounded-[1.25rem] bg-surface">
+            {withLimit.map((s, i) => (
+              <BudgetRow key={s.category.id} s={s} i={i} onEdit={() => setEditing(s.category)} onCover={() => setCovering(s)} />
+            ))}
+          </ul>
+          <p className="mt-1.5 px-4 text-[0.8125rem] text-muted">O app avisa em 80% e quando passar. Toque para mudar o limite.</p>
+        </section>
+      )}
+
+      {noLimit.length > 0 && (
+        <List
+          header={withLimit.length ? 'Sem limite' : 'Comece pelas que mais pesam'}
+          footer={withLimit.length ? undefined : 'Dica: ponha limite só nas 2 ou 3 categorias que mais pesam. Poucos limites são mais fáceis de seguir.'}
+        >
+          {noLimit.map((s) => (
+            <Row
+              key={s.category.id}
+              icon={<CategoryIcon category={s.category} size="sm" />}
+              title={s.category.name}
+              subtitle={s.spent ? `Gasto no mês: ${formatBRL(s.spent)}` : 'Nada gasto neste mês'}
+              trailing={<span className="text-[0.875rem] font-semibold text-primary-strong">Definir limite</span>}
+              onClick={() => setEditing(s.category)}
+            />
           ))}
-        </ul>
-        <p className="mt-1.5 px-4 text-[0.8125rem] text-muted">Toque numa categoria para definir o limite do mês ou da semana. Alerta em 80% e 100%.</p>
-      </section>
+        </List>
+      )}
 
       <Card>
         <p className="font-bold">Regra 50/30/20</p>

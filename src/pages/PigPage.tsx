@@ -76,7 +76,7 @@ export function PigPage() {
             <h2 className="text-[1.0625rem] font-extrabold">Barriguinha</h2>
             <span className="text-[0.875rem] text-muted">{s.size === 'gordo' ? 'cheinho' : s.size === 'normal' ? 'satisfeito' : 'com fome'}</span>
           </div>
-          <ProgressBar className="mt-2" value={s.fullness} tone={s.fullness >= 0.7 ? 'grow' : s.fullness >= 0.35 ? 'warn' : 'danger'} label="Barriguinha do porquinho" />
+          <ProgressBar className="mt-2" value={s.fullness} tone={s.fullness >= 0.7 ? 'grow' : s.fullness >= 0.35 ? 'warn' : 'coral'} label="Barriguinha do porquinho" />
           <p className="mt-2 px-1 text-[0.9375rem] leading-snug text-muted">
             {input.saveTarget > 0 ? (
               <>
