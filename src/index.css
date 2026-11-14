@@ -484,80 +484,223 @@ body {
   opacity: 0;
   transform: scale(1.06);
 }
-/* O quique do porquinho fica: é o único momento "personagem" do app, uma vez por abertura */
-.splash-pig {
-  animation: splash-drop 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+/*
+ * A cena da abertura (3 s): o porquinho entra pensando, a moeda cai girando no cofrinho da cabeça,
+ * ele amassa com o impacto e vira "uau" (olhos de estrela), moedas saltam, ele pula de alegria e fica feliz.
+ * Tudo só começa com .is-go (artes já carregadas). Cada camada do porquinho cuida de um movimento só.
+ * --cx/--cy: onde fica a moeda da cabeça nas artes abertura-*.webp (gerado por splash_frames.py).
+ */
+.splash-stage {
+  --cx: 38%;
+  --cy: 9.6%;
+  --coin: 18.6%;
+  width: min(14rem, 62vw);
+  aspect-ratio: 409 / 360;
+  visibility: hidden;
+}
+.is-go .splash-stage {
+  visibility: visible;
+}
+.sp-enter,
+.sp-sway,
+.sp-bump,
+.sp-hop {
   transform-origin: 50% 100%;
 }
-@keyframes splash-drop {
-  0% { transform: translateY(-120px) scale(0.6); opacity: 0; }
-  55% { transform: translateY(6px) scale(1.04, 0.94); opacity: 1; }
-  75% { transform: translateY(-6px) scale(0.98, 1.03); }
+/* o moletom é cortado reto na arte: some aos poucos para não parecer recorte */
+.sp-hop {
+  mask-image: linear-gradient(to bottom, #000 80%, transparent 99%);
+}
+.sp-pose {
+  opacity: 0;
+}
+.sp-feliz {
+  opacity: 1;
+}
+.is-go .sp-enter { animation: sp-enter 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.is-go .sp-sway { animation: sp-sway 640ms 420ms ease-in-out both; }
+.is-go .sp-bump { animation: sp-bump 480ms 1060ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+.is-go .sp-hop { animation: sp-hop 620ms 1640ms cubic-bezier(0.33, 1, 0.68, 1) both; }
+.is-go .sp-pensa { animation: sp-pose-a 3000ms linear both; }
+.is-go .sp-uau { animation: sp-pose-b 3000ms linear both; }
+.is-go .sp-feliz { animation: sp-pose-c 3000ms linear both; }
+
+@keyframes sp-enter {
+  0% { transform: translateY(45%) scale(0.82); opacity: 0; }
+  55% { opacity: 1; }
   100% { transform: none; opacity: 1; }
 }
-.splash-ring {
-  position: absolute;
-  inset: 12%;
-  border-radius: 9999px;
-  border: 3px solid rgb(255 255 255 / 0.6);
-  animation: splash-ring 1100ms 450ms ease-out both;
+/* pensando: inclina a cabeça para um lado e para o outro, olhando para cima */
+@keyframes sp-sway {
+  0%, 100% { transform: none; }
+  35% { transform: rotate(-5deg); }
+  75% { transform: rotate(3deg); }
 }
-@keyframes splash-ring {
-  0% { transform: scale(0.6); opacity: 0; }
-  30% { opacity: 1; }
-  100% { transform: scale(1.6); opacity: 0; }
+/* a moeda bate: amassa, estica e assenta */
+@keyframes sp-bump {
+  0% { transform: none; }
+  16% { transform: scale(1.12, 0.86); }
+  42% { transform: scale(0.94, 1.08); }
+  68% { transform: scale(1.03, 0.98); }
+  100% { transform: none; }
 }
-.splash-coin {
+/* pulo de alegria: prepara (agacha), sobe, cai e assenta */
+@keyframes sp-hop {
+  0% { transform: none; }
+  18% { transform: scale(1.06, 0.92); }
+  50% { transform: translateY(-14%) scale(0.96, 1.05); }
+  78% { transform: scale(1.05, 0.95); }
+  100% { transform: none; }
+}
+/* troca de pose: corte seco, como um desenho animado (pensa até 1,05 s, "uau" até 1,65 s, depois feliz) */
+@keyframes sp-pose-a { 0%, 34.9% { opacity: 1; } 35%, 100% { opacity: 0; } }
+@keyframes sp-pose-b { 0%, 34.9% { opacity: 0; } 35%, 54.9% { opacity: 1; } 55%, 100% { opacity: 0; } }
+@keyframes sp-pose-c { 0%, 54.9% { opacity: 0; } 55%, 100% { opacity: 1; } }
+
+/* a moeda que cai: a de fora desce (com gravidade) e entra na fenda; a de dentro gira */
+.sp-drop {
   position: absolute;
-  left: 50%;
-  top: 45%;
+  left: var(--cx);
+  top: var(--cy);
+  width: var(--coin);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  opacity: 0;
+  z-index: 2;
+}
+.sp-drop-spin {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #ffe68a, #f2b705 60%, #c98a06);
+  box-shadow: inset 0 0 0 2px #a86d05;
+  color: #8a5a06;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+.is-go .sp-drop { animation: sp-fall 760ms 380ms both; }
+.is-go .sp-drop-spin { animation: sp-spin 680ms 380ms linear both; }
+@keyframes sp-fall {
+  0% { transform: translateY(-340%); opacity: 0; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  12% { opacity: 1; }
+  88% { transform: none; opacity: 1; animation-timing-function: ease-in; }
+  100% { transform: translateY(30%) scaleY(0.2); opacity: 0; }
+}
+@keyframes sp-spin {
+  0% { transform: scaleX(1); }
+  25% { transform: scaleX(0.1); }
+  50% { transform: scaleX(1); }
+  75% { transform: scaleX(0.1); }
+  100% { transform: scaleX(1); }
+}
+
+/* o clarão e o anel no cofrinho quando a moeda entra */
+.splash-flash,
+.splash-ring {
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  translate: -50% -50%;
+  border-radius: 9999px;
+  opacity: 0;
+  z-index: 1;
+}
+.splash-flash {
+  width: 40%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgb(255 244 200 / 0.95), rgb(255 230 140 / 0) 65%);
+}
+.splash-ring {
+  width: 30%;
+  aspect-ratio: 1;
+  border: 3px solid rgb(255 255 255 / 0.7);
+}
+.is-go .splash-flash { animation: sp-flash 420ms 1060ms ease-out both; }
+.is-go .splash-ring { animation: splash-ring 900ms 1080ms ease-out both; }
+@keyframes sp-flash {
+  0% { transform: scale(0.3); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes splash-ring {
+  0% { transform: scale(0.5); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* moedas que saltam do cofrinho em leque */
+.splash-coin {
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
   border-radius: 9999px;
   background: radial-gradient(circle at 35% 35%, #ffe68a, #f2b705 60%, #c98a06);
   color: #8a5a06;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.4);
   opacity: 0;
-  animation: splash-coin 1000ms calc(500ms + var(--i) * 70ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+  z-index: 1;
 }
+.is-go .splash-coin { animation: splash-coin 900ms calc(1100ms + var(--i) * 55ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes splash-coin {
   0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
-  25% { opacity: 1; }
+  20% { opacity: 1; }
   100% {
-    transform: rotate(calc(-70deg + var(--i) * 35deg)) translateY(-118px) rotate(calc(70deg - var(--i) * 35deg)) scale(1);
+    transform: rotate(calc(-64deg + var(--i) * 32deg)) translateY(-96px) rotate(calc(64deg - var(--i) * 32deg)) scale(1);
     opacity: 0;
   }
 }
+
 .splash-word span {
   display: inline-block;
-  animation: splash-letter 600ms calc(650ms + var(--i) * 55ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 0;
 }
+.is-go .splash-word span { animation: splash-letter 560ms calc(1700ms + var(--i) * 50ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes splash-letter {
-  0% { transform: translateY(28px); opacity: 0; }
+  0% { transform: translateY(26px); opacity: 0; }
   100% { transform: none; opacity: 1; }
 }
 .splash-tag {
-  animation: splash-fade 600ms 1150ms ease both;
+  opacity: 0;
 }
+.is-go .splash-tag { animation: splash-fade 560ms 2100ms ease both; }
 @keyframes splash-fade {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
+
+/* sem movimento: só o porquinho feliz e o nome, parados */
 @media (prefers-reduced-motion: reduce) {
-  .splash-pig,
-  .splash-ring,
-  .splash-coin,
-  .splash-word span,
-  .splash-tag {
+  .is-go .sp-enter,
+  .is-go .sp-sway,
+  .is-go .sp-bump,
+  .is-go .sp-hop,
+  .is-go .sp-pose,
+  .is-go .splash-word span,
+  .is-go .splash-tag {
     animation: none;
   }
-  .splash-coin,
-  .splash-ring {
+  .sp-pensa,
+  .sp-uau {
+    opacity: 0;
+  }
+  .sp-feliz,
+  .splash-word span,
+  .splash-tag {
+    opacity: 1;
+  }
+  .sp-drop,
+  .splash-flash,
+  .splash-ring,
+  .splash-coin {
     display: none;
   }
 }

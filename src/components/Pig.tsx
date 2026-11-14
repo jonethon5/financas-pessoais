@@ -27,9 +27,15 @@ export function usePigColor(): PigColor {
   return color
 }
 
+/**
+ * Versão das artes: sobe quando os arquivos mudam. O app guarda as artes por 90 dias (CacheFirst),
+ * então sem isso quem já abriu o app continuaria vendo os recortes antigos.
+ */
+const ART_VERSION = 2
+
 /** Endereço de uma arte do mascote (public/mascote/{cor}/{nome}.webp). */
 export function mascotSrc(color: PigColor, name: string): string {
-  return `${import.meta.env.BASE_URL}mascote/${color}/${name}.webp`
+  return `${import.meta.env.BASE_URL}mascote/${color}/${name}.webp?v=${ART_VERSION}`
 }
 
 /** Qual arte usar para o humor e o modo (roupa da loja tem prioridade). */

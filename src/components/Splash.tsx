@@ -4,6 +4,12 @@ import { mascotSrc, type PigColor } from './Pig'
 
 const KEY = 'poupei:abertura'
 
+/** Os três momentos da cena (artes alinhadas pela moeda da cabeça: public/mascote/{cor}/abertura-*.webp). */
+const POSES = ['pensa', 'uau', 'feliz'] as const
+
+/** Quanto a cena dura até começar a sair (ms). */
+const SCENE_MS = 3000
+
 /** A cor do mascote fica guardada no aparelho para a abertura já sair certa (antes de carregar o perfil). */
 function storedColor(): PigColor {
   try {
@@ -14,8 +20,10 @@ function storedColor(): PigColor {
 }
 
 /**
- * Abertura do app: o porquinho cai e quica, moedas saltam em volta e o nome sobe letra por letra.
+ * Abertura do app, uma cena curta: o porquinho aparece pensando, uma moeda cai no cofrinho da cabeça,
+ * ele vibra (olhos de estrela, moedas saltando), pula de alegria e o nome sobe letra por letra.
  * Aparece uma vez a cada vez que o app é aberto (sessão); um toque pula.
+ * A cena só começa quando as artes já carregaram (no máximo 0,7 s de espera), para não piscar no meio.
  */
 export function Splash() {
   const [phase, setPhase] = useState<'on' | 'leaving' | 'off'>(() => {
@@ -25,8 +33,11 @@ export function Splash() {
       return 'on'
     }
   })
+  const [ready, setReady] = useState(false)
+  const [color] = useState(storedColor)
   const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+  // guarda que a abertura já passou nesta sessão e espera as artes
   useEffect(() => {
     if (phase !== 'on') return
     try {
@@ -34,9 +45,29 @@ export function Splash() {
     } catch {
       /* tudo bem */
     }
-    const leave = setTimeout(() => setPhase('leaving'), reduced ? 600 : 2100)
+    let alive = true
+    const go = () => alive && setReady(true)
+    const cap = setTimeout(go, 700)
+    Promise.all(
+      POSES.map((p) => {
+        const img = new Image()
+        img.src = mascotSrc(color, `abertura-${p}`)
+        return img.decode().catch(() => undefined)
+      }),
+    ).then(go)
+    return () => {
+      alive = false
+      clearTimeout(cap)
+    }
+    // só na primeira montagem
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (phase !== 'on' || !ready) return
+    const leave = setTimeout(() => setPhase('leaving'), reduced ? 700 : SCENE_MS)
     return () => clearTimeout(leave)
-  }, [phase, reduced])
+  }, [phase, ready, reduced])
 
   useEffect(() => {
     if (phase !== 'leaving') return
@@ -45,25 +76,46 @@ export function Splash() {
   }, [phase])
 
   if (phase === 'off') return null
-  const color = storedColor()
   return (
     <div
       role="presentation"
       onClick={() => setPhase('leaving')}
       className={`splash fixed inset-0 z-[100] grid place-items-center overflow-hidden ${phase === 'leaving' ? 'splash-out' : ''}`}
     >
-      <div className="relative flex flex-col items-center">
-        <div className="relative size-44">
-          {/* moedas que saltam em volta */}
+      <div className={`splash-scene relative flex flex-col items-center ${ready ? 'is-go' : ''}`}>
+        <div className="splash-stage relative">
+          {/* brilho e moedas que saltam do cofrinho quando a moeda entra */}
+          <span aria-hidden className="splash-flash" />
+          <span aria-hidden className="splash-ring" />
           {[0, 1, 2, 3, 4].map((i) => (
             <span key={i} aria-hidden className="splash-coin" style={{ '--i': i } as React.CSSProperties}>
               $
             </span>
           ))}
-          <span aria-hidden className="splash-ring" />
-          <img src={mascotSrc(color, 'principal')} alt="" className="splash-pig absolute inset-0 size-full object-contain" draggable={false} />
+          {/* o porquinho: cada camada cuida de um movimento (entrar, balançar pensando, amassar com a moeda, pular) */}
+          <div className="sp-enter absolute inset-0">
+            <div className="sp-sway absolute inset-0">
+              <div className="sp-bump absolute inset-0">
+                <div className="sp-hop absolute inset-0">
+                  {POSES.map((p) => (
+                    <img
+                      key={p}
+                      src={mascotSrc(color, `abertura-${p}`)}
+                      alt=""
+                      draggable={false}
+                      className={`sp-pose sp-${p} absolute inset-0 size-full object-contain`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* a moeda que cai girando e entra no cofrinho */}
+          <span aria-hidden className="sp-drop">
+            <span className="sp-drop-spin">$</span>
+          </span>
         </div>
-        <p className="splash-word mt-5 flex text-[2.75rem] font-extrabold tracking-[-0.03em] text-white" aria-label={APP_NAME}>
+        <p className="splash-word mt-4 flex text-[2.75rem] font-extrabold tracking-[-0.03em] text-white" aria-label={APP_NAME}>
           {[...APP_NAME].map((ch, i) => (
             <span key={i} aria-hidden style={{ '--i': i } as React.CSSProperties}>
               {ch}

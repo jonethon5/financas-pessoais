@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  Modelo das imagens da Play Store (docs/loja/*.jpg).
+  1. Tire os prints do app (scripts/vitrine.mjs) e ponha em docs/loja/telas/ sem a faixa "Demonstração" do topo
+     (claro-inicio-app.png, claro-mes-app.png, claro-extrato-app.png, claro-caixinhas-app.png, claro-graficos-app.png, escuro-porquinho-app.png).
+  2. Gere cada imagem com o Chrome sem janela, em 540x960 com escala 2 (sai 1080x1920):
+     chrome --headless=new --user-data-dir=<pasta temporária> --hide-scrollbars --force-device-scale-factor=2
+            --window-size=540,960 --screenshot=1.png "file:///.../docs/loja/modelo.html#1"   (#1 a #6)
+     Imagem de destaque: --window-size=512,250 e "#destaque" (sai 1024x500).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Poupei loja</title>
+<style>
+  @font-face { font-family: 'Maven Pro'; src: url('../video/assets/fonts/maven-pro.woff2') format('woff2'); font-weight: 400 900; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 540px; height: 960px; overflow: hidden; }
+  body { font-family: 'Maven Pro', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .slide { position: relative; width: 540px; height: 960px; overflow: hidden; display: flex; flex-direction: column; align-items: center; padding-top: 58px; }
+  .blue { background: linear-gradient(170deg, #3d7bf0 0%, #2f6feb 40%, #1d5fd6 100%); color: #fff; }
+  .light { background: #eef2fa; color: #10204a; }
+  .navy { background: linear-gradient(170deg, #17244a 0%, #0f1834 100%); color: #fff; }
+  h1 { font-size: 42px; line-height: 1.06; font-weight: 800; letter-spacing: -0.025em; text-align: center; max-width: 460px; text-wrap: balance; }
+  p.sub { margin-top: 14px; font-size: 19px; line-height: 1.35; font-weight: 500; text-align: center; max-width: 420px; opacity: 0.86; text-wrap: balance; }
+  .light p.sub { color: #3b4a72; opacity: 1; }
+  .light h1 em, .blue h1 em, .navy h1 em { font-style: normal; }
+  .light h1 em { color: #2f6feb; }
+  .blue h1 em, .navy h1 em { color: #ffd45c; }
+
+  /* celular Android: moldura, câmera furada, barra de status */
+  .phone { position: absolute; left: 50%; top: 262px; width: 352px; translate: -50% 0; border-radius: 46px; padding: 9px; background: #0d1324;
+           box-shadow: 0 0 0 2px #2a3352, 0 40px 80px -30px rgb(5 12 40 / 0.55), 0 18px 40px -20px rgb(5 12 40 / 0.4); }
+  .light .phone { box-shadow: 0 0 0 2px #2a3352, 0 40px 80px -30px rgb(20 40 100 / 0.35), 0 18px 40px -20px rgb(20 40 100 / 0.3); }
+  .phone.left { left: auto; right: 22px; translate: none; }
+  .phone.right { left: 22px; translate: none; }
+  .screen { position: relative; border-radius: 38px; overflow: hidden; background: var(--bar); height: 760px; }
+  .status { position: absolute; inset: 0 0 auto; height: 30px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px 0 26px;
+            color: var(--ink); font: 600 13px/1 'Roboto', 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.01em; z-index: 2; }
+  .status .icons { display: flex; align-items: center; gap: 6px; }
+  .status svg { display: block; fill: currentColor; }
+  .cam { position: absolute; top: 9px; left: 50%; translate: -50% 0; width: 13px; height: 13px; border-radius: 50%; background: #05070d; box-shadow: inset 0 0 0 2px #1b2238; z-index: 3; }
+  .shot { position: absolute; top: 30px; left: 0; width: 100%; display: block; }
+  .pig { position: absolute; z-index: 5; filter: drop-shadow(0 14px 18px rgb(5 12 40 / 0.35)); }
+  .feature { position: relative; width: 512px; height: 250px; overflow: hidden; color: #fff; background: linear-gradient(160deg, #3d7bf0 0%, #2f6feb 45%, #1d5fd6 100%); }
+  .ft-text { position: absolute; left: 38px; top: 50%; translate: 0 -50%; width: 232px; }
+  .ft-name { font-size: 60px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+  .ft-tag { margin-top: 12px; font-size: 16px; line-height: 1.3; font-weight: 500; opacity: 0.9; text-wrap: balance; }
+  .ft-pig { position: absolute; right: 22px; bottom: -16px; height: 246px; filter: drop-shadow(0 14px 18px rgb(5 12 40 / 0.35)); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+  // Cada imagem: fundo, título (com <em> no trecho em destaque), subtítulo, print, cor do topo do app e porquinho opcional
+  const SLIDES = {
+    1: { bg: 'blue', t: 'Saiba quanto pode <em>gastar hoje</em>', s: 'Seu salário vira um valor por dia, sem planilha.', img: 'telas/claro-inicio-app.png', bar: '#2F6FEB', ink: '#fff',
+         side: 'left', pig: { src: '../../public/mascote/azul/principal.webp', w: 190, left: -6, top: 600 } },
+    2: { bg: 'light', t: 'O mês inteiro em <em>uma conta só</em>', s: 'Quanto entrou, quanto saiu, quanto guardou e o que sobra.', img: 'telas/claro-mes-app.png', bar: '#2F6FEB', ink: '#fff' },
+    3: { bg: 'blue', t: 'Seu banco conectado, <em>sem digitar nada</em>', s: 'Pelo Open Finance os gastos entram sozinhos, já na categoria certa.', img: 'telas/claro-extrato-app.png', bar: '#2F6FEB', ink: '#fff',
+         side: 'right', pig: { src: '../../public/mascote/azul/tela-cartoes.webp', w: 186, left: 362, top: 660 } },
+    4: { bg: 'light', t: 'Guarde para o que <em>importa</em>', s: 'Caixinhas com meta e a barra enchendo a cada depósito.', img: 'telas/claro-caixinhas-app.png', bar: '#2F6FEB', ink: '#fff',
+         side: 'right', pig: { src: '../../public/mascote/azul/tela-metas.webp', w: 150, left: 372, top: 620 } },
+    5: { bg: 'blue', t: 'Para onde vai <em>seu dinheiro</em>', s: 'Gráficos simples por categoria, por dia e por hora.', img: 'telas/claro-graficos-app.png', bar: '#2F6FEB', ink: '#fff' },
+    6: { bg: 'navy', t: 'Um porquinho que <em>torce por você</em>', s: 'Dicas, conquistas e roupas novas trocadas por moedas.', img: 'telas/escuro-porquinho-app.png', bar: '#2F6FEB', ink: '#fff',
+         side: 'right', pig: { src: '../../public/mascote/azul/meta-atingida.webp', w: 184, left: 362, top: 640 } },
+  }
+  if (location.hash === '#destaque') {
+    document.documentElement.style.cssText = 'width:512px;height:250px'
+    document.body.style.cssText = 'width:512px;height:250px'
+    document.getElementById('app').innerHTML = `
+      <div class="feature">
+        <div class="ft-text"><div class="ft-name">Poupei</div><div class="ft-tag">Saiba quanto pode gastar hoje e guarde para o que importa.</div></div>
+        <img class="ft-pig" src="../../public/mascote/azul/principal.webp" alt="">
+      </div>`
+    throw 'ok'
+  }
+  const n = Number(location.hash.slice(1) || 1)
+  const c = SLIDES[n]
+  const wifi = '<svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 0 3.2A11.6 11.6 0 0 1 8 0a11.6 11.6 0 0 1 8 3.2Z"/></svg>'
+  const signal = '<svg width="14" height="12" viewBox="0 0 14 12"><path d="M14 0v12H0Z"/></svg>'
+  const battery = '<svg width="22" height="12" viewBox="0 0 22 12"><rect x="0.75" y="0.75" width="18.5" height="10.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2.6" y="2.6" width="12.4" height="6.8" rx="1.2"/><rect x="20.2" y="4" width="1.6" height="4" rx="0.8"/></svg>'
+  document.getElementById('app').innerHTML = `
+    <div class="slide ${c.bg}">
+      <h1>${c.t}</h1>
+      <p class="sub">${c.s}</p>
+      <div class="phone ${c.side ?? ''}"><div class="screen" style="--bar:${c.bar};--ink:${c.ink}">
+        <div class="status"><span>14:32</span><span class="icons">${wifi}${signal}${battery}<span style="margin-left:1px">78%</span></span></div>
+        <span class="cam"></span>
+        <img class="shot" src="${c.img}" alt="">
+      </div></div>
+      ${c.pig ? `<img class="pig" src="${c.pig.src}" style="width:${c.pig.w}px;left:${c.pig.left}px;top:${c.pig.top}px" alt="">` : ''}
+    </div>`
+</script>
+</body>
+</html>
