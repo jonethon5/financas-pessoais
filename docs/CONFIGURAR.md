@@ -116,5 +116,10 @@ npm run dev      # pré-visualização no navegador
 npm run render   # gera o MP4
 ```
 
-O GIF do README sai do MP4 com o FFmpeg (12 quadros por segundo, 800 px de largura).
+A animação do README sai do MP4 com o FFmpeg, em WebP animado (24 quadros por segundo, 720 px), que fica mais
+fluido e mais leve que GIF:
+
+```bash
+ffmpeg -i docs/img/poupei.mp4 -vf "fps=24,scale=720:-1:flags=lanczos" -c:v libwebp -q:v 52 -loop 0 -an docs/img/video.webp
+```
 

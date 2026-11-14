@@ -7,25 +7,26 @@
     #contas-title { position: absolute; left: 860px; top: 190px; width: 964px; font-size: 60px; white-space: nowrap; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
     #contas-sub { position: absolute; left: 860px; top: 282px; width: 900px; font-size: 32px; font-weight: 500; line-height: 1.35; color: #c9d8ff; }
     #contas-zoom { position: absolute; left: 860px; top: 430px; width: 562px; height: 533px; transform-origin: 0 0; }
-    #contas-zoom img { display: block; width: 100%; height: 100%; border-radius: 28px; box-shadow: 0 30px 70px -24px rgb(0 0 0 / 0.7); }
+    #contas-zoom img { display: block; width: 100%; height: 100%; border-radius: 28px; transform-origin: 0 0; }
+    #contas-ring { position: absolute; inset: -6px; border-radius: 34px; box-shadow: 0 0 0 4px rgb(110 168 254 / 0.6); }
   </style>
   <div id="root" data-composition-id="contas" data-width="1920" data-height="1080">
     <div id="contas-phone" class="clip" data-start="0" data-duration="4.6"><img id="contas-screen" src="assets/escuro-carteira.png" alt="" /></div>
     <h2 id="contas-title" class="clip" data-start="0" data-duration="4.6"><span id="contas-title-in">Banco e cartão juntos</span></h2>
     <p id="contas-sub" class="clip" data-start="0" data-duration="4.6"><span id="contas-sub-in">Open Finance, só leitura. E no modo escuro também.</span></p>
-    <div id="contas-zoom" class="clip" data-start="0" data-duration="4.6" data-layout-allow-overflow><img id="contas-zoom-img" src="assets/escuro-carteira-zoom.png" alt="" /></div>
+    <div id="contas-zoom" class="clip" data-start="1.05" data-duration="3.55" data-layout-allow-overflow><img id="contas-zoom-img" src="assets/escuro-carteira-zoom.png" alt="" /><span id="contas-ring"></span></div>
   </div>
   <script>
     const tl = gsap.timeline({ paused: true });
-    tl.fromTo("#contas-screen", { opacity: 0, y: 70, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "power3.out" }, 0);
-    tl.fromTo("#contas-phone", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 0);
+    tl.fromTo("#contas-phone", { y: 60 }, { y: 0, duration: 0.7, ease: "power3.out" }, 0);
+    tl.fromTo("#contas-screen", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 0);
     tl.fromTo("#contas-title-in", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.45);
     tl.fromTo("#contas-sub-in", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.7);
     // o pedaço da tela sai do celular e cresce ao lado (a interface de verdade, maior)
-    tl.fromTo("#contas-zoom-img", { x: -530.0, y: -321.0, scale: 0.6944, opacity: 0.2 }, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.75, ease: "power3.inOut" }, 1.05);
-    tl.fromTo("#contas-zoom-img", { boxShadow: "0 0 0 0 rgb(47 111 235 / 0)" }, { boxShadow: "0 0 0 6px rgb(110 168 254 / 0.55)", duration: 0.5, ease: "power2.out" }, 1.85);
+    tl.fromTo("#contas-zoom-img", { x: -530.0, y: -321.0, scale: 0.6944, opacity: 1, boxShadow: "0 0 0 0 rgb(0 0 0 / 0)" }, { x: 0, y: 0, scale: 1, opacity: 1, boxShadow: "0 30px 70px -24px rgb(0 0 0 / 0.7)", duration: 0.8, ease: "expo.inOut" }, 1.05);
+    tl.fromTo("#contas-ring", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.85);
     // saída
-    tl.to(["#contas-screen", "#contas-title-in", "#contas-sub-in", "#contas-zoom-img"], { opacity: 0, y: -24, duration: 0.4, ease: "power2.in" }, 4.15);
+    tl.to(["#contas-screen", "#contas-title-in", "#contas-sub-in", "#contas-zoom-img", "#contas-ring"], { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.15);
     window.__timelines["contas"] = tl;
   </script>
 </template>
