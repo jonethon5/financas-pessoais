@@ -1,6 +1,6 @@
 // Conta de verdade: dados no Supabase. O RLS do banco garante que cada pessoa só acessa o que é dela.
 import { callFunction, supabase } from '../lib/supabase'
-import type { AdminFeedback, AdminStats, BetaCode, Feedback, Profile, TableName, Tables } from '../types'
+import type { AdminFeedback, AdminScreenRating, AdminStats, BetaCode, Feedback, Profile, TableName, Tables } from '../types'
 import type { Backend } from './backend'
 
 async function uid(): Promise<string> {
@@ -119,6 +119,11 @@ export const supabaseBackend: Backend = {
     return check(await supabase.from('feedback').select('*').eq('user_id', id).order('created_at', { ascending: false }).limit(50)) as Feedback[]
   },
 
+  async rateScreen({ screen, rating, problems, message, context }) {
+    const { error } = await supabase.from('screen_ratings').insert({ screen, rating, problems, message, context })
+    if (error) throw error
+  },
+
   async deleteAccount() {
     await callFunction('delete-account', { confirm: 'EXCLUIR' })
   },
@@ -132,6 +137,9 @@ export const supabaseBackend: Backend = {
     },
     async setFeedbackStatus(id, status) {
       check(await supabase.from('feedback').update({ status }).eq('id', id))
+    },
+    async screenRatings() {
+      return check(await supabase.rpc('admin_screen_ratings')) as AdminScreenRating[]
     },
     async codes() {
       return check(await supabase.from('beta_codes').select('*').order('created_at', { ascending: false })) as BetaCode[]

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { AdminFeedback, AdminStats, BetaCode, Bucket, Feedback, FeedbackKind, FeedbackStatus, NewRow, Profile, ProfilePatch, TableName, Tables } from '../types'
+import type { AdminFeedback, AdminScreenRating, AdminStats, BetaCode, Bucket, Feedback, FeedbackKind, FeedbackStatus, NewRow, Profile, ProfilePatch, ScreenRatingInput, TableName, Tables } from '../types'
 
 export type FeedbackInput = {
   kind: FeedbackKind
@@ -50,6 +50,8 @@ export interface Backend {
 
   sendFeedback(input: FeedbackInput): Promise<void>
   listMyFeedback(): Promise<Feedback[]>
+  /** "Avalie esta tela" */
+  rateScreen(input: ScreenRatingInput): Promise<void>
 
   /** Apaga a conta e todos os dados (no modo demonstração: volta aos dados de exemplo). */
   deleteAccount(): Promise<void>
@@ -58,6 +60,8 @@ export interface Backend {
     stats(): Promise<AdminStats>
     feedback(): Promise<AdminFeedback[]>
     setFeedbackStatus(id: string, status: FeedbackStatus): Promise<void>
+    /** últimas avaliações de tela de todo mundo (o resumo por tela sai de lib/ratings.ts) */
+    screenRatings(): Promise<AdminScreenRating[]>
     codes(): Promise<BetaCode[]>
     createCode(input: NewBetaCode): Promise<void>
     setCodeActive(code: string, active: boolean): Promise<void>

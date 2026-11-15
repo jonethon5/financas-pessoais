@@ -220,6 +220,13 @@ export const localBackend: Backend = {
     return read<Feedback[]>('feedback', () => [])
   },
 
+  async rateScreen(input) {
+    // Demonstração: guarda só neste aparelho (não vai para ninguém)
+    const list = read<(typeof input & { created_at: string })[]>('avaliacoes', () => [])
+    list.unshift({ ...input, created_at: now() })
+    write('avaliacoes', list.slice(0, 50))
+  },
+
   async deleteAccount() {
     resetDemo()
   },
@@ -228,6 +235,7 @@ export const localBackend: Backend = {
     stats: unavailable,
     feedback: unavailable,
     setFeedbackStatus: unavailable,
+    screenRatings: unavailable,
     codes: unavailable,
     createCode: unavailable,
     setCodeActive: unavailable,

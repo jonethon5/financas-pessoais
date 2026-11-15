@@ -51,6 +51,18 @@ export type Feedback = {
 
 export type AdminFeedback = Omit<Feedback, 'user_id'> & { sender_name: string | null; sender_email: string | null }
 
+/** "Avalie esta tela": nota de 1 a 5, o que melhorar e um comentário opcional. */
+export type ScreenRatingInput = {
+  /** caminho da tela sem ids (lib/ratings.ts › screenOf) */
+  screen: string
+  rating: number
+  problems: string[]
+  message: string | null
+  context: Record<string, string>
+}
+
+export type AdminScreenRating = ScreenRatingInput & { id: string; created_at: string; sender_name: string | null; sender_email: string | null }
+
 export type BetaCode = {
   code: string
   note: string | null

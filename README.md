@@ -53,6 +53,8 @@ nada de culpa, e o hábito vem antes do valor.
   e saldo previsto do mês.
 - **Conexão com bancos (Open Finance, só leitura):** os gastos entram sozinhos, sem duplicar o que já foi lançado; o
   app aprende a categoria quando a pessoa corrige uma vez.
+- **"Avalie esta tela"** (como no app do Nubank): no fim de cada tela, 2 perguntas (nota de 5 níveis e o que
+  melhorar). O painel do beta mostra a média de cada tela, as piores primeiro, e os comentários.
 - **Central de ajuda** com busca, **guia interativo** no primeiro acesso, **modo escuro**, **valores escondidos** com
   um toque e **funciona offline** (PWA).
 
@@ -78,9 +80,9 @@ nada de culpa, e o hábito vem antes do valor.
 
 | | |
 | --- | --- |
-| Testes de regra (Vitest) | 177 |
-| Testes contra o banco de dados real (RLS, banco, IA, moedas) | 41 |
-| Tabelas com RLS | 21 |
+| Testes de regra (Vitest) | 184 |
+| Testes contra o banco de dados real (RLS, banco, IA, moedas, avaliações) | 47 |
+| Tabelas com RLS | 22 |
 | Edge Functions | 5 (configuração, excluir conta, conexão com banco, aviso da Pluggy, assistente) |
 | Código | cerca de 18 mil linhas de TypeScript |
 

@@ -5,10 +5,11 @@ import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { copyText, useToast } from '../../components/Toast'
 import { BackButton, Badge, Button, Card, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
-import { useAdminActions, useAdminFeedback, useAdminStats, useBetaCodes, useBetaRequired, useFileUrl, useProfile } from '../../data/hooks'
+import { useAdminActions, useAdminFeedback, useAdminScreenRatings, useAdminStats, useBetaCodes, useBetaRequired, useFileUrl, useProfile } from '../../data/hooks'
 import { formatDateShort } from '../../lib/dates'
+import { ratingLabel, screenName, summarizeRatings } from '../../lib/ratings'
 import { friendlyError } from '../../lib/supabase'
-import type { AdminFeedback, BetaCode } from '../../types'
+import type { AdminFeedback, AdminScreenRating, BetaCode } from '../../types'
 
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // sem 0/O, 1/I/L (fácil de ditar)
 
@@ -127,6 +128,8 @@ function AdminPanel() {
           )}
         </section>
 
+        <ScreenRatings />
+
         <section>
           <h2 className="mb-1.5 px-4 text-[0.8125rem] font-medium tracking-wide text-muted uppercase">Sugestões e problemas</h2>
           {feedback.isPending ? (
@@ -160,6 +163,84 @@ function AdminPanel() {
         Quem já criou conta com <strong>{removing?.code}</strong> continua entrando normalmente.
       </ConfirmSheet>
     </>
+  )
+}
+
+/** Média de cada tela ("Avalie esta tela"), piores primeiro, e os comentários mais recentes. */
+function ScreenRatings() {
+  const ratings = useAdminScreenRatings()
+  const [all, setAll] = useState(false)
+  const title = <h2 className="mb-1.5 px-4 text-[0.8125rem] font-medium tracking-wide text-muted uppercase">Avaliações das telas</h2>
+  if (ratings.isPending) return <section>{title}<Spinner /></section>
+  if (ratings.isError) return <section>{title}<ErrorBox message={friendlyError(ratings.error)} onRetry={() => ratings.refetch()} /></section>
+  if (ratings.data.length === 0) {
+    return (
+      <section>
+        {title}
+        <Card className="text-center text-muted">Ninguém avaliou ainda. O botão “Avalie esta tela” fica no fim de cada tela.</Card>
+      </section>
+    )
+  }
+  const summary = summarizeRatings(ratings.data)
+  const comments = ratings.data.filter((r) => r.message || r.problems.length > 0)
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        {title}
+        <List footer="Piores notas primeiro. Média de 1 (muito insatisfeito) a 5 (muito satisfeito).">
+          {summary.map((s) => {
+            const tone = s.average < 3 ? 'text-danger' : s.average < 4 ? 'text-warn-strong' : 'text-primary'
+            const top = s.problems[0]
+            return (
+              <Row
+                key={s.screen}
+                title={s.name}
+                subtitle={`${s.total} ${s.total === 1 ? 'resposta' : 'respostas'}${s.unhappy ? ` · ${s.unhappy} insatisfeita${s.unhappy === 1 ? '' : 's'}` : ''}${top ? ` · mais citado: ${top.label} (${top.count})` : ''}`}
+                trailing={<span className={`num text-[1.25rem] font-bold ${tone}`}>{s.average.toFixed(1).replace('.', ',')}</span>}
+              />
+            )
+          })}
+        </List>
+      </div>
+      {comments.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <p className="px-4 text-[0.8125rem] font-medium tracking-wide text-muted uppercase">O que pediram para melhorar</p>
+          {(all ? comments : comments.slice(0, 8)).map((r) => (
+            <RatingCard key={r.id} item={r} />
+          ))}
+          {!all && comments.length > 8 && (
+            <Button variant="ghost" size="sm" onClick={() => setAll(true)}>
+              Ver todos ({comments.length})
+            </Button>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function RatingCard({ item }: { item: AdminScreenRating }) {
+  const tone = item.rating <= 2 ? 'danger' : item.rating === 3 ? 'warn' : 'ok'
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold">{screenName(item.screen)}</span>
+        <span className="text-[0.8125rem] text-muted">{formatDateShort(item.created_at.slice(0, 10))}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <Badge tone={tone}>{ratingLabel(item.rating)}</Badge>
+        {item.problems.map((p) => (
+          <Badge key={p} tone="neutral">
+            {p}
+          </Badge>
+        ))}
+      </div>
+      {item.message && <p className="mt-2.5 leading-snug whitespace-pre-wrap">{item.message}</p>}
+      <p className="mt-3 text-[0.8125rem] leading-snug break-words text-muted">
+        {item.sender_name || 'Sem nome'} · {item.sender_email ?? 'conta excluída'} · versão {item.context.versao ?? '?'}
+        {item.context.aba ? ` · aba ${item.context.aba}` : ''}
+      </p>
+    </Card>
   )
 }
 

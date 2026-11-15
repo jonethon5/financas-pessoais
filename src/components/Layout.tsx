@@ -8,6 +8,8 @@ import { useToast } from './Toast'
 import { RadialAdd } from './RadialAdd'
 import { MenuContext } from './MenuContext'
 import { MenuSheet } from './MenuSheet'
+import { RateScreen } from './RateScreen'
+import { screenOf } from '../lib/ratings'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
 
@@ -64,7 +66,7 @@ function TabItem({ to, label, icon: Icon }: Tab) {
 export function Layout() {
   const { mode, configured, exitDemo } = useAuth()
   const online = useOnline()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const [addOpen, setAddOpen] = useState(false)
   const closeAdd = useCallback(() => setAddOpen(false), [])
@@ -78,6 +80,8 @@ export function Layout() {
   const toast = useToast()
   useBankAutoSync((n) => toast(`${n} ${n === 1 ? 'lançamento novo' : 'lançamentos novos'} do banco`))
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
+  // "Avalie esta tela" no fim de cada tela (formulários e painel do beta ficam de fora)
+  const screen = fullScreen ? null : screenOf(pathname)
   // Vidro sob a aba ativa: posição na grade de 5 (o "+" fica no meio)
   const activeTab = TABS.findIndex((t) => (t.to === '/' ? pathname === '/' : pathname === t.to || pathname.startsWith(`${t.to}/`)))
   const slot = activeTab < 0 ? -1 : [0, 1, 3, 4][activeTab]
@@ -114,6 +118,7 @@ export function Layout() {
       <main className={`px-4 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))]'}`}>
         <div key={pathname} className="animate-page">
           <Outlet />
+          {screen && <RateScreen screen={screen} search={search} />}
         </div>
       </main>
 

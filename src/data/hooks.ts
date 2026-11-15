@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Bucket, FeedbackStatus, ProfilePatch } from '../types'
+import type { Bucket, FeedbackStatus, ProfilePatch, ScreenRatingInput } from '../types'
 import { useBackend, type FeedbackInput, type NewBetaCode } from './backend'
 
 export const keys = {
@@ -58,6 +58,15 @@ export function useSendFeedback() {
   })
 }
 
+export function useRateScreen() {
+  const backend = useBackend()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: ScreenRatingInput) => backend.rateScreen(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...keys.admin, 'ratings'] }),
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Painel do beta (administrador)
 // ---------------------------------------------------------------------------
@@ -70,6 +79,11 @@ export function useAdminStats() {
 export function useAdminFeedback() {
   const backend = useBackend()
   return useQuery({ queryKey: [...keys.admin, 'feedback'], queryFn: () => backend.admin.feedback() })
+}
+
+export function useAdminScreenRatings() {
+  const backend = useBackend()
+  return useQuery({ queryKey: [...keys.admin, 'ratings'], queryFn: () => backend.admin.screenRatings() })
 }
 
 export function useBetaCodes() {
