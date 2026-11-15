@@ -16,7 +16,8 @@ import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite 
 import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
 import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
-import { txText } from '../lib/statement'
+import { titleCase, txText } from '../lib/statement'
+import { BankDetail } from '../components/BankDetail'
 import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, relativeDay, todayISO } from '../lib/dates'
 import { StartMonthField } from '../components/StartMonthField'
 import { buildInstallments, installmentLabel } from '../lib/installments'
@@ -80,7 +81,9 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const [counts, setCounts] = useState(tx ? !tx.skipped : true)
   // Regra: os próximos da mesma pessoa ou loja chegam na mesma categoria (ex.: o Pix mensal da pensão)
   const [remember, setRemember] = useState(true)
-  const bankWho = tx?.source === 'banco' ? txText(tx.description).title : null
+  // O que o banco mandou (o nome que a pessoa der não muda o que o app aprende)
+  const bankDesc = tx?.bank_info?.original ?? tx?.description ?? ''
+  const bankWho = tx?.source === 'banco' ? (tx.bank_info?.party ? titleCase(tx.bank_info.party) : txText(bankDesc).title) : null
   // Fixo
   const [day, setDay] = useState(String(dayOf(today)))
   const [remind, setRemind] = useState(true)
@@ -168,7 +171,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           if (fromBank && counts === tx.skipped) {
             patch.skipped = !counts
             // Aprende para os próximos da mesma origem (entrada que conta) ou do mesmo destino (gasto que não conta)
-            const pattern = income ? countKey(tx.description) : ignoreKey(tx.description)
+            const pattern = income ? countKey(bankDesc) : ignoreKey(bankDesc)
             const teach = income ? counts : !counts
             const ruleCategory = categoryId ?? tx.category_id ?? cats[0]?.id ?? null
             if (pattern && teach && remember && ruleCategory) await b.upsert('category_rules', { pattern, category_id: ruleCategory }, 'user_id,pattern')
@@ -185,15 +188,15 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           await b.update('transactions', tx.id, patch)
           // Veio do banco e a categoria mudou: aprende para os próximos e corrige os parecidos
           if (tx.source === 'banco' && remember && categoryId && categoryId !== tx.category_id) {
-            const key = learnKey(tx.description)
+            const key = learnKey(bankDesc)
             if (key) {
               await b.upsert('category_rules', { pattern: key, category_id: categoryId }, 'user_id,pattern')
-              const similar = (await b.list('transactions', { eq: { source: 'banco' } })).filter((t) => t.id !== tx.id && learnKey(t.description) === key && t.category_id !== categoryId)
+              const similar = (await b.list('transactions', { eq: { source: 'banco' } })).filter((t) => t.id !== tx.id && learnKey(t.bank_info?.original ?? t.description) === key && t.category_id !== categoryId)
               for (const t of similar) await b.update('transactions', t.id, { category_id: categoryId })
             }
           }
         })
-        const who = txText(tx.description).title.replace(/^(Pix|Transferência) (de|para) /i, '')
+        const who = (bankWho ?? txText(bankDesc).title).replace(/^(Pix|Transferência) (de|para) /i, '')
         toast(
           fromBank && counts === tx.skipped
             ? income
@@ -289,9 +292,10 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           />
         )}
         {error && <ErrorBox message={error} />}
-        {tx?.source === 'banco' && <Notice>{tx.note ?? 'Veio do banco. Valor e data são os do extrato; se mudar a categoria, o app aprende para os próximos.'}</Notice>}
+        {tx?.source === 'banco' && <BankDetail tx={tx} category={categories.find((c) => c.id === tx.category_id)} description={description} onUseOriginal={setDescription} />}
+        {tx?.source === 'banco' && tx.note && <Notice>{tx.note}</Notice>}
         {fromBank && (
-          <List footer={income ? 'Sua renda do mês é o salário (em Você) mais o que você lançar. Dinheiro que entra na conta do banco só conta se você ligar aqui.' : 'Desligue se for dinheiro que só mudou de lugar (por exemplo, um Pix para outra conta sua).'}>
+          <List footer={income ? 'Sua renda do mês é o salário (em Você) mais o que você lançar. Dinheiro que entra na conta do banco só conta se você ligar aqui.' : 'Desligue se não foi gasto seu: Pix para outra conta sua, dinheiro que você só repassou (ex.: pagar a fatura de alguém da família com o dinheiro dela) ou que vão te devolver.'}>
             <Row title={income ? 'Contar como renda do mês' : 'Contar como gasto do mês'} trailing={<Switch label={income ? 'Contar como renda do mês' : 'Contar como gasto do mês'} checked={counts} onChange={setCounts} />} />
           </List>
         )}

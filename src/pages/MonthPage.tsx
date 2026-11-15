@@ -6,7 +6,7 @@ import { MonthFlow } from '../components/MonthFlow'
 import { TxIcon } from '../components/TxIcon'
 import { FromAccount } from '../components/FromAccount'
 import { useAccounts } from '../data/accounts'
-import { txText } from '../lib/statement'
+import { isTransfer, movementOf, txTitle } from '../lib/statement'
 import { MascotArt } from '../components/Pig'
 import { Tour } from '../components/Tour'
 import { Sheet } from '../components/Sheet'
@@ -182,9 +182,9 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
   const row = (t: MonthTx, subtitle?: ReactNode) => (
     <Row
       key={t.id}
-      icon={<TxIcon description={t.description} category={catOf(t.category_id)} />}
-      title={`${txText(t.description).title}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
-      subtitle={subtitle ?? (t.bank_account_id ? <FromAccount info={accounts.byId(t.bank_account_id)} extra={catOf(t.category_id)?.name ?? null} /> : catOf(t.category_id)?.name)}
+      icon={<TxIcon description={t.description} category={catOf(t.category_id)} flow={isTransfer(t, accounts.raw) ? movementOf(t, accounts.raw).flow : null} />}
+      title={`${txTitle(t)}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
+      subtitle={subtitle ?? (t.bank_account_id ? <FromAccount info={accounts.byId(t.bank_account_id)} extra={[isTransfer(t, accounts.raw) ? movementOf(t, accounts.raw).label : null, catOf(t.category_id)?.name].filter(Boolean).join(' · ') || null} /> : catOf(t.category_id)?.name)}
       trailing={<Money cents={t.amount_cents} className={`text-[1.0625rem] ${t.kind === 'income' ? 'text-primary-strong' : ''}`} />}
       as={t.virtual ? undefined : link(`/lancamento/${t.id}`)}
     />

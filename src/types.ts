@@ -117,6 +117,17 @@ export type Recurring = {
 export type TxType = 'salario' | 'extra' | 'fixo' | 'dia' | 'parcela'
 export type Emotion = 'comemorando' | 'estressado' | 'entediado' | 'cansado'
 
+/** O que o banco diz de um lançamento (Open Finance). Fica guardado mesmo se a pessoa renomear. */
+export type BankInfo = {
+  original: string
+  /** hora em Brasília (HH:MM), quando o banco manda */
+  time: string | null
+  method: 'pix' | 'ted' | 'boleto' | 'cartao' | 'debito' | 'outro'
+  flow: 'saida' | 'entrada'
+  /** para quem foi (saída) ou de quem veio (entrada) */
+  party: string | null
+}
+
 export type Transaction = {
   id: string
   user_id: string
@@ -138,6 +149,8 @@ export type Transaction = {
   source?: 'manual' | 'banco'
   external_id?: string | null
   bank_account_id?: string | null
+  /** detalhes do banco (só no que veio do banco) */
+  bank_info?: BankInfo | null
   created_at: string
 }
 

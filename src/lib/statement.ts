@@ -32,11 +32,75 @@ export type Method = 'credito' | 'pix' | 'debito' | 'manual'
 export const METHOD_LABEL: Record<Method, string> = { credito: 'Cartão de crédito', pix: 'Pix', debito: 'Débito e conta', manual: 'Lançado à mão' }
 
 /** Crédito, Pix ou débito: só dá para saber no que veio do banco (cartão = crédito; conta = Pix ou débito). */
-export function methodOf(t: Pick<Transaction, 'bank_account_id' | 'description'>, accounts: Pick<BankAccount, 'id' | 'type'>[]): Method {
+export function methodOf(t: Pick<Transaction, 'bank_account_id' | 'description' | 'bank_info'>, accounts: Pick<BankAccount, 'id' | 'type'>[]): Method {
   const account = accounts.find((a) => a.id === t.bank_account_id)
   if (!account) return 'manual'
   if (account.type === 'CREDIT') return 'credito'
+  if (t.bank_info) return t.bank_info.method === 'pix' || t.bank_info.method === 'ted' ? 'pix' : 'debito'
   return /pix|transfer/i.test(txText(t.description).detail ?? t.description) ? 'pix' : 'debito'
+}
+
+/** "MARIA APARECIDA COUTINHO" → "Maria Aparecida Coutinho" (preposições ficam minúsculas). */
+export function titleCase(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((w, i) => (i > 0 && ['de', 'da', 'do', 'das', 'dos', 'e'].includes(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(' ')
+}
+
+/**
+ * Nome para mostrar: o que a pessoa escreveu; se ela não mudou nada e o banco disse quem é a outra ponta,
+ * o nome dessa pessoa ou loja (como no app do banco: "Maria Aparecida Coutinho" em vez de "Transferência enviada pelo Pix").
+ */
+export function txTitle(t: Pick<Transaction, 'description' | 'bank_info'>): string {
+  const i = t.bank_info
+  if (i?.party && t.description === i.original) return titleCase(i.party)
+  const title = txText(t.description).title
+  // "Transferência|MARIA SOUZA": nome de pessoa em maiúsculas fica legível (loja, como IFOOD, fica como veio)
+  return t.description.includes('|') && title === title.toUpperCase() ? titleCase(title) : title
+}
+
+/** Pix, TED ou boleto: ganha a setinha de enviado/recebido no ícone. */
+export function isTransfer(t: Pick<Transaction, 'bank_account_id' | 'description' | 'bank_info'>, accounts: Pick<BankAccount, 'id' | 'type'>[]): boolean {
+  if (t.bank_info) return ['pix', 'ted', 'boleto'].includes(t.bank_info.method)
+  return methodOf(t, accounts) === 'pix'
+}
+
+export type Movement = {
+  /** "Pix enviado", "Pix recebido", "Compra no cartão"… */
+  label: string
+  /** saiu ou entrou dinheiro (a seta e a cor) */
+  flow: 'saida' | 'entrada'
+  /** "para Maria Aparecida" / "de Caren": só quando o banco diz quem é */
+  party: string | null
+}
+
+/**
+ * O que aconteceu, em palavras simples: Pix enviado ou recebido, compra ou estorno no cartão, boleto, TED.
+ * Usa os detalhes do banco; sem eles (lançado à mão ou antes da atualização), deduz pelo tipo e pela conta.
+ */
+export function movementOf(t: Pick<Transaction, 'kind' | 'bank_account_id' | 'description' | 'bank_info' | 'type'>, accounts: Pick<BankAccount, 'id' | 'type'>[]): Movement {
+  const flow = t.bank_info?.flow ?? (t.kind === 'income' ? 'entrada' : 'saida')
+  const out = flow === 'saida'
+  const who = t.bank_info?.party ? titleCase(t.bank_info.party) : null
+  const party = who ? `${out ? 'para' : 'de'} ${who}` : null
+  const account = accounts.find((a) => a.id === t.bank_account_id)
+  const method = t.bank_info?.method ?? (account?.type === 'CREDIT' ? 'cartao' : account && /pix/i.test(t.description) ? 'pix' : account ? 'outro' : null)
+  const label =
+    method === 'pix' ? (out ? 'Pix enviado' : 'Pix recebido')
+    : method === 'ted' ? (out ? 'Transferência enviada' : 'Transferência recebida')
+    : method === 'cartao' ? (out ? 'Compra no cartão' : 'Estorno ou pagamento do cartão')
+    : method === 'boleto' ? (out ? 'Boleto pago' : 'Boleto recebido')
+    : method === 'debito' ? (out ? 'Compra no débito' : 'Entrada na conta')
+    : method === 'outro' ? (out ? 'Saiu da conta' : 'Entrou na conta')
+    : t.type === 'salario' ? 'Salário'
+    : t.type === 'fixo' ? 'Gasto fixo'
+    : t.type === 'parcela' ? 'Parcela'
+    : out ? 'Gasto lançado à mão' : 'Renda lançada à mão'
+  return { label, flow, party }
 }
 
 // ---------------------------------------------------------------------------

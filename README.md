@@ -80,8 +80,8 @@ nada de culpa, e o hábito vem antes do valor.
 
 | | |
 | --- | --- |
-| Testes de regra (Vitest) | 184 |
-| Testes contra o banco de dados real (RLS, banco, IA, moedas, avaliações) | 47 |
+| Testes de regra (Vitest) | 195 |
+| Testes contra o banco de dados real (RLS, banco, IA, moedas, avaliações) | 45 |
 | Tabelas com RLS | 22 |
 | Edge Functions | 5 (configuração, excluir conta, conexão com banco, aviso da Pluggy, assistente) |
 | Código | cerca de 18 mil linhas de TypeScript |

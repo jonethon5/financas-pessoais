@@ -39,6 +39,57 @@ export type MappedTx = {
   own: boolean
   /** movimentação que não é gasto nem renda (fatura, resgate, aplicação, estorno): o motivo, para mostrar à pessoa */
   internal: string | null
+  /** o que o banco diz da movimentação (fica guardado mesmo se a pessoa renomear) */
+  info: BankInfo
+}
+
+/** Detalhes do banco, como no app dele: nome original, hora, Pix/TED/boleto, enviado ou recebido e a outra ponta. */
+export type BankInfo = {
+  /** nome como veio do banco */
+  original: string
+  /** hora no horário de Brasília (HH:MM); null quando o banco não manda */
+  time: string | null
+  method: 'pix' | 'ted' | 'boleto' | 'cartao' | 'debito' | 'outro'
+  /** do ponto de vista da conta: saiu ou entrou dinheiro */
+  flow: 'saida' | 'entrada'
+  /** a outra ponta: para quem foi (saída) ou de quem veio (entrada); nem todo banco manda */
+  party: string | null
+}
+
+/**
+ * Data e hora em Brasília. O banco manda em UTC: um Pix às 22h de Brasília já é o dia seguinte em UTC.
+ * Meia-noite UTC exata é o jeito dos bancos dizerem "sem hora" (fica a data como veio).
+ */
+export function brazilDateTime(iso: string): { date: string; time: string | null } {
+  const plainDate = iso.slice(0, 10)
+  if (!/T\d\d:\d\d/.test(iso) || /T00:00(:00(\.0+)?)?(Z|[+-]00:?00)$/.test(iso)) return { date: plainDate, time: null }
+  const ms = Date.parse(iso)
+  if (Number.isNaN(ms)) return { date: plainDate, time: null }
+  const local = new Date(ms - 3 * 3_600_000).toISOString()
+  return { date: local.slice(0, 10), time: local.slice(11, 16) }
+}
+
+export function bankInfo(tx: PluggyTx, account: AccountType, kind: 'income' | 'expense'): BankInfo {
+  const pm = (tx.paymentData?.paymentMethod ?? '').toUpperCase()
+  const op = (tx.operationType ?? '').toUpperCase()
+  const text = `${tx.description} ${tx.descriptionRaw ?? ''}`
+  const method: BankInfo['method'] =
+    account === 'CREDIT'
+      ? 'cartao'
+      : pm === 'PIX' || op.includes('PIX') || /\bpix\b/i.test(text)
+        ? 'pix'
+        : ['TED', 'DOC'].includes(pm) || /\b(TED|DOC)\b/.test(op) || /\b(ted|doc)\b/i.test(text)
+          ? 'ted'
+          : pm === 'BOLETO' || op.includes('BOLETO') || /boleto/i.test(text)
+            ? 'boleto'
+            : /CARTAO|DEBITO/.test(op) || /compra|d[ée]bito/i.test(text)
+              ? 'debito'
+              : 'outro'
+  // No cartão, compra é saída e estorno/pagamento é entrada; na conta, segue o sinal do valor
+  const flow: BankInfo['flow'] = kind === 'expense' ? 'saida' : 'entrada'
+  const side = flow === 'saida' ? tx.paymentData?.receiver : tx.paymentData?.payer
+  const party = side?.name?.replace(/\s+/g, ' ').trim().slice(0, 80) || null
+  return { original: bankText(tx), time: brazilDateTime(tx.date).time, method, flow, party }
 }
 
 export const normalize = (s: string) =>
@@ -197,7 +248,7 @@ export function mapTransaction(tx: PluggyTx, account: AccountType, ownerNames: (
     kind,
     type: kind === 'income' ? 'extra' : isParcel ? 'parcela' : 'dia',
     amount_cents: cents,
-    date: tx.date.slice(0, 10),
+    date: brazilDateTime(tx.date).date,
     description,
     categoryHint: categoryHint(tx, kind),
     installment_no: isParcel ? meta!.installmentNumber! : null,
@@ -205,6 +256,7 @@ export function mapTransaction(tx: PluggyTx, account: AccountType, ownerNames: (
     installmentKey: isParcel ? `${normalize(description)}|${(meta?.purchaseDate ?? '').slice(0, 10)}|${total}` : null,
     own: !internal && account === 'BANK' && isOwnTransfer(tx, ownerNames),
     internal,
+    info: bankInfo(tx, account, kind),
   }
 }
 

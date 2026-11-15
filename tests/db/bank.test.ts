@@ -227,8 +227,12 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
       // o Uber não entrou de novo: confirmou o que a pessoa tinha lançado à mão (nome, dia e sentimento dela)
       { description: 'Uber para o trabalho', kind: 'expense', type: 'dia', amount_cents: 1840, skipped: false, note: null },
     ])
-    const { data: byHand } = await owner.client.from('transactions').select('date, emotion, external_id').eq('id', manualId).single()
-    expect(byHand).toEqual({ date: day(8), emotion: 'cansado', external_id: 'pluggy:b7' })
+    const { data: byHand } = await owner.client.from('transactions').select('date, emotion, external_id, bank_info').eq('id', manualId).single()
+    // o lançamento da pessoa ganha os detalhes do banco, mas o nome e o dia dela ficam
+    expect(byHand).toEqual({ date: day(8), emotion: 'cansado', external_id: 'pluggy:b7', bank_info: { original: 'UBER *TRIP', time: null, method: 'outro', flow: 'saida', party: null } })
+    // Detalhes do banco guardados (como no app do banco): o nome original e se foi enviado ou recebido
+    const { data: pix } = await owner.client.from('transactions').select('bank_info').eq('external_id', 'pluggy:b5').single()
+    expect(pix!.bank_info).toMatchObject({ original: 'Pix recebido Maria', method: 'pix', flow: 'entrada' })
     // A renda do mês continua sendo só o salário do cadastro
     const { data: income } = await owner.client.from('transactions').select('type, amount_cents').eq('kind', 'income').eq('skipped', false)
     expect(income).toEqual([{ type: 'salario', amount_cents: 211300 }])

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Category, Transaction } from '../types'
-import { filterStatement, insightTips, insights, methodOf, statementCSV, statementTotals } from './statement'
+import { filterStatement, insightTips, insights, methodOf, movementOf, statementCSV, statementTotals, titleCase, txTitle } from './statement'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -90,5 +90,40 @@ describe('achados da conta', () => {
     expect(tips[0]).toContain('Mercado leva 100%')
     expect(tips[1]).toContain('9 vezes em Padaria Bom Pão')
     expect(tips[2]).toContain('9 compras de até R$ 30')
+  })
+})
+
+describe('enviado ou recebido, em palavras simples', () => {
+  const accounts = [{ id: 'conta', type: 'BANK' as const }, { id: 'cartao', type: 'CREDIT' as const }]
+  const info = (p: Partial<NonNullable<Transaction['bank_info']>>) => ({ original: 'x', time: null, method: 'pix' as const, flow: 'saida' as const, party: null, ...p })
+
+  it('Pix enviado para alguém, mesmo se a pessoa renomeou o lançamento', () => {
+    const t = tx({ description: 'Karen', bank_account_id: 'conta', bank_info: info({ party: 'MARIA APARECIDA COUTINHO' }) })
+    expect(movementOf(t, accounts)).toEqual({ label: 'Pix enviado', flow: 'saida', party: 'para Maria Aparecida Coutinho' })
+    expect(methodOf(t, accounts)).toBe('pix')
+  })
+
+  it('Pix recebido de alguém', () => {
+    const t = tx({ type: 'extra', description: 'Transferência recebida', bank_account_id: 'conta', bank_info: info({ flow: 'entrada', party: 'CAREN COUTINHO PEREIRA' }) })
+    expect(movementOf(t, accounts)).toEqual({ label: 'Pix recebido', flow: 'entrada', party: 'de Caren Coutinho Pereira' })
+  })
+
+  it('sem detalhes do banco: deduz pela conta e pelo tipo', () => {
+    expect(movementOf(tx({ description: 'IFOOD', bank_account_id: 'cartao' }), accounts).label).toBe('Compra no cartão')
+    expect(movementOf(tx({ type: 'extra', description: 'Estorno', bank_account_id: 'cartao' }), accounts).label).toBe('Estorno ou pagamento do cartão')
+    expect(movementOf(tx({ description: 'Pix para Ana', bank_account_id: 'conta' }), accounts).label).toBe('Pix enviado')
+    expect(movementOf(tx({ description: 'Mercado' }), accounts)).toEqual({ label: 'Gasto lançado à mão', flow: 'saida', party: null })
+    expect(movementOf(tx({ type: 'salario', description: 'Salário' }), accounts)).toMatchObject({ label: 'Salário', flow: 'entrada' })
+  })
+
+  it('nome na lista: o que a pessoa escreveu; senão quem está do outro lado', () => {
+    expect(txTitle({ description: 'Karen', bank_info: info({ original: 'Transferência enviada pelo Pix', party: 'MARIA APARECIDA' }) })).toBe('Karen')
+    expect(txTitle({ description: 'Transferência enviada pelo Pix', bank_info: info({ original: 'Transferência enviada pelo Pix', party: 'MARIA APARECIDA' }) })).toBe('Maria Aparecida')
+    expect(txTitle({ description: 'Transferência Recebida|MARIA SOUZA', bank_info: null })).toBe('Maria Souza')
+    expect(txTitle({ description: 'IFOOD *RESTAURANTE', bank_info: null })).toBe('IFOOD *RESTAURANTE')
+  })
+
+  it('nomes do banco em maiúsculas ficam legíveis', () => {
+    expect(titleCase('MARIA  DA SILVA E SOUZA')).toBe('Maria da Silva e Souza')
   })
 })

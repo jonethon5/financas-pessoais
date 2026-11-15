@@ -16,7 +16,7 @@ import { useProfile } from '../data/hooks'
 import { addMonths, currentYearMonth, firstDayISO, isValidISODate, lastDayISO, monthKey, monthLabel, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
-import { statementCSV, statementTotals, txText, filterStatement, type StatementView } from '../lib/statement'
+import { isTransfer, movementOf, statementCSV, statementTotals, txTitle, filterStatement, type StatementView } from '../lib/statement'
 import { friendlyError } from '../lib/supabase'
 import { APP_NAME } from '../brand'
 import type { Transaction } from '../types'
@@ -77,14 +77,14 @@ export function StatementPage() {
   const days = [...new Set(shown.map((t) => t.date))]
 
   const row = (t: Transaction): ReactNode => {
-    const text = txText(t.description)
-    const extra = [t.type === 'salario' ? 'Salário' : (text.detail ?? catOf(t.category_id)?.name), t.skipped ? 'não conta' : null].filter(Boolean).join(' · ')
+    const mv = movementOf(t, accounts.raw)
+    const extra = [t.type === 'salario' ? 'Salário' : t.bank_account_id ? mv.label : catOf(t.category_id)?.name, t.skipped ? 'não conta' : null].filter(Boolean).join(' · ')
     const income = t.kind === 'income'
     return (
       <Row
         key={t.id}
-        icon={<TxIcon description={t.description} category={catOf(t.category_id)} />}
-        title={`${text.title}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
+        icon={<TxIcon description={t.description} category={catOf(t.category_id)} flow={isTransfer(t, accounts.raw) ? mv.flow : null} />}
+        title={`${txTitle(t)}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
         subtitle={<FromAccount info={accounts.byId(t.bank_account_id)} extra={extra || null} />}
         trailing={
           <span className={`num text-[1.0625rem] whitespace-nowrap ${t.skipped ? 'text-muted' : income ? 'font-semibold text-primary-strong' : ''}`}>

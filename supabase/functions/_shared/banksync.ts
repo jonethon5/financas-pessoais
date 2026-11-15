@@ -311,9 +311,9 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
     if (!mapped.length && !vanished.length) continue
 
     // O que já está no app (em lotes: a lista de ids não cabe numa consulta só quando são muitos)
-    const seen = new Map<string, { id: string; type: string; skipped: boolean; emotion: string | null; note: string | null; description: string }>()
+    const seen = new Map<string, { id: string; type: string; skipped: boolean; emotion: string | null; note: string | null; description: string; date: string; bank_info: unknown }>()
     for (const part of chunks(mapped.map((m) => m.external_id), 100)) {
-      const { data, error } = await admin.from('transactions').select('id, external_id, type, skipped, emotion, note, description').eq('user_id', uid).in('external_id', part)
+      const { data, error } = await admin.from('transactions').select('id, external_id, type, skipped, emotion, note, description, date, bank_info').eq('user_id', uid).in('external_id', part)
       if (error) throw error
       for (const s of data ?? []) seen.set(s.external_id, s)
     }
@@ -323,6 +323,12 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
       const counts = countsInMonth(m, ruleSet)
       const old = seen.get(m.external_id)
       if (old) {
+        // Detalhes do banco (nome original, hora, Pix enviado/recebido) para o que entrou antes de existirem.
+        // O dia também se acerta para o horário de Brasília (Pix tarde da noite caía no dia seguinte).
+        const fix: Record<string, unknown> = {}
+        if (!old.bank_info) fix.bank_info = m.info
+        if (first && old.type !== 'salario' && old.type !== 'fixo' && old.date !== m.date && old.date.slice(0, 7) === m.date.slice(0, 7)) fix.date = m.date
+        if (Object.keys(fix).length) await admin.from('transactions').update(fix).eq('id', old.id)
         // Na primeira leitura depois de uma mudança de regra, arruma o que já tinha entrado.
         // Descrição: volta a ser a do banco, a não ser que a pessoa tenha mudado o nome
         if (first && old.type !== 'salario' && old.type !== 'fixo' && old.description !== m.description && old.description === cleanDescription(m.description)) {
@@ -343,7 +349,7 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
         }
         continue
       }
-      const link = { external_id: m.external_id, source: 'banco', bank_account_id: saved.id }
+      const link = { external_id: m.external_id, source: 'banco', bank_account_id: saved.id, bank_info: m.info }
 
       // A mesma movimentação com outro id (pendente que foi lançada): atualiza a que já existe e mantém o que a pessoa editou
       const again = findVanished(m, vanished)

@@ -8,7 +8,7 @@ import { MonthFlow } from '../components/MonthFlow'
 import { Wallet } from '../components/Wallet'
 import { FromAccount } from '../components/FromAccount'
 import { useAccounts } from '../data/accounts'
-import { txText } from '../lib/statement'
+import { isTransfer, movementOf, txTitle } from '../lib/statement'
 import { APP_NAME } from '../brand'
 import { MenuButton } from '../components/MenuContext'
 import { Tour, type TourStep } from '../components/Tour'
@@ -369,8 +369,8 @@ export function HomePage() {
             {recent.map((x) => (
               <Row
                 key={x.id}
-                icon={<TxIcon description={x.description} category={catOf(x.category_id)} />}
-                title={txText(x.description).title}
+                icon={<TxIcon description={x.description} category={catOf(x.category_id)} flow={isTransfer(x, wallet.raw) ? movementOf(x, wallet.raw).flow : null} />}
+                title={txTitle(x)}
                 subtitle={<FromAccount day={relativeDay(x.date, today)} info={wallet.byId(x.bank_account_id)} />}
                 trailing={<Money cents={x.amount_cents} className="text-[1.0625rem]" />}
                 as={(c, cls) => <Link to={`/lancamento/${x.id}`} className={cls}>{c}</Link>}

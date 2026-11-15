@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INTERNAL_REASON, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
+import { INTERNAL_REASON, bankInfo, brazilDateTime, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
 
 const tx = (p: Partial<PluggyTx>): PluggyTx => ({ id: 'abc', description: 'Compra', amount: -10, date: '2026-11-04T00:00:00.000Z', ...p })
 
@@ -18,6 +18,37 @@ describe('conta corrente', () => {
     expect(mapTransaction(tx({ description: 'Aplicação RDB', amount: -300, operationType: 'RESGATE_APLIC_FINANCEIRA' }), 'BANK')).toMatchObject({ kind: 'expense', internal: INTERNAL_REASON.savings })
     expect(countsInMonth({ kind: 'income', own: false, description: 'Resgate RDB', internal: INTERNAL_REASON.savings }, new Set([countKey('Resgate RDB')]))).toBe(false)
     expect(mapTransaction(tx({ amount: 0 }), 'BANK')).toBeNull()
+  })
+})
+
+describe('detalhes do banco (como no app do banco)', () => {
+  it('data e hora em Brasília: Pix às 22h fica no dia certo; meia-noite UTC é "sem hora"', () => {
+    expect(brazilDateTime('2026-11-03T20:46:50.000Z')).toEqual({ date: '2026-11-03', time: '17:46' })
+    expect(brazilDateTime('2026-11-04T01:30:00.000Z')).toEqual({ date: '2026-11-03', time: '22:30' })
+    expect(brazilDateTime('2026-11-03T17:46:50-03:00')).toEqual({ date: '2026-11-03', time: '17:46' })
+    expect(brazilDateTime('2026-11-04T00:00:00.000Z')).toEqual({ date: '2026-11-04', time: null })
+    expect(brazilDateTime('2026-11-04')).toEqual({ date: '2026-11-04', time: null })
+    expect(mapTransaction(tx({ date: '2026-11-04T01:30:00.000Z' }), 'BANK')!.date).toBe('2026-11-03')
+  })
+
+  it('Pix enviado: para quem foi, com o nome original guardado', () => {
+    const pix = tx({ description: 'Transferência enviada pelo Pix', amount: -546, date: '2026-11-03T20:46:50.000Z', paymentData: { paymentMethod: 'PIX', receiver: { name: 'MARIA  APARECIDA COUTINHO' }, payer: { name: 'JONETHON' } } })
+    expect(mapTransaction(pix, 'BANK')!.info).toEqual({ original: 'Transferência enviada pelo Pix', time: '17:46', method: 'pix', flow: 'saida', party: 'MARIA APARECIDA COUTINHO' })
+  })
+
+  it('Pix recebido: de quem veio', () => {
+    const pix = tx({ description: 'Transferência recebida pelo Pix', amount: 140, paymentData: { payer: { name: 'CAREN COUTINHO PEREIRA' } } })
+    expect(bankInfo(pix, 'BANK', 'income')).toMatchObject({ method: 'pix', flow: 'entrada', party: 'CAREN COUTINHO PEREIRA' })
+  })
+
+  it('cartão, boleto, TED e débito; sem dados de quem pagou, a outra ponta fica vazia', () => {
+    expect(bankInfo(tx({ description: 'IFOOD' }), 'CREDIT', 'expense')).toMatchObject({ method: 'cartao', flow: 'saida', party: null })
+    expect(bankInfo(tx({ description: 'Pagamento de boleto' }), 'BANK', 'expense').method).toBe('boleto')
+    expect(bankInfo(tx({ description: 'TED enviada' }), 'BANK', 'expense').method).toBe('ted')
+    expect(bankInfo(tx({ description: 'Compra no débito - Padaria' }), 'BANK', 'expense').method).toBe('debito')
+    expect(bankInfo(tx({ description: 'Tarifa' }), 'BANK', 'expense').method).toBe('outro')
+    // "pix" dentro de outra palavra não conta
+    expect(bankInfo(tx({ description: 'Pixel Store' }), 'BANK', 'expense').method).toBe('outro')
   })
 })
 

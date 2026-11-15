@@ -27,5 +27,5 @@ export function useAccounts() {
   const conns = useTable('bank_connections')
   const list = (accounts.data ?? []).map((a) => accountInfo(a, conns.data ?? []))
   const byId = (id: string | null | undefined) => (id ? (list.find((x) => x.account.id === id) ?? null) : null)
-  return { list, byId, isPending: accounts.isPending || conns.isPending }
+  return { list, byId, raw: accounts.data ?? [], isPending: accounts.isPending || conns.isPending }
 }

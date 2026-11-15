@@ -52,24 +52,34 @@ export async function connectDemoBank(b: Backend, inst: Institution): Promise<{ 
 
   // Lançamentos dos últimos 12 dias (débito/Pix na conta e compras no cartão)
   const rows = []
+  const hhmm = () => `${String(8 + Math.floor(rnd() * 14)).padStart(2, '0')}:${String(Math.floor(rnd() * 60)).padStart(2, '0')}`
   // Poucos e pequenos: a demonstração já tem gastos; o banco só mostra como os lançamentos entram sozinhos
   const n = 4 + Math.floor(rnd() * 3)
   for (let i = 0; i < n; i++) {
     const [description, cat, min, max] = SPENDS[Math.floor(rnd() * SPENDS.length)]
     const card = rnd() < 0.55
     rows.push({
+      bank_info: { original: description, time: hhmm(), method: card ? ('cartao' as const) : ('debito' as const), flow: 'saida' as const, party: null },
       kind: 'expense' as const, type: 'dia' as const, amount_cents: money(min, max), date: addDaysISO(today, -Math.floor(rnd() * 12)), description,
       category_id: catId(cat), recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null,
       paid: true, skipped: false, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: card ? cardId : bankId,
     })
   }
-  // Uma compra parcelada no cartão (3/10) e um Pix recebido
+  // Uma compra parcelada no cartão (3/10), um Pix enviado e um Pix recebido
   rows.push({
+    bank_info: { original: 'Transferência enviada pelo Pix', time: hhmm(), method: 'pix' as const, flow: 'saida' as const, party: 'JOAO PEREIRA DA SILVA' },
+    kind: 'expense' as const, type: 'dia' as const, amount_cents: money(30, 120), date: addDaysISO(today, -2), description: 'Transferência enviada pelo Pix',
+    category_id: catId('Outros'), recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null,
+    paid: true, skipped: false, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: bankId,
+  })
+  rows.push({
+    bank_info: { original: 'Magazine Luiza', time: hhmm(), method: 'cartao' as const, flow: 'saida' as const, party: null },
     kind: 'expense' as const, type: 'parcela' as const, amount_cents: money(40, 90), date: addDaysISO(today, -3), description: 'Magazine Luiza',
     category_id: catId('Compras online'), recurring_id: null, installment_group: crypto.randomUUID(), installment_no: 3, installment_total: 10, emotion: null,
     paid: true, skipped: false, note: null, source: 'banco' as const, external_id: `demo:${crypto.randomUUID()}`, bank_account_id: cardId,
   })
   rows.push({
+    bank_info: { original: 'Transferência Recebida|MARIA SOUZA', time: hhmm(), method: 'pix' as const, flow: 'entrada' as const, party: 'MARIA SOUZA' },
     kind: 'income' as const, type: 'extra' as const, amount_cents: money(50, 200), date: addDaysISO(today, -5), description: 'Transferência Recebida|MARIA SOUZA',
     category_id: catId('Renda extra'), recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null,
     // Como no app de verdade: dinheiro que entra na conta aparece no extrato, mas não vira renda sozinho
