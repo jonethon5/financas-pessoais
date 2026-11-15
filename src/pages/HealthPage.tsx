@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
+import { BalanceCard } from '../components/BalanceSheet'
 import { BackButton, ErrorBox, NavBar, ProgressBar, Spinner } from '../components/ui'
 import { useMonthView } from '../data/monthView'
 import { currentYearMonth } from '../lib/dates'
@@ -72,6 +73,8 @@ export function HealthPage() {
             <p className="mt-1 text-[0.9375rem] leading-snug text-muted">A nota olha o seu dinheiro como um todo, não só este mês. Ela sobe a cada passo.</p>
           </div>
         </section>
+
+        <BalanceCard />
 
         {h.next.length > 0 && (
           <section>

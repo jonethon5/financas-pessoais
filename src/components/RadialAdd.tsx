@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { ArrowCircleDown, CalendarCheck, PiggyBank, Receipt, Stack, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { Plus } from 'lucide-react'
 
@@ -21,6 +21,7 @@ const ANGLES = [168, 129, 90, 51, 12] // graus (90 = bem em cima do "+")
  */
 export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
+  const { pathname, search } = useLocation()
   const [shown, setShown] = useState(false)
 
   // Monta e depois anima (abre do centro para fora)
@@ -39,7 +40,9 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
 
   const go = (to: string) => {
     onClose()
-    navigate(to)
+    // Na tela Mês olhando um mês que vem (planejando): o gasto fixo já nasce nesse mês
+    const viewing = pathname === '/mes' ? new URLSearchParams(search).get('mes') : null
+    navigate(to === '/lancar?tipo=fixo' && viewing ? `${to}&mes=${viewing}` : to)
   }
 
   return (

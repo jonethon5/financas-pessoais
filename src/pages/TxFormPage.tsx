@@ -18,7 +18,8 @@ import { concreteText, workTime } from '../lib/psych'
 import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
 import { titleCase, txText } from '../lib/statement'
 import { BankDetail } from '../components/BankDetail'
-import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, relativeDay, todayISO } from '../lib/dates'
+import { addDaysISO, addMonths, compareYearMonth, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
+import { startMonthOptions, stableId } from '../lib/recurring'
 import { StartMonthField } from '../components/StartMonthField'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
@@ -35,6 +36,9 @@ export const EMOTIONS: { value: Emotion; label: string }[] = [
 ]
 
 const TITLES: Record<Mode, string> = { dia: 'Novo gasto', renda: 'Nova renda', fixo: 'Novo gasto fixo', parcelado: 'Compra parcelada' }
+
+/** "dezembro" (mês em minúsculas, para frases) */
+const monthName = (ym: { year: number; month: number }) => monthLabel(ym).split(' ')[0].toLowerCase()
 
 const blankTx = (): Omit<NewRow<'transactions'>, 'kind' | 'type' | 'amount_cents' | 'date' | 'description'> => ({
   category_id: null, recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null, paid: true, skipped: false, note: null,
@@ -88,7 +92,12 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const [day, setDay] = useState(String(dayOf(today)))
   const [remind, setRemind] = useState(true)
   // Gasto fixo: em que mês começa (dá para planejar o mês que vem)
-  const [startYm, setStartYm] = useState(currentYearMonth)
+  const [startYm, setStartYm] = useState(() => {
+    // Veio da tela Mês olhando um mês que vem: começa nesse mês
+    const now = currentYearMonth()
+    const asked = parseMonthKey(params.get('mes'))
+    return asked && startMonthOptions(now).some((o) => compareYearMonth(o, asked) === 0) ? asked : now
+  })
   // Parcelado
   const [count, setCount] = useState('10')
   const [valueIs, setValueIs] = useState<'total' | 'parcela'>('total')
@@ -205,11 +214,22 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             : tx.source === 'banco' && categoryId !== tx.category_id ? 'Salvo. Os próximos parecidos já vêm nessa categoria' : 'Alteração salva',
         )
       } else if (mode === 'fixo') {
-        const future = monthKey(startYm) > monthKey(currentYearMonth())
+        const now = currentYearMonth()
+        const future = monthKey(startYm) > monthKey(now)
+        const id = crypto.randomUUID()
         await write.mutateAsync((b) =>
-          b.insert('recurrings', [{ description: desc, category_id: categoryId, amount_cents: cents!, day: Number(day), remind, start_month: monthKey(startYm), end_month: null, active: true }]),
+          b.insert('recurrings', [{ id, description: desc, category_id: categoryId, amount_cents: cents!, day: Number(day), remind, start_month: monthKey(startYm), end_month: null, active: true }]),
         )
-        toast(future ? `Gasto fixo criado: entra a partir de ${monthLabel(startYm).split(' ')[0].toLowerCase()}` : 'Gasto fixo criado: entra sozinho todo mês')
+        // Errou? Um toque desfaz (tira o gasto fixo e o lançamento deste mês, se já tiver entrado)
+        const undo = async () => {
+          const thisMonth = await stableId(`fixo:${id}:${monthKey(now)}`)
+          await write.mutateAsync(async (b) => {
+            await b.remove('transactions', [thisMonth])
+            await b.remove('recurrings', [id])
+          })
+          toast('Gasto fixo desfeito')
+        }
+        toast(future ? `Fixo a partir de ${monthName(startYm)}` : `Fixo criado em ${monthName(startYm)}`, { label: 'Desfazer', run: () => void undo() })
       } else if (mode === 'parcelado') {
         const group = crypto.randomUUID()
         const rows = buildInstallments({ amountCents: cents!, mode: valueIs, count: Number(count), firstDate: date }).map((p) => ({
@@ -369,6 +389,11 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           <>
             <Field label="Dia do vencimento" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value)} error={errors.day} hint="Todo mês, nesse dia, o gasto entra sozinho. Dia 31 vira o último dia nos meses curtos." />
             <StartMonthField value={startYm} onChange={setStartYm} hint="Planejando o mês que vem? Escolha o mês: antes dele, o gasto não aparece." />
+            {cents ? (
+              <Notice tone="primary">
+                Vai entrar em <strong>{monthName(startYm)}</strong>, dia {Number(day) >= 1 && Number(day) <= 31 ? Number(day) : '?'}: <strong>{formatBRL(cents)}</strong>, e todo mês depois.
+              </Notice>
+            ) : null}
             <List>
               <Row title="Avisar antes de vencer" trailing={<Switch label="Avisar antes de vencer" checked={remind} onChange={setRemind} />} />
             </List>
