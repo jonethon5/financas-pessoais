@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router'
 import { Check, Plus } from 'lucide-react'
 import { CategoryIcon, DuoIcon } from '../../components/CategoryIcon'
 import { Sheet } from '../../components/Sheet'
+import { StartMonthField } from '../../components/StartMonthField'
 import { useToast } from '../../components/Toast'
 import { BackButton, Button, Chip, ErrorBox, Field, List, NavBar, Row, Segmented, Spinner, Switch } from '../../components/ui'
 import { useCategories, useRecurrings, useWrite } from '../../data/finance'
 import { CATEGORY_COLORS, CATEGORY_ICONS, GROUP_LABEL } from '../../lib/categories'
-import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
-import { stableId } from '../../lib/recurring'
+import { compareYearMonth, currentYearMonth, isoDate, monthKey, monthLabel, parseMonthKey } from '../../lib/dates'
+import { monthsBeforeStart, stableId } from '../../lib/recurring'
 import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
 import { friendlyError } from '../../lib/supabase'
 import type { Category, CategoryGroup, Recurring } from '../../types'
@@ -189,7 +190,7 @@ export function FixedPage() {
               key={r.id}
               icon={<CategoryIcon category={categories.data?.find((c) => c.id === r.category_id)} size="sm" />}
               title={r.description}
-              subtitle={`Todo dia ${r.day}${r.active ? '' : ' · pausado'}`}
+              subtitle={`${r.start_month > current ? `Começa em ${monthLabel(parseMonthKey(r.start_month)!).split(' ')[0].toLowerCase()} · dia ${r.day}` : `Todo dia ${r.day}`}${r.active ? '' : ' · pausado'}`}
               trailing={<span className={`num ${r.active ? '' : 'text-muted'}`}>{formatBRL(r.amount_cents)}</span>}
               chevron
               onClick={() => setEditing(r)}
@@ -214,6 +215,12 @@ function RecurringForm({ recurring, onDone }: { recurring: Recurring; onDone: ()
   const [categoryId, setCategoryId] = useState(recurring.category_id)
   const [remind, setRemind] = useState(recurring.remind)
   const [active, setActive] = useState(recurring.active)
+  // Começa em: se já começou antes, mostra este mês (o passado não muda)
+  const [start, setStart] = useState(() => {
+    const now = currentYearMonth()
+    const stored = parseMonthKey(recurring.start_month)
+    return stored && compareYearMonth(stored, now) > 0 ? stored : now
+  })
   const [error, setError] = useState<string | null>(null)
 
   async function onSubmit(e: FormEvent) {
@@ -227,11 +234,16 @@ function RecurringForm({ recurring, onDone }: { recurring: Recurring; onDone: ()
     try {
       const ym = currentYearMonth()
       const thisMonth = await stableId(`fixo:${recurring.id}:${monthKey(ym)}`)
+      const later = compareYearMonth(start, ym) > 0
+      // Passou a começar num mês que vem: os lançamentos automáticos de agora até lá saem
+      const drop = later ? await Promise.all(monthsBeforeStart(ym, start).map((m) => stableId(`fixo:${recurring.id}:${monthKey(m)}`))) : []
+      const startPatch = later || recurring.start_month > monthKey(ym) ? { start_month: monthKey(start) } : {}
       await write.mutateAsync(async (b) => {
-        await b.update('recurrings', recurring.id, { description: description.trim(), amount_cents: cents, day: d, category_id: categoryId, remind, active })
-        await b.update('transactions', thisMonth, { description: description.trim(), amount_cents: cents, date: isoDate(ym, d), category_id: categoryId })
+        await b.update('recurrings', recurring.id, { description: description.trim(), amount_cents: cents, day: d, category_id: categoryId, remind, active, ...startPatch })
+        if (drop.length) await b.remove('transactions', drop)
+        else await b.update('transactions', thisMonth, { description: description.trim(), amount_cents: cents, date: isoDate(ym, d), category_id: categoryId })
       })
-      toast('Gasto fixo salvo')
+      toast(later ? `Gasto fixo salvo: entra a partir de ${monthLabel(start).split(' ')[0].toLowerCase()}` : 'Gasto fixo salvo')
       onDone()
     } catch (err) {
       setError(friendlyError(err))
@@ -255,6 +267,7 @@ function RecurringForm({ recurring, onDone }: { recurring: Recurring; onDone: ()
       <Field label="Nome" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={60} />
       <Field label="Valor por mês" prefix="R$" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
       <Field label="Dia do vencimento" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value)} />
+      <StartMonthField value={start} onChange={setStart} hint="Colocou no mês errado? Escolha o mês certo: os meses antes dele ficam sem esse gasto." />
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
         {(categories.data ?? []).filter((c) => c.kind === 'expense' && !c.archived).map((c) => (
           <Chip key={c.id} selected={categoryId === c.id} onClick={() => setCategoryId(categoryId === c.id ? null : c.id)}>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { BudgetMove, Category, Recurring, Transaction } from '../types'
 import { categoryStatuses, coverOptions, levelOf, quickPicks, rule503020, spendToday, subscriptions, summarizeMonth, weekRange } from './budget'
 import { buildInstallments } from './installments'
-import { expectedMonthRows, missingRows, recurringActiveIn, stableId } from './recurring'
+import { expectedMonthRows, missingRows, monthsBeforeStart, recurringActiveIn, stableId, startMonthOptions } from './recurring'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -175,6 +175,20 @@ describe('salário e fixos automáticos', () => {
     expect(recurringActiveIn(rec({ active: false }), { year: 2026, month: 11 })).toBe(false)
     expect(recurringActiveIn(rec({}), { year: 2026, month: 11 })).toBe(true)
   })
+  it('fixo planejado para o mês que vem não entra neste mês', async () => {
+    const nov = await expectedMonthRows({ year: 2026, month: 11 }, 'u', { salary_cents: null, payday: null }, [rec({ start_month: '2026-12' })], null)
+    const dez = await expectedMonthRows({ year: 2026, month: 12 }, 'u', { salary_cents: null, payday: null }, [rec({ start_month: '2026-12' })], null)
+    expect(nov).toEqual([])
+    expect(dez.map((r) => r.date)).toEqual(['2026-12-10'])
+  })
+
+  it('"Começa em": este mês e os próximos; mudar o início tira os meses antes dele', () => {
+    const opts = startMonthOptions({ year: 2026, month: 11 }, 3)
+    expect(opts).toEqual([{ year: 2026, month: 11 }, { year: 2026, month: 12 }, { year: 2027, month: 1 }])
+    expect(monthsBeforeStart({ year: 2026, month: 11 }, { year: 2027, month: 1 })).toEqual([{ year: 2026, month: 11 }, { year: 2026, month: 12 }])
+    expect(monthsBeforeStart({ year: 2026, month: 11 }, { year: 2026, month: 11 })).toEqual([])
+  })
+
   it('cria salário no dia do pagamento e os fixos, sem repetir os que já existem', async () => {
     const rows = await expectedMonthRows({ year: 2027, month: 2 }, 'u', { salary_cents: 250000, payday: 31 }, [rec({})], 'sal')
     expect(rows.map((r) => [r.type, r.date, r.amount_cents])).toEqual([

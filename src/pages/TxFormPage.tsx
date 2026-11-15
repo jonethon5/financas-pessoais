@@ -17,7 +17,8 @@ import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
 import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
 import { txText } from '../lib/statement'
-import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthOf, relativeDay, todayISO } from '../lib/dates'
+import { addDaysISO, addMonths, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, relativeDay, todayISO } from '../lib/dates'
+import { StartMonthField } from '../components/StartMonthField'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
 import { friendlyError } from '../lib/supabase'
@@ -83,6 +84,8 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   // Fixo
   const [day, setDay] = useState(String(dayOf(today)))
   const [remind, setRemind] = useState(true)
+  // Gasto fixo: em que mês começa (dá para planejar o mês que vem)
+  const [startYm, setStartYm] = useState(currentYearMonth)
   // Parcelado
   const [count, setCount] = useState('10')
   const [valueIs, setValueIs] = useState<'total' | 'parcela'>('total')
@@ -199,11 +202,11 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             : tx.source === 'banco' && categoryId !== tx.category_id ? 'Salvo. Os próximos parecidos já vêm nessa categoria' : 'Alteração salva',
         )
       } else if (mode === 'fixo') {
-        const ym = currentYearMonth()
+        const future = monthKey(startYm) > monthKey(currentYearMonth())
         await write.mutateAsync((b) =>
-          b.insert('recurrings', [{ description: desc, category_id: categoryId, amount_cents: cents!, day: Number(day), remind, start_month: monthKey(ym), end_month: null, active: true }]),
+          b.insert('recurrings', [{ description: desc, category_id: categoryId, amount_cents: cents!, day: Number(day), remind, start_month: monthKey(startYm), end_month: null, active: true }]),
         )
-        toast('Gasto fixo criado: entra sozinho todo mês')
+        toast(future ? `Gasto fixo criado: entra a partir de ${monthLabel(startYm).split(' ')[0].toLowerCase()}` : 'Gasto fixo criado: entra sozinho todo mês')
       } else if (mode === 'parcelado') {
         const group = crypto.randomUUID()
         const rows = buildInstallments({ amountCents: cents!, mode: valueIs, count: Number(count), firstDate: date }).map((p) => ({
@@ -361,6 +364,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         {mode === 'fixo' && !tx ? (
           <>
             <Field label="Dia do vencimento" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value)} error={errors.day} hint="Todo mês, nesse dia, o gasto entra sozinho. Dia 31 vira o último dia nos meses curtos." />
+            <StartMonthField value={startYm} onChange={setStartYm} hint="Planejando o mês que vem? Escolha o mês: antes dele, o gasto não aparece." />
             <List>
               <Row title="Avisar antes de vencer" trailing={<Switch label="Avisar antes de vencer" checked={remind} onChange={setRemind} />} />
             </List>

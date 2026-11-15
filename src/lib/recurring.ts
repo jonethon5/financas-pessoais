@@ -1,7 +1,7 @@
 // Salário e gastos fixos: viram lançamentos do mês sozinhos.
 // O id de cada um é previsível (mesma entrada → mesmo id), então criar duas vezes não duplica.
 import type { NewRow, Profile, Recurring, Transaction } from '../types'
-import { compareYearMonth, isoDate, monthKey, parseMonthKey, type YearMonth } from './dates'
+import { addMonths, compareYearMonth, isoDate, monthKey, parseMonthKey, type YearMonth } from './dates'
 
 /** UUID estável a partir de um texto (SHA-1, no formato de UUID versão 5). */
 export async function stableId(key: string): Promise<string> {
@@ -66,6 +66,21 @@ export async function expectedMonthRows(
 
 function blank(): Omit<NewRow<'transactions'>, 'kind' | 'type' | 'amount_cents' | 'date' | 'description'> {
   return { category_id: null, recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null, paid: true, skipped: false, note: null }
+}
+
+/** Opções de "Começa em" para um gasto fixo: este mês e os próximos (para planejar o mês que vem). */
+export function startMonthOptions(current: YearMonth, count = 12): YearMonth[] {
+  return Array.from({ length: count }, (_, i) => addMonths(current, i))
+}
+
+/**
+ * O início do gasto fixo passou para `newStart`: os meses de agora até o anterior ao novo início
+ * não têm mais esse gasto (os lançamentos automáticos desses meses precisam sair).
+ */
+export function monthsBeforeStart(current: YearMonth, newStart: YearMonth): YearMonth[] {
+  const out: YearMonth[] = []
+  for (let ym = current; compareYearMonth(ym, newStart) < 0; ym = addMonths(ym, 1)) out.push(ym)
+  return out
 }
 
 /** Os que faltam criar (compara pelos ids previsíveis). */
