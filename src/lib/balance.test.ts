@@ -80,3 +80,34 @@ describe('balanço do mês: dá para guardar X%?', () => {
     expect(monthlyBalance(input({ incomeCents: 0 }), 10).verdict).toBe('sem-renda')
   })
 })
+
+describe('balanço: o que tem dono, o que dá para mexer e "e se?"', () => {
+  const parcela: Transaction = { ...tx('mer', 10000, '2026-11-10'), type: 'parcela', description: 'Sapato social', installment_no: 3, installment_total: 10 }
+  const uber = (d: string) => ({ ...tx('tra', 6000, d), description: 'UBER *TRIP' })
+
+  it('parcelas aparecem como "já tem dono", com quantas faltam', () => {
+    const b = monthlyBalance(input({ monthTxs: [parcela], installmentsCents: 10000 }), 10)
+    expect(b.committed.parcels).toEqual([{ label: 'Sapato social 3/10', amountCents: 10000, left: 7 }])
+  })
+
+  it('dia a dia por categoria, com o app que mais pesa (Uber) dentro dela', () => {
+    const cats2 = [...cats, cat('tra', 'Transporte', 'necessidade')]
+    const hist = [...history({ del: 40000 }), uber('2026-08-05'), uber('2026-08-20'), uber('2026-09-05'), uber('2026-09-20'), uber('2026-10-05'), uber('2026-10-20')]
+    const b = monthlyBalance(input({ categories: cats2, history: hist }), 10)
+    expect(b.variable.find((v) => v.label === 'Transporte')).toEqual({ categoryId: 'tra', label: 'Transporte', group: 'necessidade', monthlyCents: 12000, merchants: [{ name: 'Uber', monthlyCents: 12000 }] })
+    expect(b.variable[0].label).toBe('Delivery')
+  })
+
+  it('"e se?": gastando 30% menos no dia a dia, quanto sobra e quantos % da renda', () => {
+    // dia a dia 1.600; 30% = 480; sobra 650 + 480 = 1.130 → 30% de 3.750
+    const s30 = monthlyBalance(input(), 20).scenarios.find((s) => s.cutPct === 30)!
+    expect(s30).toEqual({ cutPct: 30, saveCents: 48000, leftCents: 113000, pct: 30 })
+  })
+
+  it('avisa dos Pix que parecem repasse e ainda contam como gasto', () => {
+    const info = (flow: 'saida' | 'entrada', time: string) => ({ original: 'x', time, method: 'pix' as const, flow, party: null })
+    const recebido: Transaction = { ...tx('del', 26000, '2026-11-03'), kind: 'income', type: 'extra', skipped: true, bank_account_id: 'c', bank_info: info('entrada', '17:59') }
+    const enviado: Transaction = { ...tx('del', 26000, '2026-11-03'), description: 'Transferência enviada pelo Pix|MARIA', bank_account_id: 'c', bank_info: info('saida', '18:01') }
+    expect(monthlyBalance(input({ monthTxs: [recebido, enviado] }), 10).passThroughs).toEqual([{ id: enviado.id, label: 'MARIA', amountCents: 26000 }])
+  })
+})

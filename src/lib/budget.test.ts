@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { BudgetMove, Category, Recurring, Transaction } from '../types'
 import { categoryStatuses, coverOptions, levelOf, quickPicks, rule503020, spendToday, subscriptions, summarizeMonth, weekRange } from './budget'
 import { buildInstallments } from './installments'
-import { expectedMonthRows, missingRows, monthsBeforeStart, recurringActiveIn, stableId, startMonthOptions } from './recurring'
+import { expectedMonthRows, fixedToInstallments, isBillDue, missingRows, monthsBeforeStart, recurringActiveIn, remindWindow, stableId, startMonthOptions } from './recurring'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -187,6 +187,27 @@ describe('salário e fixos automáticos', () => {
     expect(opts).toEqual([{ year: 2026, month: 11 }, { year: 2026, month: 12 }, { year: 2027, month: 1 }])
     expect(monthsBeforeStart({ year: 2026, month: 11 }, { year: 2027, month: 1 })).toEqual([{ year: 2026, month: 11 }, { year: 2026, month: 12 }])
     expect(monthsBeforeStart({ year: 2026, month: 11 }, { year: 2026, month: 11 })).toEqual([])
+  })
+
+  it('avisar X dias antes: a conta entra em "Contas a pagar" a partir desse dia', () => {
+    expect(remindWindow({ remind: true, remind_days: 5 })).toBe(5)
+    expect(remindWindow({ remind: false, remind_days: 5 })).toBe(0)
+    expect(remindWindow({ remind: true })).toBe(3)
+    expect(isBillDue(5, 5)).toBe(true)
+    expect(isBillDue(6, 5)).toBe(false)
+    expect(isBillDue(0, 0)).toBe(true)
+    expect(isBillDue(-3, 0)).toBe(true)
+    expect(isBillDue(-4, 0)).toBe(false)
+  })
+
+  it('fixo que era parcela 3 de 5 vira 3 parcelas, uma por mês', () => {
+    expect(fixedToInstallments({ year: 2026, month: 11 }, 3, 5)).toEqual([
+      { ym: { year: 2026, month: 11 }, no: 3 },
+      { ym: { year: 2026, month: 12 }, no: 4 },
+      { ym: { year: 2027, month: 1 }, no: 5 },
+    ])
+    expect(fixedToInstallments({ year: 2026, month: 11 }, 6, 5)).toEqual([])
+    expect(fixedToInstallments({ year: 2026, month: 11 }, 0, 5)).toEqual([])
   })
 
   it('cria salário no dia do pagamento e os fixos, sem repetir os que já existem', async () => {

@@ -21,14 +21,21 @@ const HEADLINE: Record<Balance['verdict'], (b: Balance) => { title: string; text
   }),
   da: (b) => ({ title: `Dá, cortando ${formatBRL(b.cutsCents)} por mês.`, text: 'Só em desejos: nada do essencial muda.', tone: 'bg-primary-soft' }),
   apertado: (b) => ({ title: `Dá, mas fica apertado: ${formatBRL(b.cutsCents)} por mês.`, text: 'Além dos desejos, precisa economizar um pouco em coisas do dia a dia.', tone: 'bg-warn-soft' }),
-  'nao-da': (b) => ({
+  'nao-da': (b) =>
+    b.leftCents < 0
+      ? {
+          title: `Hoje sai mais do que entra: faltam ${formatBRL(-b.leftCents)} por mês.`,
+          text: 'Antes de guardar, o primeiro passo é sair do vermelho. Veja abaixo o que já tem dono, onde dá para mexer e quanto muda gastando um pouco menos.',
+          tone: 'bg-coral-soft',
+        }
+      : {
     title: `${b.targetPct}% ainda não cabe. Hoje o realista é ${b.maxPct}%.`,
     text:
       b.path && b.path.months > 0
         ? `Comece com ${b.path.startPct}% (${formatBRL(Math.round((b.incomeCents * b.path.startPct) / 100))}) e suba 1% por mês: em ${b.path.months} ${b.path.months === 1 ? 'mês' : 'meses'} você chega a ${b.targetPct}%.`
         : 'Comece pelo que dá e suba aos poucos. Aumentos pequenos e combinados antes funcionam melhor do que tentar tudo de uma vez.',
     tone: 'bg-coral-soft',
-  }),
+  },
 }
 
 /** Cartão da Saúde financeira que abre o balanço. */
@@ -55,6 +62,7 @@ function BalanceSheet({ onClose }: { onClose: () => void }) {
   const [pct, setPct] = useState(10)
   const [step, setStep] = useState<'meta' | 'resultado'>('meta')
   const [error, setError] = useState<string | null>(null)
+  const [cut, setCut] = useState(30)
 
   const body = () => {
     if (view.isPending || recurrings.isPending) return <Spinner />
@@ -144,8 +152,88 @@ function BalanceSheet({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         )}
+        {b.passThroughs.length > 0 && (
+          <List
+            header="Isso é gasto mesmo?"
+            footer="Você recebeu e mandou o mesmo valor logo em seguida. Se o dinheiro só passou por você, abra e toque em “Não contar como gasto”: a sua sobra melhora."
+          >
+            {b.passThroughs.map((t) => (
+              <Row
+                key={t.id}
+                title={t.label}
+                subtitle="Parece um repasse"
+                trailing={<span className="num font-semibold">{formatBRL(t.amountCents)}</span>}
+                chevron
+                as={(c, cls) => (
+                  <Link to={`/lancamento/${t.id}`} className={cls}>
+                    {c}
+                  </Link>
+                )}
+              />
+            ))}
+          </List>
+        )}
+        {b.verdict !== 'sem-renda' && (b.committed.fixedCents > 0 || b.committed.parcels.length > 0) && (
+          <List header="Já tem dono (não dá para cortar agora)" footer="Gasto fixo dá para renegociar (plano de celular, internet). Parcela acaba sozinha: quando terminar, esse dinheiro fica livre.">
+            {b.committed.fixedCents > 0 && <Row title="Gastos fixos" subtitle="Aluguel, contas, assinaturas…" trailing={<span className="num font-semibold">{formatBRL(b.committed.fixedCents)}</span>} />}
+            {b.committed.parcels.map((p) => (
+              <Row
+                key={p.label}
+                title={p.label}
+                subtitle={p.left > 0 ? `Faltam ${p.left} ${p.left === 1 ? 'parcela' : 'parcelas'}` : 'Última parcela'}
+                trailing={<span className="num font-semibold">{formatBRL(p.amountCents)}</span>}
+              />
+            ))}
+          </List>
+        )}
+        {b.variable.length > 0 && (
+          <List header="Dá para mexer (dia a dia)" footer="Média por mês dos últimos 3 meses. Compras parceladas e gastos fixos não entram aqui.">
+            {b.variable.map((v) => (
+              <Row
+                key={v.categoryId}
+                title={v.label}
+                subtitle={v.merchants.length ? v.merchants.map((m) => `${m.name} ${formatBRL(m.monthlyCents)}`).join(' · ') : v.group === 'desejo' ? 'Desejo' : 'Necessidade'}
+                trailing={<span className="num font-semibold">{formatBRL(v.monthlyCents)}</span>}
+              />
+            ))}
+          </List>
+        )}
+        {b.verdict !== 'sem-renda' && b.variableCents > 0 && (() => {
+          const sc = b.scenarios.find((x) => x.cutPct === cut)!
+          return (
+            <section className="rounded-[1.25rem] bg-surface p-4">
+              <p className="font-semibold">E se você gastasse menos no dia a dia?</p>
+              <div className="mt-2.5 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Quanto gastar a menos">
+                {b.scenarios.map((x) => (
+                  <button
+                    key={x.cutPct}
+                    type="button"
+                    role="radio"
+                    aria-checked={cut === x.cutPct}
+                    onClick={() => setCut(x.cutPct)}
+                    className={`rounded-full py-2 text-[0.9375rem] font-semibold transition ${cut === x.cutPct ? 'bg-ink text-on-ink' : 'bg-surface-2'}`}
+                  >
+                    −{x.cutPct}%
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 leading-snug">
+                Gastando {cut}% menos ({formatBRL(sc.saveCents)} por mês),{' '}
+                {sc.leftCents >= 0 ? (
+                  <>
+                    você guardaria <strong>{formatBRL(sc.leftCents)} por mês</strong>: {sc.pct}% da renda ({formatBRL(sc.leftCents * 12)} por ano).
+                  </>
+                ) : (
+                  <>
+                    ainda faltariam <strong>{formatBRL(-sc.leftCents)} por mês</strong>. O próximo passo seria rever os gastos fixos.
+                  </>
+                )}
+              </p>
+            </section>
+          )
+        })()}
         {b.cuts.length > 0 && (
-          <List header="Onde cortar" footer={`Média dos seus gastos dos últimos 3 meses. Cortes de até ${MAX_CUT.desejo * 100}% nos desejos e ${MAX_CUT.necessidade * 100}% nas necessidades, para o plano ser possível de seguir.`}>
+          <List header={b.verdict === 'nao-da' ? 'Tudo o que dá para cortar' : `Plano para chegar a ${b.targetPct}%`} footer={`Média dos seus gastos dos últimos 3 meses. Cortes de até ${MAX_CUT.desejo * 100}% nos desejos e ${MAX_CUT.necessidade * 100}% nas necessidades, para o plano ser possível de seguir.`}>
             {b.cuts.map((c) => (
               <Row
                 key={`${c.kind}:${c.label}`}
@@ -172,7 +260,7 @@ function BalanceSheet({ onClose }: { onClose: () => void }) {
             <Link to="/voce" className="press rounded-full bg-primary py-3 text-center font-semibold text-on-primary">
               Cadastrar salário
             </Link>
-          ) : hasGoals ? (
+          ) : b.leftCents < 0 ? null : hasGoals ? (
             <Link to="/caixinhas" className="press rounded-full bg-surface py-3 text-center font-semibold text-primary-strong">
               Guardar {formatBRL(saveNow)} nas caixinhas
             </Link>

@@ -83,6 +83,26 @@ export function monthsBeforeStart(current: YearMonth, newStart: YearMonth): Year
   return out
 }
 
+/** Quantos dias antes a conta entra em "Contas a pagar". Sem aviso ligado, só no dia. */
+export function remindWindow(r: Pick<Recurring, 'remind' | 'remind_days'> | null | undefined): number {
+  if (!r) return 3
+  return r.remind ? (r.remind_days ?? 3) : 0
+}
+
+/** A conta aparece em "Contas a pagar" hoje? (vencidas há até 3 dias também aparecem) */
+export function isBillDue(daysUntil: number, window: number): boolean {
+  return daysUntil >= -3 && daysUntil <= window
+}
+
+/**
+ * Gasto fixo que na verdade é compra parcelada ("parcela 3 de 10"): as parcelas que faltam, mês a mês,
+ * a partir do mês base (o mês atual, ou o início do fixo se ainda não começou).
+ */
+export function fixedToInstallments(base: YearMonth, current: number, total: number): { ym: YearMonth; no: number }[] {
+  if (!Number.isInteger(current) || !Number.isInteger(total) || current < 1 || total < current || total > 120) return []
+  return Array.from({ length: total - current + 1 }, (_, i) => ({ ym: addMonths(base, i), no: current + i }))
+}
+
 /** Os que faltam criar (compara pelos ids previsíveis). */
 export function missingRows<T extends { id: string }>(expected: T[], existing: Pick<Transaction, 'id'>[]): T[] {
   const have = new Set(existing.map((t) => t.id))

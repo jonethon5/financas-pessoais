@@ -16,7 +16,7 @@ import { useProfile } from '../data/hooks'
 import { addMonths, currentYearMonth, firstDayISO, isValidISODate, lastDayISO, monthKey, monthLabel, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
-import { isTransfer, movementOf, statementCSV, statementTotals, txTitle, filterStatement, type StatementView } from '../lib/statement'
+import { isTransfer, movementOf, searchTotal, statementCSV, statementTotals, txTitle, filterStatement, type StatementView } from '../lib/statement'
 import { friendlyError } from '../lib/supabase'
 import { APP_NAME } from '../brand'
 import type { Transaction } from '../types'
@@ -171,6 +171,23 @@ export function StatementPage() {
             Não contam{outCount ? ` (${outCount})` : ''}
           </button>
         </div>
+
+        {query.trim() && (() => {
+          // "Quanto gastei com Uber?": o total do que foi buscado no mês, e o efeito de cortar 30%
+          const found = searchTotal(shown)
+          if (!found.count) return null
+          return (
+            <div className="rounded-[1.25rem] bg-primary-soft p-4">
+              <p className="text-[0.9375rem]">
+                Gastos com “{query.trim()}” em {monthLabel(ym).split(' ')[0].toLowerCase()}
+              </p>
+              <p className="num text-[1.75rem] leading-tight font-extrabold">{formatBRL(found.spentCents)}</p>
+              <p className="mt-0.5 text-[0.9375rem] leading-snug text-muted">
+                {found.count} {found.count === 1 ? 'gasto' : 'gastos'}.{found.cut30Cents > 0 ? ` Gastando 30% menos, sobram ${formatBRL(found.cut30Cents)} por mês (${formatBRL(found.cut30Cents * 12)} por ano).` : ''}
+              </p>
+            </div>
+          )
+        })()}
 
         {view === 'fora' && (
           <Notice>

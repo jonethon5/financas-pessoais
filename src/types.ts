@@ -108,6 +108,8 @@ export type Recurring = {
   amount_cents: number
   day: number
   remind: boolean
+  /** avisar quantos dias antes (0 = no dia) */
+  remind_days?: number
   start_month: string
   end_month: string | null
   active: boolean

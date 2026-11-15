@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import { useAccounts } from '../data/accounts'
-import { formatDayLong } from '../lib/dates'
-import { isTransfer, movementOf, titleCase, txTitle } from '../lib/statement'
+import { useMonthTxs } from '../data/finance'
+import { formatDayLong, monthOf } from '../lib/dates'
+import { formatBRL } from '../lib/money'
+import { isTransfer, movementOf, partyOf, passThroughOf, readableBankName, txTitle } from '../lib/statement'
 import type { Category, Transaction } from '../types'
 import { FromAccount } from './FromAccount'
 import { TxIcon } from './TxIcon'
@@ -17,13 +19,20 @@ export function BankDetail({
   category,
   description,
   onUseOriginal,
+  counts,
+  onNotCount,
 }: {
   tx: Transaction
   category: Category | undefined
   /** nome que está no campo agora (para saber se foi renomeado) */
   description: string
   onUseOriginal: (name: string) => void
+  /** "Contar como gasto/renda" ligado agora (no formulário) */
+  counts?: boolean
+  /** desliga o "Contar" (botão do aviso de repasse) */
+  onNotCount?: () => void
 }) {
+  const month = useMonthTxs(monthOf(tx.date))
   const accounts = useAccounts()
   const mv = movementOf(tx, accounts.raw)
   const out = mv.flow === 'saida'
@@ -33,6 +42,10 @@ export function BankDetail({
   const when = `${day.charAt(0).toUpperCase()}${day.slice(1)} de ${tx.date.slice(0, 4)}${info?.time ? `, às ${info.time}` : ''}`
   const original = info?.original ?? null
   const renamed = original != null && description.trim() !== original
+  const party = partyOf(tx)
+  const pass = passThroughOf(tx, (month.data ?? []).filter((t) => !('virtual' in t && t.virtual)))
+  const passWho = pass ? partyOf(pass.other) : null
+  const passWhen = pass ? (pass.minutes == null ? 'no mesmo dia' : pass.minutes < 60 ? `${pass.minutes} min ${out ? 'antes' : 'depois'}` : `${Math.round(pass.minutes / 60)} h ${out ? 'antes' : 'depois'}`) : ''
 
   const line = (label: string, value: ReactNode, action?: ReactNode) => (
     <div className="flex items-center justify-between gap-3 border-t border-line py-2.5">
@@ -63,19 +76,35 @@ export function BankDetail({
         </span>
         {tx.skipped && <span className="inline-flex items-center rounded-full bg-warn-soft px-2.5 py-1 text-[0.875rem] font-semibold text-warn-strong">Não conta no mês</span>}
       </div>
-      {info?.party && line(out ? 'Para quem foi' : 'De quem veio', <span className="font-semibold">{titleCase(info.party)}</span>)}
+      {party && line(out ? 'Para quem foi' : 'De quem veio', <span className="font-semibold">{party}</span>)}
       {line('Quando', when)}
       {tx.bank_account_id && line('Conta', <FromAccount info={accounts.byId(tx.bank_account_id)} />)}
       {original &&
         line(
           'Nome no banco',
-          <span className="text-[0.9375rem]">{original}</span>,
+          <span className="text-[0.9375rem]">{readableBankName(original)}</span>,
           renamed ? (
             <button type="button" onClick={() => onUseOriginal(original)} className="shrink-0 rounded-full bg-surface-2 px-3 py-1.5 text-[0.875rem] font-semibold text-primary-strong active:bg-line">
               Usar este nome
             </button>
           ) : null,
         )}
+      {pass && (
+        <div className="mt-1 mb-3 rounded-[1rem] bg-warn-soft p-3.5">
+          <p className="font-semibold">Parece um repasse</p>
+          <p className="mt-1 text-[0.9375rem] leading-snug">
+            {out
+              ? `Você recebeu ${formatBRL(pass.other.amount_cents)}${passWho ? ` de ${passWho}` : ''} ${passWhen}${pass.other.bank_info?.time ? ` (às ${pass.other.bank_info.time})` : ''}. Se esse dinheiro só passou por você, não é gasto seu.`
+              : `Você mandou o mesmo valor${passWho ? ` para ${passWho}` : ''} ${passWhen}. Se esse dinheiro só passou por você, não é renda sua.`}
+          </p>
+          {onNotCount && counts && (
+            <button type="button" onClick={onNotCount} className="mt-2.5 rounded-full bg-surface px-3.5 py-2 text-[0.9375rem] font-semibold text-ink active:bg-surface-2">
+              {out ? 'Não contar como gasto' : 'Não contar como renda'}
+            </button>
+          )}
+          {onNotCount && !counts && <p className="mt-2 text-[0.875rem] font-semibold">Desligado: toque em Salvar para valer.</p>}
+        </div>
+      )}
     </section>
   )
 }

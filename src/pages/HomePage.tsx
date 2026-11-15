@@ -22,6 +22,7 @@ import { usePig } from '../data/pig'
 import { DAILY_KINDS, pigLine } from '../lib/pig'
 import { CoinBadge, PigSays } from './PigPage'
 import { useRecurrings } from '../data/finance'
+import { isBillDue, remindWindow } from '../lib/recurring'
 import { subscriptions, type TodayBudget } from '../lib/budget'
 import { projection } from '../lib/psych'
 import { useAuth } from '../auth/AuthProvider'
@@ -185,7 +186,9 @@ export function HomePage() {
   const catOf = (id: string | null) => categories.find((c) => c.id === id)
 
   const alerts = statuses.filter((x) => x.level !== 'ok' || x.weekLevel !== 'ok').slice(0, 3)
-  const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && daysBetweenISO(today, x.date) >= -3 && daysBetweenISO(today, x.date) <= 7)
+  // Contas a pagar: cada gasto fixo aparece a partir do aviso escolhido nele (parcelas: 3 dias antes)
+  const recById = new Map((recurrings.data ?? []).map((r) => [r.id, r]))
+  const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && isBillDue(daysBetweenISO(today, x.date), remindWindow(x.recurring_id ? recById.get(x.recurring_id) : null)))
   const recent = [...txs].filter((x) => !x.skipped && x.type === 'dia').sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 5)
   const needsSplit = hasSalary && dayOf(today) >= Math.min(p.payday!, 28) && !plan?.split_done_at
   const fresh = freshStart(today, p.birthday)

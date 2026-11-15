@@ -3,7 +3,7 @@
  * Tudo em centavos; a tela só mostra.
  */
 import type { BankAccount, Category, Transaction } from '../types'
-import { weekdayOf } from './dates'
+import { daysBetweenISO, weekdayOf } from './dates'
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 const plain = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -69,6 +69,56 @@ export function isTransfer(t: Pick<Transaction, 'bank_account_id' | 'description
   return methodOf(t, accounts) === 'pix'
 }
 
+/** Quem está do outro lado: o que o banco disse, ou o nome depois do "|" ("Transferência enviada pelo Pix|MARIA" → "Maria"). */
+export function partyOf(t: Pick<Transaction, 'description' | 'bank_info'>): string | null {
+  const original = t.bank_info?.original ?? t.description
+  const raw = t.bank_info?.party ?? (original.includes('|') ? txText(original).title : null)
+  return raw ? titleCase(raw) : null
+}
+
+/** "Transferência enviada pelo Pix|MARIA SOUZA" → "Transferência enviada pelo Pix · Maria Souza" (para ler na tela). */
+export function readableBankName(original: string): string {
+  const i = original.indexOf('|')
+  return i < 0 ? original : `${original.slice(0, i).trim()} · ${titleCase(original.slice(i + 1))}`
+}
+
+type Movable = Pick<Transaction, 'id' | 'kind' | 'amount_cents' | 'date' | 'bank_account_id' | 'bank_info' | 'description'>
+
+const transferLike = (t: Movable) => (t.bank_info ? t.bank_info.method === 'pix' || t.bank_info.method === 'ted' : /pix|transf/i.test(t.description))
+
+/** Minutos entre dois lançamentos (null se o banco não mandou a hora de algum). */
+function minutesApart(a: Movable, b: Movable): number | null {
+  if (!a.bank_info?.time || !b.bank_info?.time) return null
+  const m = (t: Movable) => Number(t.bank_info!.time!.slice(0, 2)) * 60 + Number(t.bank_info!.time!.slice(3, 5))
+  return Math.abs(daysBetweenISO(a.date, b.date) * 1440 + m(b) - m(a))
+}
+
+/**
+ * Repasse: dinheiro que entrou e saiu do mesmo valor, perto um do outro (ex.: recebeu R$ 260 da irmã e mandou
+ * R$ 260 para a mãe 2 minutos depois). Quase sempre não é gasto nem renda da pessoa. Devolve o outro lado.
+ */
+export function passThroughOf<T extends Movable>(t: T, all: T[]): { other: T; minutes: number | null } | null {
+  if (!t.bank_account_id || !transferLike(t)) return null
+  const found = all
+    .filter((o) => o.id !== t.id && o.bank_account_id && o.kind !== t.kind && o.amount_cents === t.amount_cents && transferLike(o) && Math.abs(daysBetweenISO(o.date, t.date)) <= 1)
+    .map((o) => ({ other: o, minutes: minutesApart(t, o) }))
+    .filter((x) => x.minutes == null || x.minutes <= 24 * 60)
+    .sort((a, b) => (a.minutes ?? Math.abs(daysBetweenISO(a.other.date, t.date)) * 1440) - (b.minutes ?? Math.abs(daysBetweenISO(b.other.date, t.date)) * 1440))
+  return found[0] ?? null
+}
+
+/** Gastos que contam no mês mas parecem repasse (para avisar no balanço). */
+export function countedPassThroughs<T extends Movable & Pick<Transaction, 'skipped'>>(txs: T[]): T[] {
+  return txs.filter((t) => t.kind === 'expense' && !t.skipped && passThroughOf(t, txs) != null)
+}
+
+/** Total do que a pessoa buscou (ex.: "uber"): quanto gastou, em quantos lançamentos, e quanto sobraria cortando 30%. */
+export function searchTotal(txs: Pick<Transaction, 'kind' | 'skipped' | 'amount_cents'>[]): { spentCents: number; count: number; cut30Cents: number } {
+  const spent = txs.filter((t) => t.kind === 'expense' && !t.skipped)
+  const spentCents = spent.reduce((a, t) => a + t.amount_cents, 0)
+  return { spentCents, count: spent.length, cut30Cents: Math.round((spentCents * 0.3) / 100) * 100 }
+}
+
 export type Movement = {
   /** "Pix enviado", "Pix recebido", "Compra no cartão"… */
   label: string
@@ -85,7 +135,7 @@ export type Movement = {
 export function movementOf(t: Pick<Transaction, 'kind' | 'bank_account_id' | 'description' | 'bank_info' | 'type'>, accounts: Pick<BankAccount, 'id' | 'type'>[]): Movement {
   const flow = t.bank_info?.flow ?? (t.kind === 'income' ? 'entrada' : 'saida')
   const out = flow === 'saida'
-  const who = t.bank_info?.party ? titleCase(t.bank_info.party) : null
+  const who = t.bank_account_id ? partyOf(t) : null
   const party = who ? `${out ? 'para' : 'de'} ${who}` : null
   const account = accounts.find((a) => a.id === t.bank_account_id)
   const method = t.bank_info?.method ?? (account?.type === 'CREDIT' ? 'cartao' : account && /pix/i.test(t.description) ? 'pix' : account ? 'outro' : null)

@@ -16,11 +16,12 @@ import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite 
 import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
 import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
-import { titleCase, txText } from '../lib/statement'
+import { partyOf, txText } from '../lib/statement'
 import { BankDetail } from '../components/BankDetail'
 import { addDaysISO, addMonths, compareYearMonth, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
 import { startMonthOptions, stableId } from '../lib/recurring'
 import { StartMonthField } from '../components/StartMonthField'
+import { RemindDays } from '../components/RemindDays'
 import { buildInstallments, installmentLabel } from '../lib/installments'
 import { centsToInput, formatBRL, parseBRL } from '../lib/money'
 import { friendlyError } from '../lib/supabase'
@@ -87,10 +88,11 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
   const [remember, setRemember] = useState(true)
   // O que o banco mandou (o nome que a pessoa der não muda o que o app aprende)
   const bankDesc = tx?.bank_info?.original ?? tx?.description ?? ''
-  const bankWho = tx?.source === 'banco' ? (tx.bank_info?.party ? titleCase(tx.bank_info.party) : txText(bankDesc).title) : null
+  const bankWho = tx?.source === 'banco' ? (partyOf(tx) ?? txText(bankDesc).title) : null
   // Fixo
   const [day, setDay] = useState(String(dayOf(today)))
   const [remind, setRemind] = useState(true)
+  const [remindDays, setRemindDays] = useState(3)
   // Gasto fixo: em que mês começa (dá para planejar o mês que vem)
   const [startYm, setStartYm] = useState(() => {
     // Veio da tela Mês olhando um mês que vem: começa nesse mês
@@ -218,7 +220,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         const future = monthKey(startYm) > monthKey(now)
         const id = crypto.randomUUID()
         await write.mutateAsync((b) =>
-          b.insert('recurrings', [{ id, description: desc, category_id: categoryId, amount_cents: cents!, day: Number(day), remind, start_month: monthKey(startYm), end_month: null, active: true }]),
+          b.insert('recurrings', [{ id, description: desc, category_id: categoryId, amount_cents: cents!, day: Number(day), remind, remind_days: remindDays, start_month: monthKey(startYm), end_month: null, active: true }]),
         )
         // Errou? Um toque desfaz (tira o gasto fixo e o lançamento deste mês, se já tiver entrado)
         const undo = async () => {
@@ -312,7 +314,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           />
         )}
         {error && <ErrorBox message={error} />}
-        {tx?.source === 'banco' && <BankDetail tx={tx} category={categories.find((c) => c.id === tx.category_id)} description={description} onUseOriginal={setDescription} />}
+        {tx?.source === 'banco' && <BankDetail tx={tx} category={categories.find((c) => c.id === tx.category_id)} description={description} onUseOriginal={setDescription} counts={counts} onNotCount={fromBank ? () => setCounts(false) : undefined} />}
         {tx?.source === 'banco' && tx.note && <Notice>{tx.note}</Notice>}
         {fromBank && (
           <List footer={income ? 'Sua renda do mês é o salário (em Você) mais o que você lançar. Dinheiro que entra na conta do banco só conta se você ligar aqui.' : 'Desligue se não foi gasto seu: Pix para outra conta sua, dinheiro que você só repassou (ex.: pagar a fatura de alguém da família com o dinheiro dela) ou que vão te devolver.'}>
@@ -325,6 +327,8 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           </List>
         )}
 
+        {/* Do banco: valor e data são os do extrato e não mudam (aparecem no cartão de cima) */}
+        {tx?.source !== 'banco' && (
         <Field
           label={mode === 'parcelado' && !tx ? (valueIs === 'total' ? 'Valor total da compra' : 'Valor de cada parcela') : 'Valor'}
           prefix="R$"
@@ -337,6 +341,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
           error={errors.amount}
           className="[&_input]:min-h-16 [&_input]:text-[1.75rem] [&_input]:font-semibold [&_span]:text-[1.25rem]"
         />
+        )}
         {!income && cents ? <PriceHints cents={cents} hours={workTime(cents, profile.data?.salary_cents ?? null, profile.data?.work_hours_week ?? 44)} concrete={concreteText(cents, goals.data ?? [])} /> : null}
 
         <div>
@@ -397,8 +402,12 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
             <List>
               <Row title="Avisar antes de vencer" trailing={<Switch label="Avisar antes de vencer" checked={remind} onChange={setRemind} />} />
             </List>
+            {remind && <RemindDays value={remindDays} onChange={setRemindDays} />}
+            <button type="button" onClick={() => setPickedMode('parcelado')} className="self-start px-1 text-left text-[0.9375rem] font-semibold text-primary-strong">
+              Comprou parcelado (ex.: sapato em 10x)? Lançar como parcelado
+            </button>
           </>
-        ) : (
+        ) : tx?.source === 'banco' ? null : (
           <div>
             <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">{mode === 'parcelado' && !tx ? 'Primeira parcela em' : 'Data'}</p>
             <div className="shadow-soft flex items-center gap-1 rounded-[0.875rem] bg-surface p-1">

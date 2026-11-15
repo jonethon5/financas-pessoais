@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Category, Transaction } from '../types'
-import { filterStatement, insightTips, insights, methodOf, movementOf, statementCSV, statementTotals, titleCase, txTitle } from './statement'
+import { countedPassThroughs, filterStatement, insightTips, insights, methodOf, movementOf, partyOf, passThroughOf, readableBankName, searchTotal, statementCSV, statementTotals, titleCase, txTitle } from './statement'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -125,5 +125,41 @@ describe('enviado ou recebido, em palavras simples', () => {
 
   it('nomes do banco em maiúsculas ficam legíveis', () => {
     expect(titleCase('MARIA  DA SILVA E SOUZA')).toBe('Maria da Silva e Souza')
+  })
+})
+
+describe('repasse: entrou e saiu o mesmo valor logo em seguida', () => {
+  const info = (flow: 'saida' | 'entrada', time: string | null, original: string) => ({ original, time, method: 'pix' as const, flow, party: null })
+  // Como no caso real: recebeu R$ 260 da Caren às 17:59 e mandou R$ 260 para a mãe às 18:01
+  const recebido = tx({ type: 'extra', amount_cents: 26000, date: '2026-11-03', bank_account_id: 'conta', skipped: true, description: 'Transferência recebida pelo Pix|CAREN COUTINHO PEREIRA', bank_info: info('entrada', '17:59', 'Transferência recebida pelo Pix|CAREN COUTINHO PEREIRA') })
+  const enviado = tx({ amount_cents: 26000, date: '2026-11-03', bank_account_id: 'conta', description: 'Transferência enviada pelo Pix|MARIA APARECIDA COUTINHO', bank_info: info('saida', '18:01', 'Transferência enviada pelo Pix|MARIA APARECIDA COUTINHO') })
+  const mercado = tx({ amount_cents: 26000, date: '2026-11-03', bank_account_id: 'conta', description: 'Compra no débito - Mercado', bank_info: { ...info('saida', '18:30', 'Compra no débito - Mercado'), method: 'debito' as const } })
+
+  it('acha o outro lado e quantos minutos depois', () => {
+    expect(passThroughOf(enviado, [recebido, enviado, mercado])).toEqual({ other: recebido, minutes: 2 })
+    expect(passThroughOf(recebido, [recebido, enviado, mercado])!.other).toBe(enviado)
+  })
+
+  it('compra com o mesmo valor não é repasse; valores diferentes ou dias longe também não', () => {
+    expect(passThroughOf(mercado, [recebido, mercado])).toBeNull()
+    expect(passThroughOf(enviado, [{ ...recebido, amount_cents: 25900 }])).toBeNull()
+    expect(passThroughOf(enviado, [{ ...recebido, date: '2026-11-06' }])).toBeNull()
+  })
+
+  it('no balanço: só os gastos que ainda contam', () => {
+    expect(countedPassThroughs([recebido, enviado, mercado])).toEqual([enviado])
+    expect(countedPassThroughs([recebido, { ...enviado, skipped: true }])).toEqual([])
+  })
+
+  it('nome do outro lado sai do texto do banco quando o banco não manda separado', () => {
+    expect(partyOf(enviado)).toBe('Maria Aparecida Coutinho')
+    expect(readableBankName('Transferência enviada pelo Pix|MARIA APARECIDA COUTINHO')).toBe('Transferência enviada pelo Pix · Maria Aparecida Coutinho')
+    expect(movementOf(enviado, [{ id: 'conta', type: 'BANK' }]).party).toBe('para Maria Aparecida Coutinho')
+  })
+})
+
+describe('quanto gastei com…', () => {
+  it('soma só os gastos que contam e mostra o efeito de cortar 30%', () => {
+    expect(searchTotal([tx({ amount_cents: 2000 }), tx({ amount_cents: 1700 }), tx({ amount_cents: 999, skipped: true }), tx({ type: 'extra', amount_cents: 5000 })])).toEqual({ spentCents: 3700, count: 2, cut30Cents: 1100 })
   })
 })
