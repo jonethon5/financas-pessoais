@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Category, Transaction } from '../types'
-import { countedPassThroughs, filterStatement, insightTips, insights, methodOf, movementOf, partyOf, passThroughOf, readableBankName, searchTotal, statementCSV, statementTotals, titleCase, txTitle } from './statement'
+import { cashFlow, countedPassThroughs, filterStatement, notCountedLabel, insightTips, insights, methodOf, movementOf, partyOf, passThroughOf, readableBankName, searchTotal, statementCSV, statementTotals, titleCase, txTitle } from './statement'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -32,19 +32,31 @@ describe('extrato', () => {
   it('sabe se foi no crédito, no Pix, no débito ou lançado à mão', () => {
     expect(month.slice(1, 5).map((t) => methodOf(t, accounts))).toEqual(['credito', 'debito', 'pix', 'manual'])
   })
-  it('"tudo" mostra só o que conta; "fora" mostra o que não conta; mais novo primeiro', () => {
-    expect(filterStatement(month, { view: 'tudo' }, cats).map((t) => t.description)).toEqual(['Pix para João Silva', 'Padaria', 'Mercado Assaí', 'Ifood Restaurante', 'Salário'])
+  it('"tudo" mostra tudo o que entrou e saiu, como no banco; "fora" só o que não conta; mais novo primeiro', () => {
+    expect(filterStatement(month, { view: 'tudo' }, cats).map((t) => t.description)).toEqual(['Pix para Ana Ribeiro', 'Pix para João Silva', 'Padaria', 'Pix de Ana Ribeiro', 'Mercado Assaí', 'Ifood Restaurante', 'Salário'])
     expect(filterStatement(month, { view: 'fora' }, cats).map((t) => t.description)).toEqual(['Pix para Ana Ribeiro', 'Pix de Ana Ribeiro'])
-    expect(filterStatement(month, { view: 'entradas' }, cats).map((t) => t.description)).toEqual(['Salário'])
-    expect(filterStatement(month, { view: 'gastos', accountId: 'conta' }, cats)).toHaveLength(2)
+    // o Pix recebido aparece em "entrou", mesmo sem contar como renda
+    expect(filterStatement(month, { view: 'entradas' }, cats).map((t) => t.description)).toEqual(['Pix de Ana Ribeiro', 'Salário'])
+    expect(filterStatement(month, { view: 'gastos', accountId: 'conta' }, cats)).toHaveLength(3)
   })
   it('busca sem acento, pela descrição ou pela categoria', () => {
     expect(filterStatement(month, { view: 'tudo', query: 'assai' }, cats).map((t) => t.description)).toEqual(['Mercado Assaí'])
     expect(filterStatement(month, { view: 'tudo', query: 'DELIVERY' }, cats).map((t) => t.description)).toEqual(['Ifood Restaurante'])
     expect(filterStatement(month, { view: 'tudo', query: 'nada disso' }, cats)).toEqual([])
   })
-  it('os totais batem com o que conta', () => {
-    expect(statementTotals(filterStatement(month, { view: 'tudo' }, cats))).toEqual({ income: 210000, expense: 23790 })
+  it('os totais do mês contam só o que conta; entrou/saiu de verdade inclui o Pix recebido, sem fatura nem conta própria', () => {
+    const all = filterStatement(month, { view: 'tudo' }, cats)
+    expect(statementTotals(all)).toEqual({ income: 210000, expense: 23790 })
+    const fatura = tx({ amount_cents: 50000, date: '2026-11-10', description: 'Pagamento de fatura', bank_account_id: 'conta', skipped: true, source: 'banco', note: 'Pagamento da fatura do cartão' })
+    const bank = month.map((t) => (t.bank_account_id ? { ...t, source: 'banco' as const } : t))
+    expect(cashFlow([...bank, fatura])).toEqual({ income: 290000, expense: 23790 + 30000 })
+  })
+
+  it('etiqueta do que não conta: o motivo do banco ou "não conta como renda/gasto"', () => {
+    expect(notCountedLabel(month[5])).toBe('não conta como renda')
+    expect(notCountedLabel(month[6])).toBe('não conta como gasto')
+    expect(notCountedLabel({ kind: 'expense', skipped: true, note: 'Pagamento da fatura do cartão: já contado nas compras', type: 'dia' })).toBe('Pagamento da fatura do cartão')
+    expect(notCountedLabel(month[0])).toBeNull()
   })
   it('a planilha abre no Excel em português: ponto e vírgula, vírgula nos centavos, gasto negativo', () => {
     const csv = statementCSV([month[1], month[0], tx({ amount_cents: 1050, date: '2026-11-11', description: 'Loja; "Centro"', installment_no: 2, installment_total: 5 })], cats, accounts)

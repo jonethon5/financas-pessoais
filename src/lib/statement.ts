@@ -157,24 +157,48 @@ export function movementOf(t: Pick<Transaction, 'kind' | 'bank_account_id' | 'de
 // Filtros e totais
 // ---------------------------------------------------------------------------
 
-/** tudo = o que conta no mês; fora = o que aparece mas não conta (entradas do banco, Pix entre contas próprias, fixo pulado) */
+/**
+ * tudo = tudo o que entrou e saiu, como no extrato do banco (o que não conta no mês aparece marcado);
+ * entradas / gastos = só o que entrou / saiu; fora = só o que não conta no mês.
+ */
 export type StatementView = 'tudo' | 'gastos' | 'entradas' | 'fora'
 
 export function filterStatement<T extends Transaction>(txs: T[], opts: { view: StatementView; query?: string; accountId?: string | null }, categories: Category[]): T[] {
   const q = plain(opts.query ?? '').trim()
   const catName = new Map(categories.map((c) => [c.id, plain(c.name)]))
   return txs
-    .filter((t) => (opts.view === 'fora' ? t.skipped : !t.skipped))
+    .filter((t) => (opts.view === 'fora' ? t.skipped : true))
     .filter((t) => (opts.view === 'gastos' ? t.kind === 'expense' : opts.view === 'entradas' ? t.kind === 'income' : true))
     .filter((t) => !opts.accountId || t.bank_account_id === opts.accountId)
     .filter((t) => !q || plain(t.description).includes(q) || (catName.get(t.category_id ?? '') ?? '').includes(q))
     .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))
 }
 
+/** Movimentação "de dentro": fatura do cartão, caixinha, estorno, Pix entre contas suas (o banco mostra, mas o dinheiro não saiu de você). */
+export const isInternal = (t: Pick<Transaction, 'skipped' | 'note' | 'source'>) => t.skipped && t.source === 'banco' && Boolean(t.note)
+
+/** Dinheiro que entrou e saiu de verdade (sem fatura, caixinha e transferências entre contas suas; fixo pulado também não). */
+export function cashFlow(txs: Pick<Transaction, 'kind' | 'amount_cents' | 'skipped' | 'note' | 'source'>[]): { income: number; expense: number } {
+  const real = txs.filter((t) => !t.skipped || (t.source === 'banco' && !isInternal(t)))
+  return {
+    income: sum(real.filter((t) => t.kind === 'income').map((t) => t.amount_cents)),
+    expense: sum(real.filter((t) => t.kind === 'expense').map((t) => t.amount_cents)),
+  }
+}
+
+/** Etiqueta do que não conta no mês: o motivo do banco, ou "não conta como renda/gasto". */
+export function notCountedLabel(t: Pick<Transaction, 'kind' | 'skipped' | 'note' | 'type'>): string | null {
+  if (!t.skipped) return null
+  if (t.note) return t.note.split(':')[0]
+  if (t.type === 'fixo') return 'pulado neste mês'
+  return t.kind === 'income' ? 'não conta como renda' : 'não conta como gasto'
+}
+
+/** O que conta no mês (renda e gastos): o que a tela Mês usa. */
 export function statementTotals(txs: Transaction[]): { income: number; expense: number } {
   return {
-    income: sum(txs.filter((t) => t.kind === 'income').map((t) => t.amount_cents)),
-    expense: sum(txs.filter((t) => t.kind === 'expense').map((t) => t.amount_cents)),
+    income: sum(txs.filter((t) => t.kind === 'income' && !t.skipped).map((t) => t.amount_cents)),
+    expense: sum(txs.filter((t) => t.kind === 'expense' && !t.skipped).map((t) => t.amount_cents)),
   }
 }
 

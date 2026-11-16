@@ -82,7 +82,7 @@ nada de culpa, e o hábito vem antes do valor.
 
 | | |
 | --- | --- |
-| Testes de regra (Vitest) | 212 |
+| Testes de regra (Vitest) | 217 |
 | Testes contra o banco de dados real (RLS, banco, IA, moedas, avaliações) | 45 |
 | Tabelas com RLS | 22 |
 | Edge Functions | 5 (configuração, excluir conta, conexão com banco, aviso da Pluggy, assistente) |

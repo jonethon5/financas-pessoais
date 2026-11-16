@@ -21,8 +21,10 @@ import { useToast } from '../components/Toast'
 import { usePig } from '../data/pig'
 import { DAILY_KINDS, pigLine } from '../lib/pig'
 import { CoinBadge, PigSays } from './PigPage'
+import { BankLogo } from '../components/BankLogo'
 import { useRecurrings } from '../data/finance'
 import { isBillDue, remindWindow } from '../lib/recurring'
+import { cardBills, dueText } from '../lib/bills'
 import { subscriptions, type TodayBudget } from '../lib/budget'
 import { projection } from '../lib/psych'
 import { useAuth } from '../auth/AuthProvider'
@@ -189,6 +191,8 @@ export function HomePage() {
   // Contas a pagar: cada gasto fixo aparece a partir do aviso escolhido nele (parcelas: 3 dias antes)
   const recById = new Map((recurrings.data ?? []).map((r) => [r.id, r]))
   const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && isBillDue(daysBetweenISO(today, x.date), remindWindow(x.recurring_id ? recById.get(x.recurring_id) : null)))
+  // Fatura de cartão perto de vencer (até 7 dias) ou vencida: entra em "Contas a pagar"
+  const urgentBills = cardBills(wallet.raw, today).filter((b) => b.urgent)
   const recent = [...txs].filter((x) => !x.skipped && x.type === 'dia').sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 5)
   const needsSplit = hasSalary && dayOf(today) >= Math.min(p.payday!, 28) && !plan?.split_done_at
   const fresh = freshStart(today, p.birthday)
@@ -303,9 +307,28 @@ export function HomePage() {
         </section>
       )}
 
-      {upcoming.length > 0 && (
+      {(upcoming.length > 0 || urgentBills.length > 0) && (
         <Section title="Contas a pagar" tour="contas">
           <List>
+            {urgentBills.map((b) => {
+              const info = wallet.byId(b.accountId)
+              return (
+                <Row
+                  key={b.accountId}
+                  icon={info ? <BankLogo inst={info.inst} credit /> : undefined}
+                  title={`Fatura ${info ? info.short : 'do cartão'}`}
+                  subtitle={dueText(b.daysUntil).replace(/^./, (c) => c.toUpperCase())}
+                  trailing={
+                    <span className="flex items-center gap-2">
+                      {b.daysUntil != null && b.daysUntil < 0 && <Badge tone="danger">Vencida</Badge>}
+                      <Money cents={b.amountCents} />
+                    </span>
+                  }
+                  chevron
+                  as={(c, cls) => <Link to={`/voce/bancos/${b.accountId}`} className={cls}>{c}</Link>}
+                />
+              )
+            })}
             {upcoming.map((x) => {
               const d = daysBetweenISO(today, x.date)
               return (
@@ -343,9 +366,9 @@ export function HomePage() {
         </div>
       </section>
 
-      <Section title="Seu mês" to="/mes">
+      <Section title="Seu mês" to="/mes" links>
         {/* A conta fecha: renda − gastos − caixinhas = sobra (igual ao Mês) */}
-        <MonthFlow s={s} />
+        <MonthFlow s={s} txs={txs} current />
         <p className="mt-2 text-[0.8125rem] text-muted">Contando as contas do mês que ainda vão vencer.</p>
         {alerts.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">

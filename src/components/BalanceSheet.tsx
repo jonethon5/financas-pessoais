@@ -4,6 +4,7 @@ import { savePlan, useRecurrings, useWrite } from '../data/finance'
 import { useMonthView } from '../data/monthView'
 import { monthlyBalance, MAX_CUT, type Balance } from '../lib/balance'
 import { subscriptions } from '../lib/budget'
+import { uncountedIncome } from '../lib/bills'
 import { currentYearMonth } from '../lib/dates'
 import { lessonById } from '../lib/learn'
 import { formatBRL } from '../lib/money'
@@ -152,6 +153,17 @@ function BalanceSheet({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         )}
+        {(() => {
+          const u = uncountedIncome(d.txs)
+          return u.cents > 0 && b.verdict !== 'ja-da' ? (
+            <p className="rounded-[1rem] bg-surface px-4 py-3 text-[0.9375rem] leading-snug">
+              “Entra” é só o salário e o que você marcou como renda. Este mês entraram mais <strong>{formatBRL(u.cents)}</strong> pelo banco que não contam. Se algum foi renda sua (um bico, parte do salário), marque como renda e a conta melhora.{' '}
+              <Link to="/extrato?ver=entradas" className="font-semibold text-primary-strong">
+                Ver o que entrou
+              </Link>
+            </p>
+          ) : null
+        })()}
         {b.passThroughs.length > 0 && (
           <List
             header="Isso é gasto mesmo?"

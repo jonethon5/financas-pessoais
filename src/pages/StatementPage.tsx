@@ -16,7 +16,7 @@ import { useProfile } from '../data/hooks'
 import { addMonths, currentYearMonth, firstDayISO, isValidISODate, lastDayISO, monthKey, monthLabel, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
-import { isTransfer, movementOf, searchTotal, statementCSV, statementTotals, txTitle, filterStatement, type StatementView } from '../lib/statement'
+import { cashFlow, isTransfer, movementOf, notCountedLabel, searchTotal, statementCSV, statementTotals, txTitle, filterStatement, type StatementView } from '../lib/statement'
 import { friendlyError } from '../lib/supabase'
 import { APP_NAME } from '../brand'
 import type { Transaction } from '../types'
@@ -73,12 +73,14 @@ export function StatementPage() {
   const catOf = (id: string | null) => cats.find((c) => c.id === id)
   const selectable = accounts.list.filter((a) => a.kind !== 'guardado')
   const selected = accounts.byId(accountId)
-  const totals = statementTotals(counted)
+  // Em cima: o dinheiro que entrou e saiu de verdade (como no banco). Embaixo: quanto disso conta no seu mês.
+  const totals = cashFlow(counted)
+  const inMonth = statementTotals(counted)
   const days = [...new Set(shown.map((t) => t.date))]
 
   const row = (t: Transaction): ReactNode => {
     const mv = movementOf(t, accounts.raw)
-    const extra = [t.type === 'salario' ? 'Salário' : t.bank_account_id ? mv.label : catOf(t.category_id)?.name, t.skipped ? 'não conta' : null].filter(Boolean).join(' · ')
+    const extra = [t.type === 'salario' ? 'Salário' : t.bank_account_id ? mv.label : catOf(t.category_id)?.name, notCountedLabel(t)].filter(Boolean).join(' · ')
     const income = t.kind === 'income'
     return (
       <Row
@@ -156,6 +158,9 @@ export function StatementPage() {
           {kpi('entradas', 'Entrou', totals.income)}
           {kpi('gastos', 'Saiu', totals.expense)}
         </div>
+        <p className="-mt-1 px-1 text-[0.8125rem] leading-snug text-muted">
+          Contam no seu mês: renda {formatBRL(inMonth.income)} e gastos {formatBRL(inMonth.expense)}. O resto (Pix recebido que não é renda, fatura, transferência entre contas suas) aparece marcado.
+        </p>
 
         <div className="flex items-center gap-2">
           <label className="shadow-soft flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-surface px-4 py-2.5">
