@@ -194,6 +194,29 @@ export function notCountedLabel(t: Pick<Transaction, 'kind' | 'skipped' | 'note'
   return t.kind === 'income' ? 'não conta como renda' : 'não conta como gasto'
 }
 
+/** Forma curta para a linha do extrato ("Pix", "Cartão", "Débito"…), como no app do banco. */
+export function methodShort(t: Pick<Transaction, 'bank_account_id' | 'description' | 'bank_info' | 'type'>, accounts: Pick<BankAccount, 'id' | 'type'>[]): string | null {
+  if (t.type === 'salario') return 'Salário'
+  if (t.type === 'fixo') return 'Gasto fixo'
+  if (!t.bank_account_id) return null
+  const m = t.bank_info?.method ?? (accounts.find((a) => a.id === t.bank_account_id)?.type === 'CREDIT' ? 'cartao' : /pix/i.test(t.description) ? 'pix' : 'outro')
+  return { pix: 'Pix', ted: 'Transferência', cartao: 'Cartão', debito: 'Débito', boleto: 'Boleto', outro: 'Conta' }[m]
+}
+
+/** Etiqueta pequena embaixo do valor para o que não conta no mês ("Fatura", "Caixinha", "Repasse"…). */
+export function notCountedShort(t: Pick<Transaction, 'kind' | 'skipped' | 'note' | 'type'>): string | null {
+  if (!t.skipped) return null
+  const n = t.note ?? ''
+  if (/fatura/i.test(n)) return 'Fatura'
+  if (/estorno/i.test(n)) return 'Estorno'
+  if (/dinheiro seu/i.test(n)) return 'Dinheiro seu'
+  if (/entre contas/i.test(n)) return 'Entre suas contas'
+  if (/caixinha|poupan|guardado/i.test(n)) return 'Caixinha'
+  if (/repasse/i.test(n)) return 'Repasse'
+  if (t.type === 'fixo') return 'Pulado'
+  return t.kind === 'income' ? 'Não é renda' : 'Não conta'
+}
+
 /** O que conta no mês (renda e gastos): o que a tela Mês usa. */
 export function statementTotals(txs: Transaction[]): { income: number; expense: number } {
   return {

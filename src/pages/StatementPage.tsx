@@ -1,25 +1,22 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import {  useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ArrowDown, ArrowUp, Export, MagnifyingGlass } from '@phosphor-icons/react'
 import { BankLogo } from '../components/BankLogo'
-import { FromAccount } from '../components/FromAccount'
+import { StatementRow } from '../components/StatementRow'
 import { MascotArt } from '../components/Pig'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { TxIcon } from '../components/TxIcon'
-import { Button, Card, ErrorBox, Field, List, Money, NavBar, Notice, Row, Segmented, Spinner } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Money, NavBar, Notice, Segmented, Spinner } from '../components/ui'
 import { useAccounts } from '../data/accounts'
 import { useBackend } from '../data/backend'
 import { useCategories, useMonthTxs } from '../data/finance'
 import { useProfile } from '../data/hooks'
 import { addMonths, currentYearMonth, firstDayISO, isValidISODate, lastDayISO, monthKey, monthLabel, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
-import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
-import { cashFlow, isTransfer, movementOf, notCountedLabel, searchTotal, statementCSV, statementTotals, txTitle, filterStatement, type StatementView } from '../lib/statement'
+import { cashFlow, searchTotal, statementCSV, statementTotals, filterStatement, type StatementView } from '../lib/statement'
 import { friendlyError } from '../lib/supabase'
 import { APP_NAME } from '../brand'
-import type { Transaction } from '../types'
 
 /** Baixa um arquivo gerado no aparelho (nada vai para a internet). */
 function download(name: string, content: Blob) {
@@ -76,31 +73,6 @@ export function StatementPage() {
   const totals = cashFlow(counted)
   const inMonth = statementTotals(counted)
   const days = [...new Set(shown.map((t) => t.date))]
-
-  const row = (t: Transaction): ReactNode => {
-    const mv = movementOf(t, accounts.raw)
-    const extra = [t.type === 'salario' ? 'Salário' : t.bank_account_id ? mv.label : catOf(t.category_id)?.name, notCountedLabel(t)].filter(Boolean).join(' · ')
-    const income = t.kind === 'income'
-    return (
-      <Row
-        key={t.id}
-        icon={<TxIcon description={t.description} category={catOf(t.category_id)} flow={isTransfer(t, accounts.raw) ? mv.flow : null} />}
-        title={`${txTitle(t)}${t.installment_no ? ` ${installmentLabel(t.installment_no, t.installment_total)}` : ''}`}
-        subtitle={<FromAccount info={accounts.byId(t.bank_account_id)} extra={extra || null} />}
-        trailing={
-          <span className={`num text-[1.0625rem] whitespace-nowrap ${t.skipped ? 'text-muted' : income ? 'font-semibold text-primary-strong' : ''}`}>
-            {income ? '+ ' : '− '}
-            <Money cents={t.amount_cents} />
-          </span>
-        }
-        as={(c, cls) => (
-          <Link to={`/lancamento/${t.id}`} className={cls}>
-            {c}
-          </Link>
-        )}
-      />
-    )
-  }
 
   const kpi = (which: 'entradas' | 'gastos', label: string, cents: number) => {
     const on = view === which
@@ -210,9 +182,17 @@ export function StatementPage() {
             const ofDay = shown.filter((t) => t.date === d)
             const net = ofDay.filter((t) => !t.skipped).reduce((a, t) => a + (t.kind === 'income' ? t.amount_cents : -t.amount_cents), 0)
             return (
-              <List key={d} header={`${relativeDay(d, today)}${net && view !== 'fora' ? ` · ${net > 0 ? '+' : '−'} ${formatBRL(Math.abs(net))}` : ''}`}>
-                {ofDay.map(row)}
-              </List>
+              <section key={d}>
+                <h3 className="px-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">
+                  {relativeDay(d, today)}
+                  {net && view !== 'fora' ? ` · ${net > 0 ? '+' : '−'} ${formatBRL(Math.abs(net))}` : ''}
+                </h3>
+                <ul className="divide-y divide-line">
+                  {ofDay.map((t) => (
+                    <StatementRow key={t.id} t={t} category={catOf(t.category_id)} accounts={accounts.raw} account={accounts.byId(t.bank_account_id)} />
+                  ))}
+                </ul>
+              </section>
             )
           })
         )}

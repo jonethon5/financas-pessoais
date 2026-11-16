@@ -103,6 +103,7 @@ export function YouPage({ section }: { section?: string }) {
   const { email, mode, configured, signOut } = useAuth()
   const [sheet, setSheet] = useState<SheetName>(null)
   const [confirmExit, setConfirmExit] = useState(false)
+  const [confirmRestart, setConfirmRestart] = useState(false)
   const [theme, setTheme] = useState<ThemePref>(getThemePref)
   const [font, setFont] = useState<FontPref>(getFontPref)
   const hidden = useHiddenValues()
@@ -111,6 +112,27 @@ export function YouPage({ section }: { section?: string }) {
   if (profile.isError) return <ErrorBox message={friendlyError(profile.error)} onRetry={() => profile.refetch()} />
   const p = profile.data
   const demoOnly = mode === 'demo' && !configured
+
+  /** "Recomeçar gastos": apaga os gastos fixos e o que foi lançado à mão, para a pessoa montar de novo. */
+  async function restartSpending() {
+    try {
+      let removed = 0
+      await write.mutateAsync(async (b) => {
+        const txs = await b.list('transactions')
+        const manual = txs.filter((t) => t.source !== 'banco' && t.type !== 'salario').map((t) => t.id)
+        // fixo que o banco já confirmou (pago): continua como o gasto que aconteceu, sem o vínculo com o fixo
+        const linked = txs.filter((t) => t.source === 'banco' && t.type === 'fixo')
+        for (const t of linked) await b.update('transactions', t.id, { type: 'dia', recurring_id: null })
+        for (let i = 0; i < manual.length; i += 100) await b.remove('transactions', manual.slice(i, i + 100))
+        const recs = await b.list('recurrings')
+        if (recs.length) await b.remove('recurrings', recs.map((r) => r.id))
+        removed = manual.length + recs.length
+      })
+      toast(removed ? 'Pronto: gastos fixos e lançamentos à mão apagados. Pode montar de novo.' : 'Não tinha nada para apagar')
+    } catch (err) {
+      toast(friendlyError(err))
+    }
+  }
 
   async function save(patch: Parameters<typeof update.mutateAsync>[0], message?: string) {
     try {
@@ -149,6 +171,7 @@ export function YouPage({ section }: { section?: string }) {
             <Row title="Bancos e cartões" chevron as={link('/voce/bancos')} />
             <Row title="Gastos fixos" chevron as={link('/voce/fixos')} />
             <Row title="Categorias e limites" chevron as={link('/voce/categorias')} />
+            <Row title={<span className="text-danger-strong">Recomeçar gastos</span>} subtitle="Apaga os gastos fixos e o que você lançou à mão" onClick={() => setConfirmRestart(true)} />
           </List>
 
           <List header="Ajustes">
@@ -283,6 +306,19 @@ export function YouPage({ section }: { section?: string }) {
           ))}
         </List>
       </Sheet>
+      <ConfirmSheet
+        open={confirmRestart}
+        title="Recomeçar os gastos?"
+        confirmLabel="Apagar e recomeçar"
+        destructive
+        onClose={() => setConfirmRestart(false)}
+        onConfirm={() => {
+          setConfirmRestart(false)
+          void restartSpending()
+        }}
+      >
+        Apaga <strong>todos os gastos fixos</strong> e <strong>tudo que você lançou à mão</strong> (este e outros meses). Ficam: o que veio do banco, o salário, as caixinhas e as categorias. <strong>Não dá para desfazer.</strong>
+      </ConfirmSheet>
       <ConfirmSheet
         open={confirmExit}
         title={mode === 'demo' ? 'Sair da demonstração?' : 'Sair da conta?'}

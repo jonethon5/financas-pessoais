@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Category, Transaction } from '../types'
-import { cashFlow, countedPassThroughs, filterStatement, notCountedLabel, insightTips, insights, methodOf, movementOf, partyOf, passThroughOf, readableBankName, searchTotal, statementCSV, statementTotals, titleCase, txTitle } from './statement'
+import { cashFlow, countedPassThroughs, methodShort, notCountedShort, filterStatement, notCountedLabel, insightTips, insights, methodOf, movementOf, partyOf, passThroughOf, readableBankName, searchTotal, statementCSV, statementTotals, titleCase, txTitle } from './statement'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -173,5 +173,24 @@ describe('repasse: entrou e saiu o mesmo valor logo em seguida', () => {
 describe('quanto gastei com…', () => {
   it('soma só os gastos que contam e mostra o efeito de cortar 30%', () => {
     expect(searchTotal([tx({ amount_cents: 2000 }), tx({ amount_cents: 1700 }), tx({ amount_cents: 999, skipped: true }), tx({ type: 'extra', amount_cents: 5000 })])).toEqual({ spentCents: 3700, count: 2, cut30Cents: 1100 })
+  })
+})
+
+describe('linha do extrato, como no app do banco', () => {
+  const accounts = [{ id: 'conta', type: 'BANK' as const }, { id: 'cartao', type: 'CREDIT' as const }]
+  it('forma de pagamento curta', () => {
+    expect(methodShort(tx({ description: 'Pix para Ana', bank_account_id: 'conta' }), accounts)).toBe('Pix')
+    expect(methodShort(tx({ description: 'IFOOD', bank_account_id: 'cartao' }), accounts)).toBe('Cartão')
+    expect(methodShort(tx({ type: 'salario', description: 'Salário' }), accounts)).toBe('Salário')
+    expect(methodShort(tx({ description: 'Padaria' }), accounts)).toBeNull()
+  })
+  it('etiqueta curta do que não conta', () => {
+    expect(notCountedShort(tx({ skipped: true, note: 'Pagamento da fatura do cartão: já contou' }))).toBe('Fatura')
+    expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Dinheiro guardado no banco (caixinha, poupança)' }))).toBe('Caixinha')
+    expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Dinheiro seu: veio da poupança' }))).toBe('Dinheiro seu')
+    expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Repasse: dinheiro que só passou por você.' }))).toBe('Repasse')
+    expect(notCountedShort(tx({ type: 'extra', skipped: true }))).toBe('Não é renda')
+    expect(notCountedShort(tx({ skipped: true }))).toBe('Não conta')
+    expect(notCountedShort(tx({}))).toBeNull()
   })
 })

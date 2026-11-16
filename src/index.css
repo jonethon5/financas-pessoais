@@ -31,6 +31,7 @@
   --color-primary-soft: var(--primary-soft);
   --color-on-primary: var(--on-primary);
   --color-grow: var(--grow);
+  --color-income: var(--income);
   --color-coral: var(--coral);
   --color-coral-strong: var(--coral-strong);
   --color-coral-soft: var(--coral-soft);
@@ -62,6 +63,7 @@
   --primary-soft: #eaf1fe;
   --on-primary: #ffffff;
   --grow: #0f9d6b; /* verde só para dinheiro guardado e progresso */
+  --income: #0b7a53; /* texto de dinheiro que entrou (contraste 5:1 no fundo claro) */
   --coral: #ff6b4a;
   --coral-strong: #c2410c; /* texto coral (5,2:1) */
   --coral-soft: #ffede8;
@@ -98,6 +100,7 @@
   --primary-soft: #0f2547;
   --on-primary: #06142e;
   --grow: #2fbf83;
+  --income: #43d196;
   --coral: #ff7a5c;
   --coral-strong: #ff9a80;
   --coral-soft: #3a2019;
