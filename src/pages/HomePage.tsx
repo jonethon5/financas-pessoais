@@ -4,7 +4,7 @@ import { ArrowCircleDown, Eye, EyeSlash, Hourglass, SplitHorizontal } from '@pho
 import { CheckCircle2, ChevronRight } from 'lucide-react'
 import { StatementRow } from '../components/StatementRow'
 import { IncomeTriage, unclassifiedIncome } from '../components/IncomeTriage'
-import { MonthGlance } from '../components/MonthFlow'
+import { MoneyNow, MonthGlance } from '../components/MonthFlow'
 import { Wallet } from '../components/Wallet'
 import { useAccounts } from '../data/accounts'
 import { MenuButton } from '../components/MenuContext'
@@ -303,7 +303,13 @@ export function HomePage() {
         )}
       </Section>
 
-      <Section title="Seu mês" to="/mes">
+      {wallet.list.some((a) => a.kind === 'conta') && (
+        <Section title="Seu dinheiro agora" to="/voce/bancos" links>
+          <MoneyNow accounts={wallet.list} bills={bills} payday={p.payday} today={today} />
+        </Section>
+      )}
+
+      <Section title="Resultado do mês" to="/mes">
         <MonthGlance s={s} pending={unclassified.length > 0} />
         {nextCard && nextCard.cents > 0 && (
           <p className="mt-2 text-[0.875rem] text-muted">

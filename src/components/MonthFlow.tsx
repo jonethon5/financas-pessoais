@@ -3,7 +3,8 @@ import { Link } from 'react-router'
 import { IncomeTriage } from './IncomeTriage'
 import { AlertTriangle } from 'lucide-react'
 import { useAccounts } from '../data/accounts'
-import { cardBills, dueText, spendSplit, uncountedIncome } from '../lib/bills'
+import { cardBills, dueText, spendSplit, uncountedIncome, type CardBill } from '../lib/bills'
+import type { AccountInfo } from '../data/accounts'
 import { cardCycles, nextInvoices } from '../lib/cardcycle'
 import { monthLabel } from '../lib/dates'
 import type { MonthSummary } from '../lib/budget'
@@ -182,11 +183,72 @@ export function MonthGlance({ s, pending = false }: { s: MonthSummary; pending?:
       {row('Entrou', s.income, '+')}
       {row(s.save > 0 ? 'Saiu (gastos e caixinhas)' : 'Saiu', out, '−')}
       <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-line pt-2">
-        <span className="font-bold">{pending ? (over ? 'Por enquanto, falta' : 'Por enquanto, sobra') : over ? 'Falta no mês' : 'Sobra no mês'}</span>
+        <span>
+          <span className="block font-bold">{pending ? 'Resultado do mês, por enquanto' : 'Resultado do mês'}</span>
+          <span className="block text-[0.8125rem] text-muted">renda do mês − gastos do mês (não é o saldo)</span>
+        </span>
         <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${pending ? 'text-ink' : over ? 'text-danger-strong' : 'text-primary-strong'}`}>
           <Money cents={Math.abs(s.free)} />
         </span>
       </div>
+    </div>
+  )
+}
+
+/**
+ * O dinheiro que existe hoje (vem do saldo do banco), separado da conta do mês: o que está na conta, o que está
+ * guardado e a fatura do cartão como dívida a pagar (limite nunca é dinheiro). É o número que a pessoa vê no app do banco.
+ */
+export function MoneyNow({ accounts, bills, payday, today }: { accounts: AccountInfo[]; bills: CardBill[]; payday: number | null; today: string }) {
+  const hidden = useHiddenValues()
+  const contas = accounts.filter((a) => a.kind === 'conta')
+  const guardado = accounts.filter((a) => a.kind === 'guardado').reduce((sum, a) => sum + (a.account.balance_cents ?? 0), 0)
+  const naConta = contas.reduce((sum, a) => sum + (a.account.balance_cents ?? 0), 0)
+  const fatura = bills.reduce((sum, b) => sum + b.amountCents, 0)
+  // Próximo salário: neste mês se o dia ainda não passou, senão no mês que vem
+  let nextPay: string | null = null
+  if (payday) {
+    let y = Number(today.slice(0, 4))
+    let m = Number(today.slice(5, 7))
+    if (Number(today.slice(8, 10)) >= payday) [y, m] = m === 12 ? [y + 1, 1] : [y, m + 1]
+    nextPay = `${y}-${String(m).padStart(2, '0')}-${String(payday).padStart(2, '0')}`
+  }
+  const billBeforePay = bills.some((b) => b.dueDate && nextPay && b.dueDate <= nextPay)
+  const row = (label: string, hint: string | null, cents: number, tone = '') => (
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <span className="min-w-0">
+        <span className="block text-[0.9375rem] font-medium">{label}</span>
+        {hint && <span className="block text-[0.8125rem] text-muted">{hint}</span>}
+      </span>
+      <span className={`num shrink-0 font-bold ${tone}`}>
+        <Money cents={cents} />
+      </span>
+    </div>
+  )
+  if (!contas.length) return null
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-bold">Na conta agora</span>
+        <span className={`num text-[1.5rem] leading-tight font-extrabold tracking-[-0.02em] ${naConta < 0 ? 'text-danger-strong' : 'text-ink'}`}>
+          <Money cents={naConta} />
+        </span>
+      </div>
+      <p className="text-[0.8125rem] text-muted">{contas.map((a) => a.short).join(' + ')}, como no app do banco</p>
+      <div className="mt-2 border-t border-line pt-1">
+        {guardado > 0 && row('Guardado no banco', 'caixinhas e poupança', guardado)}
+        {bills.map((b) => {
+          const info = accounts.find((a) => a.account.id === b.accountId)
+          return <div key={b.accountId}>{row(`Fatura ${info ? info.short : 'do cartão'} a pagar`, b.dueDate ? `vence ${formatDateShort(b.dueDate)}` : null, b.amountCents, 'text-danger-strong')}</div>
+        })}
+      </div>
+      {fatura > 0 && (
+        <p className="mt-1.5 text-[0.875rem] leading-snug text-muted">
+          {billBeforePay
+            ? `A fatura vence antes do salário: separe ${hidden ? 'R$ ••••' : formatBRL(fatura)} da conta.`
+            : 'A fatura vence depois do salário: ela sai do próximo salário. Limite do cartão não é dinheiro seu.'}
+        </p>
+      )}
     </div>
   )
 }
