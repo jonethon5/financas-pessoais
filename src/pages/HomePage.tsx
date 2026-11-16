@@ -1,8 +1,9 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Eye, EyeSlash, Hourglass, SplitHorizontal } from '@phosphor-icons/react'
+import { ArrowCircleDown, Eye, EyeSlash, Hourglass, SplitHorizontal } from '@phosphor-icons/react'
 import { CheckCircle2, ChevronRight } from 'lucide-react'
 import { TxIcon } from '../components/TxIcon'
+import { IncomeTriage, unclassifiedIncome } from '../components/IncomeTriage'
 import { MonthGlance } from '../components/MonthFlow'
 import { Wallet } from '../components/Wallet'
 import { FromAccount } from '../components/FromAccount'
@@ -147,6 +148,7 @@ export function HomePage() {
   const hidden = useHiddenValues()
   const toast = useToast()
   const [showAll, setShowAll] = useState(false)
+  const [triage, setTriage] = useState(false)
   // As metas do dia do porquinho continuam valendo moedas (a seção dele saiu do Início; ele fica no topo)
   usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   if (view.isPending) return <Spinner />
@@ -206,6 +208,23 @@ export function HomePage() {
             </span>
           }
           as={x.virtual ? undefined : (c, cls) => <Link to={`/lancamento/${x.id}`} className={cls}>{c}</Link>}
+        />
+      ),
+    })
+  }
+  // Dinheiro que entrou pelo banco e ninguém disse o que é (ex.: parte do salário que caiu separada)
+  const unclassified = unclassifiedIncome(txs)
+  if (unclassified.length) {
+    const cents = unclassified.reduce((a, t) => a + t.amount_cents, 0)
+    attention.push({
+      key: 'entradas',
+      node: (
+        <Row
+          icon={<ArrowCircleDown size={26} weight="duotone" className="text-grow" />}
+          title="Entrou dinheiro: é salário?"
+          subtitle={`${hidden ? 'R$ ••••' : formatBRL(cents)} pelo banco ainda não conta. Toque e diga o que é`}
+          chevron
+          onClick={() => setTriage(true)}
         />
       ),
     })
@@ -312,6 +331,7 @@ export function HomePage() {
         )}
       </Section>
 
+      {triage && <IncomeTriage txs={txs} onClose={() => setTriage(false)} />}
       <Tour id="inicio-v2" steps={HOME_TOUR} />
     </div>
   )

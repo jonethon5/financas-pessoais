@@ -17,6 +17,9 @@ describe('conta corrente', () => {
     expect(mapTransaction(tx({ description: 'Resgate RDB', amount: 10, operationType: 'RESGATE_APLIC_FINANCEIRA' }), 'BANK')).toMatchObject({ kind: 'income', amount_cents: 1000, internal: INTERNAL_REASON.savings })
     expect(mapTransaction(tx({ description: 'Aplicação RDB', amount: -300, operationType: 'RESGATE_APLIC_FINANCEIRA' }), 'BANK')).toMatchObject({ kind: 'expense', internal: INTERNAL_REASON.savings })
     expect(countsInMonth({ kind: 'income', own: false, description: 'Resgate RDB', internal: INTERNAL_REASON.savings }, new Set([countKey('Resgate RDB')]))).toBe(false)
+    // Do jeito que o Nubank escreve no app: "Dinheiro resgatado" / "Dinheiro guardado"
+    expect(mapTransaction(tx({ description: 'Dinheiro resgatado', amount: 70 }), 'BANK')).toMatchObject({ kind: 'income', internal: INTERNAL_REASON.savings })
+    expect(mapTransaction(tx({ description: 'Dinheiro guardado', amount: -100 }), 'BANK')).toMatchObject({ kind: 'expense', internal: INTERNAL_REASON.savings })
     expect(mapTransaction(tx({ amount: 0 }), 'BANK')).toBeNull()
   })
 })

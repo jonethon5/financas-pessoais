@@ -143,7 +143,8 @@ export function cleanDescription(raw: string): string {
 // Movimentações que não são gasto nem renda de verdade (contariam duas vezes).
 // Elas aparecem no extrato como "não conta", com o motivo: o extrato fica igual ao do banco.
 const BILL = ['pagamento de fatura', 'pagamento fatura', 'pagamento recebido', 'credit card payment', 'fatura do cartao', 'pgto fatura']
-const SAVINGS = ['aplicacao', 'resgate', 'investment', 'rdb', 'dinheiro guardado', 'guardado na caixinha', 'caixinha', 'poupanca']
+// "resgat" pega resgate e resgatado (o Nubank escreve "Dinheiro resgatado")
+const SAVINGS = ['aplicacao', 'resgat', 'investment', 'rdb', 'dinheiro guardado', 'guardado na caixinha', 'caixinha', 'poupanca', 'cofrinho']
 export const INTERNAL_REASON = {
   bill: 'Pagamento da fatura do cartão: o gasto já contou no dia da compra.',
   savings: 'Dinheiro guardado no banco (caixinha, poupança ou investimento) mudando de lugar: não é renda nem gasto.',
@@ -302,6 +303,11 @@ export const countKey = (description: string) => {
 export const ignoreKey = (description: string) => {
   const k = learnKey(description)
   return k ? `ignora:${k}` : ''
+}
+/** A pessoa disse que o dinheiro dessa origem é dela mesma (poupança, outra conta): nunca é renda. */
+export const ownKey = (description: string) => {
+  const k = learnKey(description)
+  return k ? `propria:${k}` : ''
 }
 
 /**

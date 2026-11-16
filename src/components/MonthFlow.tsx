@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
+import { IncomeTriage } from './IncomeTriage'
 import { AlertTriangle } from 'lucide-react'
 import { useAccounts } from '../data/accounts'
 import { cardBills, dueText, spendSplit, uncountedIncome } from '../lib/bills'
@@ -29,6 +31,7 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
   const uncounted = txs ? uncountedIncome(txs) : { cents: 0, count: 0 }
   // Fatura já paga (pagamento nos lançamentos do cartão) não aparece: mostra a próxima
   const bills = current ? cardBills(accounts.raw, todayISO(), txs ?? []) : []
+  const [triage, setTriage] = useState(false)
   const spent = s.committed + s.daily
   const over = s.free < 0
   const values = { gastos: spent, caixinhas: s.save, sobra: Math.max(0, s.free) }
@@ -53,10 +56,10 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
       {line('Entra no mês', 'salário e rendas que você marcou', s.income, '+')}
       {uncounted.cents > 0 && (
         <p className="-mt-1 mb-1 text-[0.8125rem] leading-snug text-muted">
-          Entraram mais {hidden ? 'R$ ••••' : formatBRL(uncounted.cents)} pelo banco ({uncounted.count} {uncounted.count === 1 ? 'Pix ou transferência' : 'Pix e transferências'}) que não contam como renda.{' '}
-          <Link to="/extrato?ver=entradas" className="font-semibold text-primary-strong">
-            Ver o que entrou
-          </Link>
+          Entraram mais {hidden ? 'R$ ••••' : formatBRL(uncounted.cents)} pelo banco ({uncounted.count} {uncounted.count === 1 ? 'Pix ou transferência' : 'Pix e transferências'}) que ainda não contam como renda.{' '}
+          <button type="button" onClick={() => setTriage(true)} className="font-semibold text-primary-strong">
+            Dizer o que é
+          </button>
         </p>
       )}
       {split ? (
@@ -107,8 +110,8 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
           </ul>
           {over && (
             <p className="mt-2 text-[0.875rem] leading-snug text-danger-strong">
-              Faltam {hidden ? 'R$ ••••' : formatBRL(-s.free)}: o que sai{s.save > 0 ? ' (gastos + caixinhas)' : ''} passa do que entra como renda.
-              {uncounted.cents > 0 ? ' Se algum dinheiro que entrou pelo banco foi renda sua, marque como renda e a conta muda.' : ''}
+              Faltam {hidden ? 'R$ ••••' : formatBRL(-s.free)}: o que saiu{s.save > 0 ? ' (gastos + caixinhas)' : ''} passa da renda que o app conhece ({hidden ? 'R$ ••••' : formatBRL(s.income)}).
+              {uncounted.cents > 0 ? ` Se parte do seu salário caiu separada (entraram mais ${hidden ? 'R$ ••••' : formatBRL(uncounted.cents)} pelo banco), toque em “Dizer o que é”: a conta muda.` : ''}
             </p>
           )}
         </div>
@@ -145,6 +148,7 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
           <p className="mt-1.5 text-[0.8125rem] leading-snug text-muted">As compras do cartão já estão nos gastos acima. A fatura é o dia de pagar: separe esse dinheiro na conta.</p>
         </div>
       )}
+      {triage && txs && <IncomeTriage txs={txs} onClose={() => setTriage(false)} />}
     </div>
   )
 }

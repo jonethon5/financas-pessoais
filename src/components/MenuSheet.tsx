@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { Bank, BookOpenText, Brain, ChatCircleText, Heartbeat, Hourglass, PiggyBank, Repeat, Tag, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
+import { Bank, BookOpenText, Brain, ChartBar, ChatCircleText, Heartbeat, Hourglass, PiggyBank, Repeat, Tag, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { AI_ENABLED } from '../lib/features'
 import { Sheet } from './Sheet'
 
@@ -13,6 +13,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { label: 'Bancos e cartões', icon: Bank, to: '/voce/bancos' },
       { label: 'Gastos fixos', icon: Repeat, to: '/voce/fixos' },
       { label: 'Categorias e limites', icon: Tag, to: '/voce/categorias' },
+      { label: 'Gráficos', icon: ChartBar, to: '/mes?aba=graficos' },
       { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
     ],
   },

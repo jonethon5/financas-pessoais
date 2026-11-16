@@ -10,9 +10,7 @@ import { isTransfer, movementOf, txTitle } from '../lib/statement'
 import { Tour } from '../components/Tour'
 import { Badge, Button, Card, ErrorBox, List, Money, NavBar, Row, Segmented, Spinner } from '../components/ui'
 import { MascotArt } from '../components/Pig'
-import { ChartCard, MonthBars } from './ChartsPage'
-import { useHistory } from '../data/finance'
-import { monthlySeries } from '../lib/charts'
+import {  ChartsPage } from './ChartsPage'
 import { useMonthView } from '../data/monthView'
 import type { CategoryStatus } from '../lib/budget'
 import { addMonths, compareYearMonth, currentYearMonth, monthKey, monthLabel, parseMonthKey, relativeDay, type YearMonth } from '../lib/dates'
@@ -40,7 +38,7 @@ export function MonthPage() {
   const [params, setParams] = useSearchParams()
   const ym = parseMonthKey(params.get('mes')) ?? currentYearMonth()
   const tabParam = params.get('aba')
-  const tab = tabParam === 'lancamentos' ? tabParam : 'resumo'
+  const tab = tabParam === 'lancamentos' || tabParam === 'graficos' ? tabParam : 'resumo'
   const cat = params.get('cat')
   const view = useMonthView(ym)
   const set = (patch: Record<string, string | null>) => {
@@ -60,7 +58,7 @@ export function MonthPage() {
         id="mes"
         steps={[
           { target: 'mes-seletor', title: 'Escolha o mês', text: 'Volte para ver meses passados ou avance para ver as contas que vêm por aí.' },
-          { target: 'mes-abas', title: 'Resumo e lançamentos', text: 'No Resumo, a conta do mês e para onde foi o dinheiro. Em Lançamentos, cada gasto e renda.' },
+          { target: 'mes-abas', title: 'Resumo, lançamentos e gráficos', text: 'No Resumo, a conta do mês. Em Lançamentos, cada gasto e renda. Em Gráficos, para onde vai o dinheiro mês a mês.' },
         ]}
       />
       <div data-tour="mes-seletor" className="shadow-soft mb-4 flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">
@@ -80,6 +78,7 @@ export function MonthPage() {
         options={[
           { value: 'resumo', label: 'Resumo' },
           { value: 'lancamentos', label: 'Lançamentos' },
+          { value: 'graficos', label: 'Gráficos' },
         ]}
       />
       </div>
@@ -89,7 +88,9 @@ export function MonthPage() {
         ) : view.error || !view.data ? (
           <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
         ) : tab === 'resumo' ? (
-          <Summary ym={ym} data={view.data} onCategory={(id) => set({ aba: 'lancamentos', cat: id })} />
+          <Summary data={view.data} onCategory={(id) => set({ aba: 'lancamentos', cat: id })} />
+        ) : tab === 'graficos' ? (
+          <ChartsPage embeddedYm={ym} />
         ) : (
           <Entries ym={ym} data={view.data} categoryFilter={cat} onClearFilter={() => set({ cat: null })} />
         )}
@@ -101,20 +102,17 @@ export function MonthPage() {
 type ViewData = NonNullable<ReturnType<typeof useMonthView>['data']>
 
 /**
- * Resumo: a conta do mês (separada por fixos, parcelas, cartão e Pix), para onde foi o dinheiro por categoria
- * (com o limite, quando tem) e como os gastos andaram nos últimos 6 meses.
+ * Resumo: a conta do mês (separada por fixos, parcelas, cartão e Pix) e para onde foi o dinheiro por categoria
+ * (com o limite, quando tem). Os gráficos ficam na aba Gráficos.
  */
-function Summary({ ym, data, onCategory }: { ym: YearMonth; data: ViewData; onCategory: (id: string) => void }) {
+function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string) => void }) {
   const { txs, categories, summary: s, statuses, isCurrent } = data
-  const history = useHistory(6)
   const byCat = new Map<string, number>()
   for (const t of txs) if (!t.skipped && t.kind === 'expense') byCat.set(t.category_id ?? 'sem', (byCat.get(t.category_id ?? 'sem') ?? 0) + t.amount_cents)
   const rows = [...byCat.entries()]
     .map(([id, cents]) => ({ id, cents, category: categories.find((c) => c.id === id), status: statuses.find((x) => x.category.id === id) }))
     .sort((a, b) => b.cents - a.cents)
   const total = rows.reduce((a, x) => a + x.cents, 0)
-  const all = [...new Map([...(history.data ?? []), ...txs].map((t) => [t.id, t])).values()]
-  const series = monthlySeries(all, ym, 6)
   const i = (n: number) => ({ '--i': n }) as CSSProperties
 
   return (
@@ -155,13 +153,6 @@ function Summary({ ym, data, onCategory }: { ym: YearMonth; data: ViewData; onCa
           </List>
         )}
       </section>
-      {series.some((m) => Number(m.expense) > 0) && (
-        <div style={i(2)}>
-          <ChartCard title="Gastos nos últimos 6 meses">
-            <MonthBars data={series} field="expense" selectedKey={monthKey(ym)} label="Gastos" />
-          </ChartCard>
-        </div>
-      )}
     </div>
   )
 }

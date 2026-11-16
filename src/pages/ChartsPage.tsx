@@ -8,7 +8,7 @@ import { Chip, ErrorBox, NavBar, Segmented, Spinner } from '../components/ui'
 import { useHistory, useTable } from '../data/finance'
 import { useMonthView } from '../data/monthView'
 import { average, balanceProjection, byCategory, byMethod, byRecurrence, dailySpend, monthlySeries, salaryFlow, savedSeries, type CatShare, type Part } from '../lib/charts'
-import { addMonths, compareYearMonth, currentYearMonth, monthKey, monthLabel, monthsBetween, parseMonthKey, weekdayOf, firstDayISO } from '../lib/dates'
+import { addMonths, compareYearMonth, currentYearMonth, monthKey, monthLabel, monthsBetween, parseMonthKey, weekdayOf, firstDayISO, type YearMonth } from '../lib/dates'
 import { financialHealth } from '../lib/health'
 import { findInstitution } from '../lib/institutions'
 import { formatBRL } from '../lib/money'
@@ -334,11 +334,16 @@ function MonthArea({ data, field, label }: { data: { key: string; label: string;
 type Tab = 'despesas' | 'receitas' | 'geral'
 
 /** Gráficos: despesas, receitas e visão geral do mês escolhido, com evolução de 6 ou 12 meses. */
-export function ChartsPage() {
+/**
+ * Gráficos. Dentro do Mês (`embeddedYm`): usa o mês que a pessoa já está vendo, sem topo nem seletor de mês próprios,
+ * e guarda a aba (despesas/receitas/geral) só na tela (o endereço já usa "aba" para as abas do Mês).
+ */
+export function ChartsPage({ embeddedYm }: { embeddedYm?: YearMonth } = {}) {
   const [params, setParams] = useSearchParams()
   const now = currentYearMonth()
-  const ym = parseMonthKey(params.get('mes')) ?? now
-  const tab = (['despesas', 'receitas', 'geral'] as const).find((t) => t === params.get('aba')) ?? 'despesas'
+  const ym = embeddedYm ?? parseMonthKey(params.get('mes')) ?? now
+  const [localTab, setLocalTab] = useState<Tab>('despesas')
+  const tab = embeddedYm ? localTab : ((['despesas', 'receitas', 'geral'] as const).find((t) => t === params.get('aba')) ?? 'despesas')
   const [range, setRange] = useState<6 | 12>(6)
   const back = Math.max(0, monthsBetween(ym, now))
   const view = useMonthView(ym)
@@ -348,7 +353,15 @@ export function ChartsPage() {
   const money = useMoney()
   const set = (patch: Record<string, string>) => setParams({ mes: monthKey(ym), aba: tab, ...patch }, { replace: true })
 
-  const header = (
+  const header = embeddedYm ? (
+    <>
+      <Segmented label="Ver" value={tab} onChange={(aba: Tab) => setLocalTab(aba)} options={[{ value: 'despesas', label: 'Despesas' }, { value: 'receitas', label: 'Receitas' }, { value: 'geral', label: 'Visão geral' }]} />
+      <div className="mt-3 flex gap-2">
+        <Chip selected={range === 6} onClick={() => setRange(6)}>Últimos 6 meses</Chip>
+        <Chip selected={range === 12} onClick={() => setRange(12)}>12 meses</Chip>
+      </div>
+    </>
+  ) : (
     <>
       <NavBar title="Gráficos" />
       <div className="mb-3 flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">

@@ -15,7 +15,7 @@
 // No beta, as chaves do Meu Pluggy são pessoais (do dono do app): por isso só o administrador usa.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { UserError } from './common.ts'
-import { cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from './bankmap.ts'
+import { cleanDescription, countKey, ownKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from './bankmap.ts'
 
 const API = Deno.env.get('PLUGGY_API_BASE') || 'https://api.pluggy.ai'
 export const CLIENT_ID = Deno.env.get('PLUGGY_CLIENT_ID') ?? ''
@@ -334,7 +334,8 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
         if (first && old.type !== 'salario' && old.type !== 'fixo' && old.description !== m.description && old.description === cleanDescription(m.description)) {
           await admin.from('transactions').update({ description: m.description }).eq('id', old.id)
         }
-        if (first && (m.own || m.internal) && !old.skipped && old.type !== 'salario' && old.type !== 'fixo') {
+        // Poupança/caixinha ou conta própria: marca o motivo mesmo se já não contava (some de "entrou" e de "não conta como renda")
+        if (first && (m.own || m.internal) && (!old.skipped || !old.note) && old.type !== 'salario' && old.type !== 'fixo') {
           await admin.from('transactions').update({ skipped: true, note: m.internal ?? OWN_NOTE }).eq('id', old.id)
           matched++
         } else if (first && counts && !old.skipped && old.type === 'dia' && !old.emotion && !old.note) {
@@ -400,7 +401,7 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
         installment_total: m.installment_total,
         paid: true,
         skipped: !counts,
-        note: m.internal ?? (m.own ? OWN_NOTE : null),
+        note: m.internal ?? (m.own || (m.kind === 'income' && ruleSet.has(ownKey(m.description))) ? OWN_NOTE : null),
         ...link,
       })
     }
