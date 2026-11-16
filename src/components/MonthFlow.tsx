@@ -27,7 +27,8 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
   const accounts = useAccounts()
   const split = txs ? spendSplit(txs, accounts.raw) : null
   const uncounted = txs ? uncountedIncome(txs) : { cents: 0, count: 0 }
-  const bills = current ? cardBills(accounts.raw, todayISO()) : []
+  // Fatura já paga (pagamento nos lançamentos do cartão) não aparece: mostra a próxima
+  const bills = current ? cardBills(accounts.raw, todayISO(), txs ?? []) : []
   const spent = s.committed + s.daily
   const over = s.free < 0
   const values = { gastos: spent, caixinhas: s.save, sobra: Math.max(0, s.free) }
@@ -144,6 +145,36 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
           <p className="mt-1.5 text-[0.8125rem] leading-snug text-muted">As compras do cartão já estão nos gastos acima. A fatura é o dia de pagar: separe esse dinheiro na conta.</p>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * O mês em 3 números para a tela inicial: o que entrou, o que saiu e o que sobra (ou falta).
+ * O detalhe (fixos, parcelas, cartão, Pix, faturas) fica na aba Mês.
+ */
+export function MonthGlance({ s }: { s: MonthSummary }) {
+  const out = s.committed + s.daily + s.save
+  const over = s.free < 0
+  const row = (label: string, cents: number, op: string) => (
+    <div className="flex items-baseline justify-between gap-3 py-1">
+      <span className="text-[0.9375rem] text-muted">{label}</span>
+      <span className="num font-semibold">
+        <span className="mr-1 text-muted">{op}</span>
+        <Money cents={cents} />
+      </span>
+    </div>
+  )
+  return (
+    <div>
+      {row('Entrou', s.income, '+')}
+      {row(s.save > 0 ? 'Saiu (gastos e caixinhas)' : 'Saiu', out, '−')}
+      <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-line pt-2">
+        <span className="font-bold">{over ? 'Falta no mês' : 'Sobra no mês'}</span>
+        <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${over ? 'text-danger-strong' : 'text-primary-strong'}`}>
+          <Money cents={Math.abs(s.free)} />
+        </span>
+      </div>
     </div>
   )
 }

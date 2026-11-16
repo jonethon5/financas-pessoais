@@ -73,15 +73,15 @@ export const HELP: HelpGroup[] = [
       { q: 'Como funcionam as categorias?', a: 'Cada gasto fica numa categoria (Mercado, Transporte…). Elas alimentam os gráficos, o orçamento por categoria e os alertas de limite. "Outros" fica sempre por último, para o que não se encaixa.' },
       { q: 'Como crio uma categoria nova?', a: 'Ao lançar, toque em "Mais" nas categorias: dá para adicionar categorias prontas com um toque ou criar uma nova com nome, ícone e cor. Também em Você › Categorias.', to: { label: 'Abrir Categorias', path: '/voce/categorias' } },
       { q: 'O app aprende a categoria sozinho?', a: 'Sim, no que vem do banco. Quando você muda a categoria de um lançamento, o app lembra: os próximos da mesma loja ou pessoa já chegam nela (ex.: o Pix mensal da pensão vai direto para "Pensão"). Os parecidos que já estão no app também são corrigidos.' },
-      { q: 'Como coloco limite numa categoria?', a: 'No Mês › Orçamento, ou em Você › Categorias. O app avisa quando chegar a 80% e quando passar do limite.' },
+      { q: 'Como coloco limite numa categoria?', a: 'Em Você › Categorias e limites (ou no menu ≡). O limite aparece no Resumo do Mês, ao lado do gasto de cada categoria, e o app avisa quando chegar a 80% e quando passar.' },
     ],
   },
   {
     id: 'graficos',
-    title: 'Gráficos e indicadores',
+    title: 'Números e indicadores',
     items: [
       { q: 'Como é calculado o "Hoje você pode gastar"?', a: 'É o que sobra do mês dividido pelos dias que faltam: renda, menos fixos e parcelas, menos o que vai para as caixinhas, menos o que você já gastou no dia a dia até ontem. Se gastar menos hoje, o valor dos próximos dias aumenta.' },
-      { q: 'O que mostram os gráficos?', a: 'Na aba Gráficos: para onde vai o dinheiro (por categoria e por tipo), como as rendas se dividem, a evolução dos últimos 6 ou 12 meses e os dias em que você mais gasta.', to: { label: 'Abrir Gráficos', path: '/graficos' } },
+      { q: 'Onde vejo para onde foi o dinheiro?', a: 'Na aba Mês, em Resumo: a conta do mês separada por gastos fixos, parcelas, cartão e Pix, os gastos por categoria (com o limite de cada uma) e a evolução dos últimos 6 meses.', to: { label: 'Abrir o Mês', path: '/mes' } },
       { q: 'O que é o painel de cada conta e cartão?', a: 'Em Contas e cartões, toque num cartãozinho: aparecem o gasto do mês, a compra média, a maior compra, as categorias, os dias da semana em que mais sai dinheiro, os lugares que mais se repetem e o que o mascote reparou.' },
       { q: 'O que é a Saúde financeira?', a: 'Uma nota de 0 a 100 feita com cinco partes: sobra no mês, reserva de emergência, controle dos gastos, dívidas e constância em guardar. Toque nela para ver o que mais ajuda a subir.', to: { label: 'Ver a Saúde', path: '/saude' } },
     ],

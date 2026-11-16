@@ -80,7 +80,7 @@ export function HealthPage() {
           <section>
             <h2 className="mb-2 px-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">O que fazer agora</h2>
             <div className="flex flex-col gap-2.5">
-              {h.next.map((p) => {
+              {h.next.slice(0, 1).map((p) => {
                 const lesson = lessonById(p.lesson)
                 return (
                   <div key={p.id} className="rounded-[1.25rem] bg-primary-soft p-4">
@@ -105,15 +105,17 @@ export function HealthPage() {
           </section>
         )}
 
-        <section>
-          <h2 className="mb-1.5 px-4 text-[0.8125rem] font-medium tracking-wide text-muted uppercase">Os 5 pilares</h2>
-          <ul className="overflow-hidden rounded-[1.25rem] bg-surface">
+        <details className="group">
+          <summary className="cursor-pointer list-none rounded-[1.25rem] bg-surface px-4 py-3.5 font-semibold">
+            Como a nota é feita <span className="text-muted">(5 pilares)</span>
+          </summary>
+          <ul className="mt-2 overflow-hidden rounded-[1.25rem] bg-surface">
             {h.pillars.map((p) => (
               <PillarRow key={p.id} p={p} />
             ))}
           </ul>
           <p className="mt-1.5 px-4 text-[0.8125rem] leading-snug text-muted">Baseado nos indicadores de saúde financeira da Financial Health Network: gastar menos do que ganha, pagar em dia, ter reserva, guardar sempre e planejar.</p>
-        </section>
+        </details>
 
         {(() => {
           const l = lessonById(h.next[0]?.lesson ?? 'pague-se-primeiro')!

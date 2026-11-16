@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryIcon } from '../components/CategoryIcon'
@@ -7,21 +7,18 @@ import { TxIcon } from '../components/TxIcon'
 import { FromAccount } from '../components/FromAccount'
 import { useAccounts } from '../data/accounts'
 import { isTransfer, movementOf, txTitle } from '../lib/statement'
-import { MascotArt } from '../components/Pig'
 import { Tour } from '../components/Tour'
-import { Sheet } from '../components/Sheet'
-import { useToast } from '../components/Toast'
-import { AnimatedMoney, Badge, Button, Card, ErrorBox, List, Money, NavBar, ProgressBar, Row, Segmented, Spinner } from '../components/ui'
-import { CategoryDonut, type Slice } from '../components/CategoryDonut'
-import { CategorySheet } from './you/MoneySettingsPages'
-import { useRecurrings, useWrite } from '../data/finance'
+import { Badge, Button, Card, ErrorBox, List, Money, NavBar, Row, Segmented, Spinner } from '../components/ui'
+import { MascotArt } from '../components/Pig'
+import { ChartCard, MonthBars } from './ChartsPage'
+import { useHistory } from '../data/finance'
+import { monthlySeries } from '../lib/charts'
 import { useMonthView } from '../data/monthView'
-import { coverOptions, rule503020, subscriptions, type CategoryStatus } from '../lib/budget'
+import type { CategoryStatus } from '../lib/budget'
 import { addMonths, compareYearMonth, currentYearMonth, monthKey, monthLabel, parseMonthKey, relativeDay, type YearMonth } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
 import { friendlyError } from '../lib/supabase'
-import type { Category } from '../types'
 import type { MonthTx } from '../data/finance'
 
 /** Texto do alerta (nunca só cor): ▲ e o quanto passou. */
@@ -43,7 +40,7 @@ export function MonthPage() {
   const [params, setParams] = useSearchParams()
   const ym = parseMonthKey(params.get('mes')) ?? currentYearMonth()
   const tabParam = params.get('aba')
-  const tab = tabParam === 'orcamento' || tabParam === 'lancamentos' ? tabParam : 'resumo'
+  const tab = tabParam === 'lancamentos' ? tabParam : 'resumo'
   const cat = params.get('cat')
   const view = useMonthView(ym)
   const set = (patch: Record<string, string | null>) => {
@@ -63,7 +60,7 @@ export function MonthPage() {
         id="mes"
         steps={[
           { target: 'mes-seletor', title: 'Escolha o mês', text: 'Volte para ver meses passados ou avance para ver as contas que vêm por aí.' },
-          { target: 'mes-abas', title: 'Resumo, lançamentos e orçamento', text: 'No Orçamento você coloca limite por categoria e o app avisa antes de estourar.' },
+          { target: 'mes-abas', title: 'Resumo e lançamentos', text: 'No Resumo, a conta do mês e para onde foi o dinheiro. Em Lançamentos, cada gasto e renda.' },
         ]}
       />
       <div data-tour="mes-seletor" className="shadow-soft mb-4 flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">
@@ -83,7 +80,6 @@ export function MonthPage() {
         options={[
           { value: 'resumo', label: 'Resumo' },
           { value: 'lancamentos', label: 'Lançamentos' },
-          { value: 'orcamento', label: 'Orçamento' },
         ]}
       />
       </div>
@@ -93,11 +89,9 @@ export function MonthPage() {
         ) : view.error || !view.data ? (
           <ErrorBox message={friendlyError(view.error)} onRetry={view.refetch} />
         ) : tab === 'resumo' ? (
-          <Summary data={view.data} onCategory={(id) => set({ aba: 'lancamentos', cat: id })} />
-        ) : tab === 'lancamentos' ? (
-          <Entries ym={ym} data={view.data} categoryFilter={cat} onClearFilter={() => set({ cat: null })} />
+          <Summary ym={ym} data={view.data} onCategory={(id) => set({ aba: 'lancamentos', cat: id })} />
         ) : (
-          <Budget ym={ym} data={view.data} />
+          <Entries ym={ym} data={view.data} categoryFilter={cat} onClearFilter={() => set({ cat: null })} />
         )}
       </div>
     </>
@@ -106,65 +100,74 @@ export function MonthPage() {
 
 type ViewData = NonNullable<ReturnType<typeof useMonthView>['data']>
 
-/** Resumo: a conta do mês (igual à tela inicial) e, embaixo, para onde foi o dinheiro por categoria. */
-function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string) => void }) {
-  const [kind, setKind] = useState<'expense' | 'income'>('expense')
-  const { txs, categories, summary: s } = data
+/**
+ * Resumo: a conta do mês (separada por fixos, parcelas, cartão e Pix), para onde foi o dinheiro por categoria
+ * (com o limite, quando tem) e como os gastos andaram nos últimos 6 meses.
+ */
+function Summary({ ym, data, onCategory }: { ym: YearMonth; data: ViewData; onCategory: (id: string) => void }) {
+  const { txs, categories, summary: s, statuses, isCurrent } = data
+  const history = useHistory(6)
   const byCat = new Map<string, number>()
-  for (const t of txs) if (!t.skipped && t.kind === kind) byCat.set(t.category_id ?? 'sem', (byCat.get(t.category_id ?? 'sem') ?? 0) + t.amount_cents)
-  const slices: Slice[] = [...byCat.entries()]
-    .map(([id, cents]) => {
-      const c = categories.find((x) => x.id === id)
-      return { id, name: c?.name ?? 'Sem categoria', color: c?.color ?? '#B8C0C8', cents }
-    })
+  for (const t of txs) if (!t.skipped && t.kind === 'expense') byCat.set(t.category_id ?? 'sem', (byCat.get(t.category_id ?? 'sem') ?? 0) + t.amount_cents)
+  const rows = [...byCat.entries()]
+    .map(([id, cents]) => ({ id, cents, category: categories.find((c) => c.id === id), status: statuses.find((x) => x.category.id === id) }))
     .sort((a, b) => b.cents - a.cents)
-  const total = slices.reduce((a, x) => a + x.cents, 0)
+  const total = rows.reduce((a, x) => a + x.cents, 0)
+  const all = [...new Map([...(history.data ?? []), ...txs].map((t) => [t.id, t])).values()]
+  const series = monthlySeries(all, ym, 6)
   const i = (n: number) => ({ '--i': n }) as CSSProperties
 
   return (
-    <div className="stagger flex flex-col gap-4">
+    <div className="stagger flex flex-col gap-5">
       <div style={i(0)}>
         <Card className="p-4">
-          <MonthFlow s={s} txs={txs} current={data.isCurrent} />
+          <MonthFlow s={s} txs={txs} current={isCurrent} />
         </Card>
       </div>
-      <div style={i(2)}>
-        <Segmented label="Mostrar" value={kind} onChange={setKind} options={[{ value: 'expense', label: 'Despesas' }, { value: 'income', label: 'Renda' }]} />
-      </div>
-      <div style={i(3)}>
-        <Card className="py-6" key={kind}>
-          <CategoryDonut slices={slices} label={kind === 'expense' ? 'Gastos do mês' : 'Rendas do mês'} />
-        </Card>
-      </div>
-      <div style={i(4)}>
-        {slices.length === 0 ? (
-          <Card className="text-center text-muted">Nada lançado neste mês.</Card>
+      <section style={i(1)}>
+        <h2 className="mb-1.5 px-1 text-[1.0625rem] font-bold">Para onde foi o dinheiro</h2>
+        {rows.length === 0 ? (
+          <Card className="text-center text-muted">Nenhum gasto neste mês.</Card>
         ) : (
-          <List>
-            {slices.map((x) => (
-              <Row
-                key={x.id}
-                icon={<CategoryIcon category={categories.find((c) => c.id === x.id) ?? { icon: 'receipt', color: x.color }} size="sm" />}
-                title={x.name}
-                trailing={
-                  <span className="flex items-center gap-2.5">
-                    <Money cents={x.cents} className="text-[1rem] font-semibold" />
-                    <span className="num w-11 text-right text-[0.875rem] text-muted">{total ? Math.round((x.cents / total) * 100) : 0}%</span>
-                  </span>
-                }
-                chevron={x.id !== 'sem'}
-                onClick={x.id !== 'sem' ? () => onCategory(x.id) : undefined}
-              />
-            ))}
+          <List footer={<Link to="/voce/categorias" className="font-semibold text-primary-strong">Limites por categoria</Link>}>
+            {rows.map((x) => {
+              const limit = x.status?.limit ?? null
+              return (
+                <Row
+                  key={x.id}
+                  icon={<CategoryIcon category={x.category ?? { icon: 'receipt', color: '#B8C0C8' }} size="sm" />}
+                  title={x.category?.name ?? 'Sem categoria'}
+                  subtitle={
+                    limit ? (
+                      <span className={x.status!.level === 'over' ? 'font-medium text-danger-strong' : x.status!.level === 'warn' ? 'font-medium text-warn-strong' : ''}>
+                        {Math.round((x.cents / limit) * 100)}% do limite de {formatBRL(limit).replace(/,00$/, '')}
+                      </span>
+                    ) : (
+                      `${total ? Math.round((x.cents / total) * 100) : 0}% dos gastos`
+                    )
+                  }
+                  trailing={<Money cents={x.cents} className="text-[1rem] font-semibold" />}
+                  chevron={x.id !== 'sem'}
+                  onClick={x.id !== 'sem' ? () => onCategory(x.id) : undefined}
+                />
+              )
+            })}
           </List>
         )}
-      </div>
+      </section>
+      {series.some((m) => Number(m.expense) > 0) && (
+        <div style={i(2)}>
+          <ChartCard title="Gastos nos últimos 6 meses">
+            <MonthBars data={series} field="expense" selectedKey={monthKey(ym)} label="Gastos" />
+          </ChartCard>
+        </div>
+      )}
     </div>
   )
 }
 
 function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; data: ViewData; categoryFilter: string | null; onClearFilter: () => void }) {
-  const { txs: allTxs, summary: s, categories, today } = data
+  const { txs: allTxs, categories, today } = data
   const txs = categoryFilter ? allTxs.filter((t) => t.category_id === categoryFilter) : allTxs
   const future = compareYearMonth(ym, currentYearMonth()) > 0
   const live = txs.filter((t) => !t.skipped)
@@ -205,22 +208,7 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
           </Button>
         </div>
       )}
-      {/* Os três números do mês: nome em cima, valor embaixo, todos na mesma linha e no mesmo alinhamento */}
-      <div className="shadow-soft grid grid-cols-3 divide-x divide-line rounded-[1.25rem] bg-surface py-3.5">
-        {[
-          ['Entrou', s.income, 'text-primary-strong'],
-          ['Saiu', s.committed + s.daily, ''],
-          ['Sobra', s.free, s.free < 0 ? 'text-danger-strong' : 'text-ink'],
-        ].map(([label, cents, cls]) => (
-          <div key={label as string} className="flex min-w-0 flex-col items-center gap-1 px-1.5 text-center">
-            <p className="text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">{label}</p>
-            <p className={`num w-full truncate text-[0.9375rem] leading-tight font-bold ${cls}`}>
-              <Money cents={cents as number} />
-            </p>
-          </div>
-        ))}
-      </div>
-      {future && <p className="-mt-3 px-1 text-[0.875rem] text-muted">Mês que ainda não chegou: salário e fixos aparecem como previstos.</p>}
+      {future && <p className="px-1 text-[0.875rem] text-muted">Mês que ainda não chegou: salário e fixos aparecem como previstos.</p>}
 
       {incomes.length > 0 && <List header="Rendas">{incomes.map((t) => row(t, t.type === 'salario' ? 'Salário' : 'Renda extra'))}</List>}
       {fixed.length > 0 && (
@@ -249,215 +237,5 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
         </List>
       )}
     </div>
-  )
-}
-
-function Budget({ ym, data }: { ym: YearMonth; data: ViewData }) {
-  const { statuses, txs, categories, summary, history } = data
-  const recurrings = useRecurrings()
-  const [covering, setCovering] = useState<CategoryStatus | null>(null)
-  const [editing, setEditing] = useState<Category | null>(null)
-  const r = rule503020(txs, categories, summary.save)
-  const subs = subscriptions(recurrings.data ?? [], history)
-  // Com limite primeiro (é o que a pessoa acompanha); sem limite, do que mais pesa ao que menos pesa
-  const withLimit = statuses.filter((s) => s.limit != null).sort((a, b) => b.spent / (b.limit || 1) - a.spent / (a.limit || 1))
-  const noLimit = statuses.filter((s) => s.limit == null).sort((a, b) => b.spent - a.spent)
-  const limited = statuses.filter((s) => s.limit != null)
-  const totalLimit = limited.reduce((a, s) => a + (s.limit ?? 0), 0)
-  const totalSpent = statuses.reduce((a, s) => a + s.spent, 0)
-  const limitedSpent = limited.reduce((a, s) => a + s.spent, 0)
-
-  return (
-    <div className="flex flex-col gap-6">
-      <Card className="p-5">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[1.125rem] font-bold">Orçamento total</p>
-          {limited.length > 0 && (
-            <p className={`text-[0.9375rem] font-semibold ${totalLimit - limitedSpent < 0 ? 'text-danger-strong' : 'text-primary-strong'}`}>
-              Restante: <AnimatedMoney cents={totalLimit - limitedSpent} />
-            </p>
-          )}
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <ProgressBar className="flex-1" value={totalLimit ? limitedSpent / totalLimit : 0} tone={limitedSpent > totalLimit ? 'danger' : limitedSpent >= totalLimit * 0.8 ? 'warn' : 'grow'} label="Orçamento total" />
-          <span className="num w-11 text-right text-[0.9375rem] font-semibold">{totalLimit ? `${Math.round((limitedSpent / totalLimit) * 100)}%` : '–'}</span>
-        </div>
-        <div className="mt-2 flex justify-between text-[0.875rem] text-muted">
-          <span>Orçamento {limited.length ? formatBRL(totalLimit) : 'não definido'}</span>
-          <span>Gasto {formatBRL(totalSpent)}</span>
-        </div>
-      </Card>
-
-      {withLimit.length > 0 && (
-        <section>
-          <h2 className="mb-1.5 px-4 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">Com limite</h2>
-          <ul className="stagger shadow-soft overflow-hidden rounded-[1.25rem] bg-surface">
-            {withLimit.map((s, i) => (
-              <BudgetRow key={s.category.id} s={s} i={i} onEdit={() => setEditing(s.category)} onCover={() => setCovering(s)} />
-            ))}
-          </ul>
-          <p className="mt-1.5 px-4 text-[0.8125rem] text-muted">O app avisa em 80% e quando passar. Toque para mudar o limite.</p>
-        </section>
-      )}
-
-      {noLimit.length > 0 && (
-        <List
-          header={withLimit.length ? 'Sem limite' : 'Comece pelas que mais pesam'}
-          footer={withLimit.length ? undefined : 'Dica: ponha limite só nas 2 ou 3 categorias que mais pesam. Poucos limites são mais fáceis de seguir.'}
-        >
-          {noLimit.map((s) => (
-            <Row
-              key={s.category.id}
-              icon={<CategoryIcon category={s.category} size="sm" />}
-              title={s.category.name}
-              subtitle={s.spent ? `Gasto no mês: ${formatBRL(s.spent)}` : 'Nada gasto neste mês'}
-              trailing={<span className="text-[0.875rem] font-semibold text-primary-strong">Definir limite</span>}
-              onClick={() => setEditing(s.category)}
-            />
-          ))}
-        </List>
-      )}
-
-      <Card>
-        <p className="font-bold">Regra 50/30/20</p>
-        <p className="mt-0.5 text-[0.875rem] leading-snug text-muted">Um guia: metade da renda para necessidades, 30% para desejos e 20% para guardar.</p>
-        <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-          <div className="bg-ink" style={{ width: `${Math.min(r.pct.needs, 100)}%` }} />
-          <div className="bg-coral" style={{ width: `${Math.min(r.pct.wants, Math.max(0, 100 - r.pct.needs))}%` }} />
-          <div className="bg-grow" style={{ width: `${Math.min(r.pct.save, Math.max(0, 100 - r.pct.needs - r.pct.wants))}%` }} />
-        </div>
-        <ul className="mt-3 grid grid-cols-3 gap-2 text-[0.8125rem]">
-          {[
-            ['Necessidades', r.pct.needs, 50, 'bg-ink', r.pct.needs > 50],
-            ['Desejos', r.pct.wants, 30, 'bg-coral', r.pct.wants > 30],
-            ['Guardar', r.pct.save, 20, 'bg-grow', r.pct.save < 20],
-          ].map(([label, pct, goal, dot, off]) => (
-            <li key={label as string}>
-              <span className="flex items-center gap-1.5 text-muted">
-                <span className={`size-2 rounded-full ${dot}`} /> {label}
-              </span>
-              <span className={`num text-[1.0625rem] font-bold ${off ? 'text-warn-strong' : ''}`}>{pct as number}%</span>
-              <span className="text-muted"> / {goal as number}%</span>
-            </li>
-          ))}
-        </ul>
-        {r.income === 0 && <p className="mt-2 text-[0.875rem] text-muted">Sem renda lançada neste mês.</p>}
-      </Card>
-
-      <List header="O que se repete" footer={subs.items.length ? `Somando tudo, ${formatBRL(subs.yearlyCents)} por ano. Vale cancelar alguma?` : undefined}>
-        {subs.items.length === 0 ? (
-          <Row title={<span className="text-muted">Nenhuma assinatura encontrada</span>} />
-        ) : (
-          subs.items.map((i) => (
-            <Row
-              key={i.key}
-              icon={<CategoryIcon category={categories.find((c) => c.id === i.categoryId)} size="sm" />}
-              title={i.description}
-              subtitle={`${formatBRL(i.monthlyCents)} por mês${i.source === 'detectado' ? ' · parece assinatura' : ''}`}
-              trailing={<span className="num text-[0.9375rem] text-muted">{formatBRL(i.yearlyCents)}/ano</span>}
-            />
-          ))
-        )}
-      </List>
-
-      <CoverSheet ym={ym} status={covering} statuses={statuses} onClose={() => setCovering(null)} />
-      <CategorySheet category={editing} onClose={() => setEditing(null)} />
-    </div>
-  )
-}
-
-function BudgetRow({ s, i, onEdit, onCover }: { s: CategoryStatus; i: number; onEdit: () => void; onCover: () => void }) {
-  const tone = s.level === 'over' ? 'danger' : s.level === 'warn' ? 'warn' : 'grow'
-  const left = s.limit != null ? s.limit - s.spent : null
-  return (
-    <li className="border-b border-line last:border-0" style={{ '--i': i } as CSSProperties}>
-      <button type="button" onClick={onEdit} className="w-full px-4 pt-3.5 pb-3 text-left transition active:bg-surface-2">
-        <div className="flex items-center gap-3">
-          <CategoryIcon category={s.category} size="sm" />
-          <p className="min-w-0 flex-1 truncate text-[1.0625rem] font-semibold">{s.category.name}</p>
-          {left != null ? (
-            <p className={`text-[0.875rem] font-semibold whitespace-nowrap ${left < 0 ? 'text-danger-strong' : 'text-ink'}`}>
-              <span className="font-medium text-muted">Restante: </span>
-              {left < 0 ? '−' : ''}
-              {formatBRL(Math.abs(left))}
-            </p>
-          ) : (
-            <p className="text-[0.875rem] text-muted">Não definido</p>
-          )}
-        </div>
-        <div className="mt-2.5 flex items-center gap-3">
-          <ProgressBar className="flex-1" value={s.limit ? s.spent / s.limit : 0} tone={tone} label={`${s.category.name}: gasto do mês`} />
-          <span className="num w-11 text-right text-[0.875rem] font-semibold">{s.limit ? `${Math.round((s.spent / s.limit) * 100)}%` : '–'}</span>
-        </div>
-        <div className="mt-1.5 flex justify-between text-[0.8125rem] text-muted">
-          <span>Orçamento {s.limit != null ? formatBRL(s.limit) : 'não definido'}</span>
-          <span>Gasto {formatBRL(s.spent)}</span>
-        </div>
-        {s.weekLimit != null && (
-          <p className={`mt-1 text-[0.8125rem] ${s.weekLevel === 'over' ? 'text-danger-strong' : s.weekLevel === 'warn' ? 'text-warn-strong' : 'text-muted'}`}>
-            Semana: {formatBRL(s.weekSpent)} de {formatBRL(s.weekLimit)}
-            {s.weekLevel !== 'ok' ? ' ▲' : ''}
-          </p>
-        )}
-      </button>
-      {(s.level !== 'ok' || s.weekLevel !== 'ok') && (
-        <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pl-[3.75rem]">
-          {levelText(s)}
-          {s.level === 'over' && (
-            <Button variant="soft" size="sm" onClick={onCover}>
-              Cobrir com outra categoria
-            </Button>
-          )}
-        </div>
-      )}
-    </li>
-  )
-}
-
-/** Estourou? Em vez de ficar no vermelho, tira de uma categoria que ainda tem sobra (estilo YNAB). */
-function CoverSheet({ ym, status, statuses, onClose }: { ym: YearMonth; status: CategoryStatus | null; statuses: CategoryStatus[]; onClose: () => void }) {
-  const write = useWrite()
-  const toast = useToast()
-  const need = status ? status.spent - (status.limit ?? 0) : 0
-  const options = status ? coverOptions(statuses, status.category.id) : []
-
-  async function cover(from: Category, available: number) {
-    if (!status) return
-    const amount = Math.min(need, available)
-    try {
-      await write.mutateAsync((b) => b.insert('budget_moves', [{ month: monthKey(ym), from_category: from.id, to_category: status.category.id, amount_cents: amount }]))
-      toast(`${formatBRL(amount)} de ${from.name} para ${status.category.name}`)
-      onClose()
-    } catch (err) {
-      toast(friendlyError(err))
-    }
-  }
-
-  return (
-    <Sheet open={Boolean(status)} onClose={onClose} title="Cobrir o que passou">
-      {status && (
-        <>
-          <p className="mb-4 text-center leading-snug text-muted">
-            {status.category.name} passou <strong className="text-ink">{formatBRL(need)}</strong>. De onde tirar, só neste mês?
-          </p>
-          {options.length === 0 ? (
-            <Card className="text-center text-muted">Nenhuma categoria com sobra. Tudo bem: no mês que vem a gente ajusta os limites.</Card>
-          ) : (
-            <List>
-              {options.map((o) => (
-                <Row
-                  key={o.category.id}
-                  icon={<CategoryIcon category={o.category} size="sm" />}
-                  title={o.category.name}
-                  subtitle={`Sobram ${formatBRL(o.available)}`}
-                  trailing={<span className="font-medium text-primary">Tirar {formatBRL(Math.min(need, o.available))}</span>}
-                  onClick={() => cover(o.category, o.available)}
-                />
-              ))}
-            </List>
-          )}
-        </>
-      )}
-    </Sheet>
   )
 }

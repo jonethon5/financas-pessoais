@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ArrowDown, ArrowUp, Export, MagnifyingGlass } from '@phosphor-icons/react'
 import { BankLogo } from '../components/BankLogo'
@@ -8,7 +8,7 @@ import { MascotArt } from '../components/Pig'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { TxIcon } from '../components/TxIcon'
-import { BackButton, Button, Card, ErrorBox, Field, List, Money, NavBar, Notice, Row, Segmented, Spinner } from '../components/ui'
+import { Button, Card, ErrorBox, Field, List, Money, NavBar, Notice, Row, Segmented, Spinner } from '../components/ui'
 import { useAccounts } from '../data/accounts'
 import { useBackend } from '../data/backend'
 import { useCategories, useMonthTxs } from '../data/finance'
@@ -38,7 +38,6 @@ function download(name: string, content: Blob) {
  * "Entrou" e "Saiu" filtram na hora; "Não contam" mostra o que aparece mas não entra na conta do mês.
  */
 export function StatementPage() {
-  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const ym = parseMonthKey(params.get('mes')) ?? currentYearMonth()
   const viewParam = params.get('ver')
@@ -128,7 +127,7 @@ export function StatementPage() {
 
   return (
     <>
-      <NavBar title="Extrato" left={<BackButton onClick={() => navigate(-1)} />} />
+      <NavBar title="Extrato" />
       <div className="flex flex-col gap-4">
         <div className="shadow-soft flex items-center justify-between rounded-[1rem] bg-surface px-1 py-1">
           <button type="button" aria-label="Mês anterior" onClick={() => set({ mes: monthKey(addMonths(ym, -1)) })} className="press grid size-10 place-items-center rounded-full text-primary active:bg-surface-2">

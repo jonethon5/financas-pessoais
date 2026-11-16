@@ -1,51 +1,34 @@
 import { useNavigate } from 'react-router'
-import {
-  Bank, BookOpenText, Brain, ChartBar, Heartbeat, CalendarCheck, ChartDonut, ChatCircleText, CoinVertical, CreditCard, GearSix, Hourglass, UserCircle, ListBullets, PiggyBank, Repeat,
-  Tag, TrendUp, Trophy, type Icon as PhosphorIcon,
-} from '@phosphor-icons/react'
+import { Bank, BookOpenText, Brain, ChatCircleText, Heartbeat, Hourglass, PiggyBank, Repeat, Tag, UserCircle, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { AI_ENABLED } from '../lib/features'
 import { Sheet } from './Sheet'
 
 type Item = { label: string; icon: PhosphorIcon; to?: string; soon?: boolean }
 
+// Só o que não está na barra de baixo (Início, Extrato, Mês e Caixinhas já estão lá), sem repetir e sem "em breve"
 const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: 'Seu dinheiro',
     items: [
-      { label: 'Conta', icon: Bank, to: '/voce/bancos' },
-      { label: 'Cartões', icon: CreditCard, to: '/voce/bancos' },
-      { label: 'Caixinhas', icon: PiggyBank, to: '/caixinhas' },
-      { label: 'Resumo do mês', icon: ChartDonut, to: '/mes' },
-      { label: 'Gráficos', icon: ChartBar, to: '/graficos' },
-      { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
-      { label: 'Lançamentos', icon: ListBullets, to: '/mes?aba=lancamentos' },
+      { label: 'Bancos e cartões', icon: Bank, to: '/voce/bancos' },
       { label: 'Gastos fixos', icon: Repeat, to: '/voce/fixos' },
+      { label: 'Categorias e limites', icon: Tag, to: '/voce/categorias' },
+      { label: 'Saúde financeira', icon: Heartbeat, to: '/saude' },
     ],
   },
   {
-    title: 'Hábitos e dicas',
+    title: 'Para ajudar',
     items: [
       ...(AI_ENABLED ? [{ label: 'Assistente', icon: Brain, to: '/assistente' }] : []),
-      { label: 'Porquinho e loja', icon: PiggyBank, to: '/porquinho' },
+      { label: 'Desafios e desejos', icon: Hourglass, to: '/habitos' },
       { label: 'Aprender', icon: BookOpenText, to: '/aprender' },
-      { label: 'Desafios', icon: Trophy, to: '/habitos' },
-      { label: 'Lista de desejos', icon: Hourglass, to: '/habitos' },
-      { label: 'Revisão da semana', icon: CalendarCheck, to: '/revisao' },
-      { label: 'Categorias e limites', icon: Tag, to: '/voce/categorias' },
+      { label: 'Porquinho e loja', icon: PiggyBank, to: '/porquinho' },
     ],
   },
   {
-    title: 'Em breve',
+    title: 'Você',
     items: [
-      { label: 'Investimentos', icon: TrendUp, soon: true },
-      { label: 'Cripto', icon: CoinVertical, soon: true },
-    ],
-  },
-  {
-    title: 'Ajuda',
-    items: [
-      { label: 'Você', icon: UserCircle, to: '/voce' },
-      { label: 'Ajustes', icon: GearSix, to: '/ajustes' },
+      { label: 'Perfil e ajustes', icon: UserCircle, to: '/voce' },
       { label: 'Sugestões', icon: ChatCircleText, to: '/voce/sugestao' },
     ],
   },

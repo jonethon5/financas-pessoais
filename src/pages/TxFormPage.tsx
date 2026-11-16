@@ -447,17 +447,17 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         )}
 
         {mode === 'dia' && (
-          <div>
-            <p className="mb-1.5 px-1 text-[0.875rem] font-medium text-muted">Como você estava? (opcional)</p>
-            <div className="flex flex-wrap gap-2">
+          <details className="group rounded-[1rem] bg-surface px-4 py-3" open={emotion != null}>
+            <summary className="cursor-pointer text-[0.9375rem] font-semibold text-muted">Como você estava? (opcional)</summary>
+            <div className="mt-3 flex flex-wrap gap-2">
               {EMOTIONS.map((em) => (
                 <Chip key={em.value} selected={emotion === em.value} onClick={() => setEmotion(emotion === em.value ? null : em.value)}>
                   {em.label}
                 </Chip>
               ))}
             </div>
-            <p className="mt-1.5 px-1 text-[0.8125rem] text-muted">Ajuda a perceber em que momentos você mais gasta.</p>
-          </div>
+            <p className="mt-2 text-[0.8125rem] text-muted">Ajuda a perceber em que momentos você mais gasta.</p>
+          </details>
         )}
 
         <Button type="submit" loading={write.isPending} className="mt-1">

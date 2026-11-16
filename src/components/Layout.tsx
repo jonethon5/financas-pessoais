@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Plus, WifiOff } from 'lucide-react'
-import { CalendarDots, ChartBar, House, PiggyBank, type Icon as PhosphorIcon } from '@phosphor-icons/react'
+import { CalendarDots, House, PiggyBank, Receipt, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useAuth } from '../auth/AuthProvider'
 import { useBankAutoSync, useRealtime } from '../data/finance'
 import { useToast } from './Toast'
@@ -13,10 +13,11 @@ import { screenOf } from '../lib/ratings'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
 
+// As 4 coisas que a pessoa olha todo dia: hoje, o extrato (como no banco), o mês e o que guardou
 const TABS: Tab[] = [
   { to: '/', label: 'Início', icon: House },
+  { to: '/extrato', label: 'Extrato', icon: Receipt },
   { to: '/mes', label: 'Mês', icon: CalendarDots },
-  { to: '/graficos', label: 'Gráficos', icon: ChartBar },
   { to: '/caixinhas', label: 'Caixinhas', icon: PiggyBank },
 ]
 
@@ -152,7 +153,7 @@ export function Layout() {
                 <Plus className="size-7" strokeWidth={2.4} aria-hidden />
               </button>
             </li>
-            <li data-tour="aba-graficos">
+            <li data-tour="aba-mes">
               <TabItem {...TABS[2]} />
             </li>
             <li>

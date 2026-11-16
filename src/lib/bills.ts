@@ -3,7 +3,7 @@
  * como renda, e as faturas de cartão para pagar (com alerta perto do vencimento). Funções puras, testadas em bills.test.ts.
  */
 import type { BankAccount, Transaction } from '../types'
-import { daysBetweenISO } from './dates'
+import { addDaysISO, daysBetweenISO } from './dates'
 
 export type SpendSplit = {
   fixed: number
@@ -45,15 +45,45 @@ export type CardBill = {
   daysUntil: number | null
   /** vence logo (até 7 dias) ou já venceu: vira alerta */
   urgent: boolean
+  /** a data veio da fatura anterior (já paga): o vencimento mostrado é o do mês seguinte */
+  estimated: boolean
 }
 
-/** Faturas abertas dos cartões conectados, a que vence primeiro antes. */
-export function cardBills(accounts: Pick<BankAccount, 'id' | 'type' | 'balance_cents' | 'due_date'>[], today: string): CardBill[] {
+/** Mesmo dia, um mês depois ("2026-11-10" → "2026-12-10"; 31 vira o último dia do mês). */
+function nextMonthISO(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const ny = m === 12 ? y + 1 : y
+  const nm = m === 12 ? 1 : m + 1
+  const last = new Date(Date.UTC(ny, nm, 0)).getUTCDate()
+  return `${ny}-${String(nm).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`
+}
+
+/**
+ * Faturas abertas dos cartões conectados, a que vence primeiro antes.
+ * O banco às vezes manda o vencimento da fatura anterior (já paga) junto com o valor da fatura aberta: se o
+ * vencimento passou e o pagamento da fatura está nos lançamentos do cartão (ou passou há mais de 20 dias,
+ * dado velho), conta como paga e mostra a próxima, no mês seguinte. Sem pagamento, fica o alerta de vencida.
+ */
+export function cardBills(
+  accounts: Pick<BankAccount, 'id' | 'type' | 'balance_cents' | 'due_date'>[],
+  today: string,
+  txs: Pick<Transaction, 'kind' | 'bank_account_id' | 'date'>[] = [],
+): CardBill[] {
   return accounts
     .filter((a) => a.type === 'CREDIT' && (a.balance_cents ?? 0) > 0)
     .map((a) => {
-      const daysUntil = a.due_date ? daysBetweenISO(today, a.due_date) : null
-      return { accountId: a.id, amountCents: a.balance_cents!, dueDate: a.due_date, daysUntil, urgent: daysUntil != null && daysUntil <= 7 }
+      let due = a.due_date
+      let estimated = false
+      if (due && due < today) {
+        // pagamento da fatura: entrada no próprio cartão perto do vencimento
+        const paid = txs.some((t) => t.kind === 'income' && t.bank_account_id === a.id && t.date >= addDaysISO(due!, -20) && t.date <= today)
+        if (paid || daysBetweenISO(due, today) > 20) {
+          while (due < today) due = nextMonthISO(due)
+          estimated = true
+        }
+      }
+      const daysUntil = due ? daysBetweenISO(today, due) : null
+      return { accountId: a.id, amountCents: a.balance_cents!, dueDate: due, daysUntil, urgent: daysUntil != null && daysUntil <= 7, estimated }
     })
     .sort((a, b) => (a.daysUntil ?? 999) - (b.daysUntil ?? 999))
 }

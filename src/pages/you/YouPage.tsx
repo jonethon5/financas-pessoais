@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
-  ArrowCounterClockwise, Bank, Bell, ChatCircleText, Sparkle, Coin, EyeSlash, FileText, GearSix, Info, Key, Moon, PaintBrush, PiggyBank, Repeat, ShieldCheck, SignOut, Tag, TextAa, Trash, UserCircle, Wallet, type Icon as PhosphorIcon,
+  ArrowCounterClockwise, Bank, Bell, ChatCircleText, Sparkle, Coin, EyeSlash, FileText, GearSix, Info, Key, Moon, PaintBrush, PiggyBank, Repeat, ShieldCheck, SignOut, Tag, TextAa, Trash, UserCircle, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import { Pig, mascotName } from '../../components/Pig'
-import { ufInfo } from '../../lib/regions'
 import { toggleHidden, useHiddenValues } from '../../lib/privacy'
 import { resetTours } from '../../components/Tour'
 import { ChevronRight, Check } from 'lucide-react'
@@ -17,7 +16,6 @@ import { useToast } from '../../components/Toast'
 import { BackButton, BetaBadge, Button, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
 import { useProfile, useUpdateProfile } from '../../data/hooks'
 import { FONTS, getFontPref, getThemePref, setFontPref, setThemePref, type FontPref, type ThemePref } from '../../lib/theme'
-import { PROFILE_INFO } from '../../lib/psych'
 import { useWrite } from '../../data/finance'
 import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
 import { stableId } from '../../lib/recurring'
@@ -68,7 +66,7 @@ function Ico({ icon: I, color }: { icon: PhosphorIcon; color: string }) {
 /** Ajustes: configurações do app, separadas do perfil. Cada grupo abre a sua tela (/ajustes/:secao). */
 export function SettingsPage() {
   const { secao } = useParams()
-  return <YouPage view="ajustes" section={secao} />
+  return <YouPage section={secao} />
 }
 
 const SECTIONS: Record<string, string> = {
@@ -81,8 +79,8 @@ const SECTIONS: Record<string, string> = {
   sobre: 'Sobre o app',
 }
 
-/** Você: perfil (foto, salário, perfil com dinheiro). Os ajustes ficam em /ajustes. */
-export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajustes'; section?: string }) {
+/** Você: perfil, salário e todos os ajustes numa tela só (/ajustes sem seção abre esta mesma tela). */
+export function YouPage({ section }: { section?: string }) {
   const navigate = useNavigate()
   const profile = useProfile()
   const update = useUpdateProfile()
@@ -127,19 +125,12 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
 
   return (
     <>
-      {view === 'perfil' ? (
-        <NavBar
-          title="Você"
-          right={
-            <Link to="/ajustes" aria-label="Ajustes" className="grid size-10 place-items-center rounded-full text-primary active:bg-surface-2">
-              <GearSix size={24} />
-            </Link>
-          }
-        />
+      {!section ? (
+        <NavBar title="Você" />
       ) : (
-        <NavBar title={section ? (SECTIONS[section] ?? 'Ajustes') : 'Ajustes'} left={<BackButton label={section ? 'Ajustes' : 'Voltar'} onClick={() => (section ? navigate('/ajustes') : navigate(-1))} />} />
+        <NavBar title={SECTIONS[section] ?? 'Ajustes'} left={<BackButton label="Você" onClick={() => navigate('/voce')} />} />
       )}
-      {view === 'perfil' ? (
+      {!section ? (
         <div className="flex flex-col gap-7">
           <Link to="/voce/perfil" className="shadow-soft flex items-center gap-4 rounded-[1.25rem] bg-surface p-4 transition active:bg-surface-2">
             <ProfileAvatar profile={p} size="lg" />
@@ -151,58 +142,32 @@ export function YouPage({ view = 'perfil', section }: { view?: 'perfil' | 'ajust
             <ChevronRight className="size-5 text-faint" aria-hidden />
           </Link>
 
-          <List header="Seu dinheiro" footer="O salário entra sozinho todo mês no dia do pagamento. As horas servem para mostrar quanto do seu trabalho cada compra custa.">
-            <Row title="Dia do pagamento" trailing={p.payday ? `Dia ${p.payday}` : 'Definir'} chevron onClick={() => setSheet('payday')} />
+          <List header="Seu dinheiro" footer="O salário entra sozinho todo mês no dia do pagamento.">
             <Row title="Salário" trailing={p.salary_cents != null ? formatBRL(p.salary_cents) : 'Definir'} chevron onClick={() => setSheet('salary')} />
+            <Row title="Dia do pagamento" trailing={p.payday ? `Dia ${p.payday}` : 'Definir'} chevron onClick={() => setSheet('payday')} />
             <Row title="Horas de trabalho por semana" trailing={`${p.work_hours_week} h`} chevron onClick={() => setSheet('hours')} />
+            <Row title="Bancos e cartões" chevron as={link('/voce/bancos')} />
+            <Row title="Gastos fixos" chevron as={link('/voce/fixos')} />
+            <Row title="Categorias e limites" chevron as={link('/voce/categorias')} />
           </List>
 
-          <List header="Sobre você" footer="Usado para adaptar as dicas, os exemplos e as metas. Dá para refazer quando quiser.">
-            <Row title="Perfil com dinheiro" trailing={p.money_profile ? (PROFILE_INFO[p.money_profile as keyof typeof PROFILE_INFO]?.name ?? '—') : 'Fazer o teste'} chevron as={link('/boas-vindas')} />
-            <Row title="Objetivo" trailing={<span className="max-w-[45vw] truncate text-muted">{p.about?.dream?.label ?? p.about?.goal ?? 'Definir'}</span>} chevron as={link('/boas-vindas')} />
-            <Row title="Estado" trailing={ufInfo(p.about?.uf)?.name ?? 'Não informado'} chevron as={link('/boas-vindas')} />
+          <List header="Ajustes">
+            <Row icon={<Ico icon={PaintBrush} color="#3A4A5C" />} title="Aparência" subtitle={`${THEMES.find((t) => t.value === theme)?.label} · ${FONTS.find((f) => f.value === font)?.label}`} chevron as={link('/ajustes/aparencia')} />
+            <Row icon={<Ico icon={PiggyBank} color="#E07C93" />} title={`${mascotName(p.prefs.pig?.color)} e dicas`} subtitle={`Modo ${TONES.find((t) => t.value === p.ai_tone)?.label.toLowerCase()}`} chevron as={link('/ajustes/dicas')} />
+            <Row icon={<Ico icon={Bell} color="#E5484D" />} title="Notificações" subtitle={`${NOTIFY.filter((n) => notifyOn(p, n.kind)).length} de ${NOTIFY.length} ligadas`} chevron as={link('/ajustes/avisos')} />
+            <Row icon={<Ico icon={ShieldCheck} color="#2F6F8F" />} title="Conta e segurança" subtitle={mode === 'demo' ? 'Demonstração' : 'E-mail, senha e sair'} chevron as={link('/ajustes/conta')} />
+            <Row icon={<Ico icon={EyeSlash} color="#5B6B7A" />} title="Privacidade" subtitle="Esconder valores, seus dados" chevron as={link('/ajustes/privacidade')} />
           </List>
 
           <List>
-            <Row icon={<Ico icon={PiggyBank} color="#E07C93" />} title={mascotName(p.prefs.pig?.color)} subtitle="Moedas, metas do dia e lojinha" chevron as={link('/porquinho')} />
-            <Row icon={<Ico icon={GearSix} color="#5B6B7A" />} title="Ajustes" subtitle="Aparência, avisos, bancos, conta" chevron as={link('/ajustes')} />
+            <Row icon={<Ico icon={ChatCircleText} color="#6E56F0" />} title="Ajuda e sugestões" chevron as={link('/voce/sugestao')} />
+            <Row icon={<Ico icon={Sparkle} color="#0E9AA7" />} title="Ver o guia do app de novo" onClick={() => { resetTours(); toast('Guia ligado de novo'); navigate('/') }} />
+            <Row title="Perfil com dinheiro e objetivo" subtitle="Refazer as perguntas do começo" chevron as={link('/boas-vindas')} />
+            <Row icon={<Ico icon={Info} color="#F2A516" />} title={`Sobre o ${APP_NAME}`} trailing={APP_VERSION} chevron as={link('/ajustes/sobre')} />
           </List>
 
           {p.is_admin && (
             <List header="Administração">
-              <Row title="Painel do beta" subtitle="Códigos de acesso e sugestões" chevron as={link('/voce/beta')} />
-            </List>
-          )}
-        </div>
-      ) : !section ? (
-        <div className="flex flex-col gap-7">
-          <Link to="/voce" className="flex items-center gap-3.5 rounded-[1.25rem] bg-surface p-3.5 active:bg-surface-2">
-            <ProfileAvatar profile={p} size="md" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold">{p.name || 'Seu nome'}</span>
-              <span className="block text-[0.875rem] text-muted">Perfil, salário e objetivo</span>
-            </span>
-            <ChevronRight className="size-5 text-faint" aria-hidden />
-          </Link>
-          <List>
-            <Row icon={<Ico icon={PaintBrush} color="#3A4A5C" />} title="Aparência" subtitle={`${THEMES.find((t) => t.value === theme)?.label} · ${FONTS.find((f) => f.value === font)?.label}`} chevron as={link('/ajustes/aparencia')} />
-            <Row icon={<Ico icon={PiggyBank} color="#E07C93" />} title="Porquinho e dicas" subtitle={`Modo ${TONES.find((t) => t.value === p.ai_tone)?.label.toLowerCase()}`} chevron as={link('/ajustes/dicas')} />
-            <Row icon={<Ico icon={Bell} color="#E5484D" />} title="Notificações" subtitle={`${NOTIFY.filter((n) => notifyOn(p, n.kind)).length} de ${NOTIFY.length} ligadas`} chevron as={link('/ajustes/avisos')} />
-          </List>
-          <List>
-            <Row icon={<Ico icon={Wallet} color="#0F9D6B" />} title="Seu dinheiro" subtitle="Bancos, gastos fixos e categorias" chevron as={link('/ajustes/dinheiro')} />
-          </List>
-          <List>
-            <Row icon={<Ico icon={ShieldCheck} color="#2F6F8F" />} title="Conta e segurança" subtitle={mode === 'demo' ? 'Demonstração' : 'E-mail, senha e sair'} chevron as={link('/ajustes/conta')} />
-            <Row icon={<Ico icon={EyeSlash} color="#5B6B7A" />} title="Privacidade" subtitle="Esconder valores, seus dados" chevron as={link('/ajustes/privacidade')} />
-          </List>
-          <List>
-            <Row icon={<Ico icon={ChatCircleText} color="#6E56F0" />} title="Ajuda e sugestões" chevron as={link('/voce/sugestao')} />
-            <Row icon={<Ico icon={Sparkle} color="#0E9AA7" />} title="Ver o guia do app de novo" subtitle="O porquinho explica cada tela" onClick={() => { resetTours(); toast('Guia ligado de novo'); navigate('/') }} />
-            <Row icon={<Ico icon={Info} color="#F2A516" />} title={`Sobre o ${APP_NAME}`} trailing={APP_VERSION} chevron as={link('/ajustes/sobre')} />
-          </List>
-          {p.is_admin && (
-            <List>
               <Row icon={<Ico icon={GearSix} color="#0F2433" />} title="Painel do beta" subtitle="Códigos de acesso e sugestões" chevron as={link('/voce/beta')} />
             </List>
           )}

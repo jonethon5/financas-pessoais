@@ -1,11 +1,9 @@
 import { Link } from 'react-router'
-import { ChevronRight } from 'lucide-react'
 import type { AccountInfo } from '../data/accounts'
 import { formatDateShort } from '../lib/dates'
 import { BankLogo } from './BankLogo'
 import { Money } from './ui'
 
-const sum = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0)
 
 type Tile = {
   key: string
@@ -25,17 +23,13 @@ type Tile = {
  * lado a lado (arrasta para o lado). Em cima, o resumo separa o que é seu (na conta e guardado)
  * do que você deve (faturas e cheque especial). Limite de crédito não aparece como dinheiro seu.
  */
-export function Wallet({ accounts }: { accounts: AccountInfo[] }) {
+/** `dueOf`: vencimento certo de cada fatura (a data que o banco manda pode ser a da fatura já paga). */
+export function Wallet({ accounts, dueOf }: { accounts: AccountInfo[]; dueOf?: (accountId: string) => string | null }) {
   const contas = accounts.filter((a) => a.kind === 'conta')
   const cartoes = accounts.filter((a) => a.kind === 'cartao')
   const guardados = accounts.filter((a) => a.kind === 'guardado')
   if (!contas.length && !cartoes.length && !guardados.length) return null
 
-  const naConta = sum(contas.map((a) => a.account.balance_cents))
-  const guardado = sum(guardados.map((a) => a.account.balance_cents))
-  const faturas = sum(cartoes.map((a) => a.account.balance_cents))
-  const cheque = sum(contas.map((a) => a.account.overdraft_used_cents))
-  const sobra = naConta + guardado - faturas - cheque
 
   // Guardado: um cartãozinho por banco (o Nubank, por exemplo, tem várias caixinhas)
   const savingsByBank = new Map<string, { info: AccountInfo; cents: number; count: number }>()
@@ -78,7 +72,7 @@ export function Wallet({ accounts }: { accounts: AccountInfo[] }) {
         used,
         foot: (
           <>
-            {c.account.due_date ? `Vence ${formatDateShort(c.account.due_date)}` : 'Cartão de crédito'}
+            {(dueOf ? dueOf(c.account.id) : c.account.due_date) ? `Vence ${formatDateShort((dueOf ? dueOf(c.account.id) : c.account.due_date)!)}` : 'Cartão de crédito'}
             {c.account.available_cents != null && (
               <>
                 {' · '}livre <Money cents={c.account.available_cents} />
@@ -101,21 +95,6 @@ export function Wallet({ accounts }: { accounts: AccountInfo[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-3 gap-2">
-        <Stat label="Na conta" cents={naConta} />
-        <Stat label="Guardado" cents={guardado} />
-        <Stat label={cheque ? 'Faturas e cheque' : 'Faturas'} cents={faturas + cheque} owe />
-      </div>
-      {(cartoes.length > 0 || cheque > 0) && (
-        <p className="-mt-1.5 text-[0.875rem] leading-snug text-muted">
-          Se pagasse as faturas hoje, {sobra >= 0 ? 'sobrariam' : 'faltariam'}{' '}
-          <strong className={sobra >= 0 ? 'text-ink' : 'text-danger-strong'}>
-            <Money cents={Math.abs(sobra)} />
-          </strong>
-          . Limite do cartão não é dinheiro seu.
-        </p>
-      )}
-
       <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
         {tiles.map((t) => (
           <Link
@@ -151,21 +130,6 @@ export function Wallet({ accounts }: { accounts: AccountInfo[] }) {
           Conectar outro banco
         </Link>
       </div>
-      <Link to="/extrato" className="-mt-1 flex items-center gap-1 self-start text-[0.9375rem] font-semibold text-primary">
-        Ver o extrato de tudo <ChevronRight className="size-4" aria-hidden />
-      </Link>
-    </div>
-  )
-}
-
-function Stat({ label, cents, owe }: { label: string; cents: number; owe?: boolean }) {
-  return (
-    <div className="rounded-[1rem] bg-surface px-3 py-2.5">
-      <p className="truncate text-[0.8125rem] text-muted">{label}</p>
-      <p className={`num truncate text-[1rem] font-bold ${owe && cents > 0 ? 'text-danger-strong' : ''}`}>
-        {owe && cents > 0 ? '− ' : ''}
-        <Money cents={cents} />
-      </p>
     </div>
   )
 }

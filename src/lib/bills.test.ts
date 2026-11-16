@@ -30,6 +30,16 @@ describe('faturas para pagar', () => {
       ['neon', 92200, 27, false],
     ])
   })
+  it('fatura que venceu e foi paga: mostra a próxima, no mês seguinte (o banco mandou a data antiga)', () => {
+    const neon = [{ id: 'neon', type: 'CREDIT' as const, balance_cents: 99500, due_date: '2026-11-10' }]
+    const pagamento = { kind: 'income' as const, bank_account_id: 'neon', date: '2026-11-09' }
+    expect(cardBills(neon, '2026-11-16', [pagamento])).toEqual([{ accountId: 'neon', amountCents: 99500, dueDate: '2026-12-10', daysUntil: 24, urgent: false, estimated: true }])
+    // sem pagamento e há poucos dias: continua o alerta de vencida
+    expect(cardBills(neon, '2026-11-16')).toMatchObject([{ dueDate: '2026-11-10', daysUntil: -6, urgent: true, estimated: false }])
+    // dado velho (venceu há mais de 20 dias): também passa para o mês seguinte
+    expect(cardBills(neon, '2026-12-05')[0]).toMatchObject({ dueDate: '2026-12-10', daysUntil: 5, estimated: true })
+  })
+
   it('texto do vencimento', () => {
     expect([dueText(0), dueText(1), dueText(5), dueText(-2), dueText(null)]).toEqual(['vence hoje', 'vence amanhã', 'vence em 5 dias', 'venceu há 2 dias', 'sem data de vencimento'])
   })

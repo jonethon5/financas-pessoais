@@ -57,9 +57,11 @@ export function LearnPage() {
           Métodos de <strong>livros conhecidos</strong> e de <strong>pesquisas científicas</strong>, explicados de um jeito simples e com exemplos para quem ganha por volta de R$ 3.000. Leva uns 2 minutos cada.
           {done > 0 && <span className="mt-1.5 block font-semibold text-primary-strong">Você já leu {done} de {LESSONS.length}.</span>}
         </Notice>
-        {GROUPS.map((g) => (
-          <List key={g.id} header={g.title}>
-            {LESSONS.filter((l) => l.group === g.id).map((l) => (
+        {GROUPS.map((g, gi) => {
+          const lessons = LESSONS.filter((l) => l.group === g.id)
+          const list = (
+          <List key={g.id} header={gi === 0 ? g.title : undefined}>
+            {lessons.map((l) => (
               <li key={l.id} className="border-b border-line last:border-b-0">
                 <Link to={`/aprender/${l.id}`} className="flex items-start gap-3 px-4 py-3.5 active:bg-surface-2">
                   <LessonIconTile lesson={l} />
@@ -76,7 +78,20 @@ export function LearnPage() {
               </li>
             ))}
           </List>
-        ))}
+          )
+          // Começa pelo essencial; os outros assuntos ficam fechados (um toque abre)
+          return gi === 0 ? (
+            list
+          ) : (
+            <details key={g.id}>
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-[1.25rem] bg-surface px-4 py-3.5">
+                <span className="font-semibold">{g.title}</span>
+                <span className="text-[0.875rem] text-muted">{lessons.length} aulas</span>
+              </summary>
+              <div className="mt-2">{list}</div>
+            </details>
+          )
+        })}
       </div>
     </>
   )

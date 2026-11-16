@@ -51,8 +51,10 @@ nada de culpa, e o hábito vem antes do valor.
   primeiro), aplica os limites e, se não der ainda, mostra o realista e o caminho de subir 1% por mês. Sem IA.
 - **Aprender e Saúde financeira:** 16 métodos de livros e estudos (pague-se primeiro, reserva, regra dos 30 dias,
   bola de neve…), cada um com fonte e exemplo em reais, e uma nota de 0 a 100 em 5 pilares com o próximo passo.
-- **Gráficos:** ranking por categoria, recorrência, débito × crédito, evolução de 6 ou 12 meses, mapa de calor dos dias
-  e saldo previsto do mês.
+- **Menos é mais (auditoria de UX):** o Início responde só 3 perguntas (quanto posso gastar hoje, o que preciso
+  pagar, como está o mês) e a barra de baixo tem o que se olha todo dia: Início, Extrato, Mês e Caixinhas. O resto
+  fica no menu. Base: lei de Hick, memória de trabalho (Cowan), "Não me faça pensar" (Krug) e *Escassez*
+  (Mullainathan e Shafir): com o dinheiro curto, sobra menos atenção para telas cheias.
 - **Conexão com bancos (Open Finance, só leitura):** os gastos entram sozinhos, sem duplicar o que já foi lançado; o
   app aprende a categoria quando a pessoa corrige uma vez.
 - **"Avalie esta tela"** (como no app do Nubank): no fim de cada tela, 2 perguntas (nota de 5 níveis e o que
