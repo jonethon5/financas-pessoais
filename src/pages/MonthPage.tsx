@@ -119,7 +119,7 @@ function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string
     <div className="stagger flex flex-col gap-5">
       <div style={i(0)}>
         <Card className="p-4">
-          <MonthFlow s={s} txs={txs} current={isCurrent} />
+          <MonthFlow s={s} txs={txs} current={isCurrent} history={data.history} />
         </Card>
       </div>
       <section style={i(1)}>

@@ -4,6 +4,8 @@ import { IncomeTriage } from './IncomeTriage'
 import { AlertTriangle } from 'lucide-react'
 import { useAccounts } from '../data/accounts'
 import { cardBills, dueText, spendSplit, uncountedIncome } from '../lib/bills'
+import { cardCycles, nextInvoices } from '../lib/cardcycle'
+import { monthLabel } from '../lib/dates'
 import type { MonthSummary } from '../lib/budget'
 import { formatDateShort, todayISO } from '../lib/dates'
 import { formatBRL } from '../lib/money'
@@ -24,7 +26,7 @@ const PARTS = [
  * cartão de crédito, Pix e débito. Embaixo, uma barra mostra para onde vai cada real da renda e, no mês atual,
  * as faturas dos cartões para pagar (com alerta perto do vencimento).
  */
-export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: Transaction[]; current?: boolean }) {
+export function MonthFlow({ s, txs, current = false, history }: { s: MonthSummary; txs?: Transaction[]; current?: boolean; history?: Transaction[] }) {
   const hidden = useHiddenValues()
   const accounts = useAccounts()
   const split = txs ? spendSplit(txs, accounts.raw) : null
@@ -32,6 +34,8 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
   // Fatura já paga (pagamento nos lançamentos do cartão) não aparece: mostra a próxima
   const bills = current ? cardBills(accounts.raw, todayISO(), txs ?? []) : []
   const [triage, setTriage] = useState(false)
+  // Compras no cartão que vão para faturas que ainda vêm (já têm dono, mesmo sem sair da conta)
+  const nextCard = current && history ? nextInvoices(history, todayISO(), cardCycles(accounts.raw)) : null
   const spent = s.committed + s.daily
   const over = s.free < 0
   const values = { gastos: spent, caixinhas: s.save, sobra: Math.max(0, s.free) }
@@ -73,7 +77,7 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
         <>
           {split.fixed > 0 && line('Gastos fixos', 'aluguel, contas, assinaturas', split.fixed, '−')}
           {split.installments > 0 && line('Parcelas', 'compras parceladas', split.installments, '−')}
-          {split.card > 0 && line('No cartão de crédito', 'compras do mês: você paga na fatura', split.card, '−')}
+          {split.card > 0 && line('Cartão de crédito', 'compras da fatura que vence neste mês', split.card, '−')}
           {split.account > 0 && line('No Pix e débito', 'saiu da conta na hora', split.account, '−')}
           {split.manual > 0 && line('Lançados à mão', null, split.manual, '−')}
         </>
@@ -87,6 +91,12 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
           <Money cents={Math.abs(s.free)} />
         </span>
       </div>
+
+      {nextCard && nextCard.cents > 0 && (
+        <p className="mt-2 rounded-[0.875rem] bg-surface-2 px-3 py-2.5 text-[0.9375rem] leading-snug">
+          Já gasto no cartão: <strong className="num">{hidden ? 'R$ ••••' : formatBRL(nextCard.cents)}</strong>. Vai para a fatura de {monthLabel(nextCard.month).split(' ')[0].toLowerCase()} e entra na conta do mês que ela vence.
+        </p>
+      )}
 
       {over && !pending && (
         <p className="mt-2 text-[0.9375rem] leading-snug">

@@ -7,7 +7,8 @@ import { useProfile } from './hooks'
 
 export function useMonthView(ym: YearMonth) {
   const profile = useProfile()
-  const txs = useMonthTxs(ym)
+  // A conta do mês: cartão no mês da fatura (a compra conta quando a fatura vence, uma vez só)
+  const txs = useMonthTxs(ym, { byInvoice: true })
   const plan = useMonthPlan(ym)
   const moves = useBudgetMoves(ym)
   const categories = useCategories()

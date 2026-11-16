@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import { useAccounts } from '../data/accounts'
-import { useMonthTxs } from '../data/finance'
+import { useCategories, useMonthTxs, useWrite } from '../data/finance'
+import { useNavigate } from 'react-router'
+import { useAuth } from '../auth/AuthProvider'
+import { applyAsSalary } from './IncomeTriage'
+import { useToast } from './Toast'
 import { formatDayLong, monthOf } from '../lib/dates'
 import { formatBRL } from '../lib/money'
 import { isTransfer, movementOf, partyOf, passThroughOf, readableBankName, txTitle } from '../lib/statement'
@@ -33,6 +37,11 @@ export function BankDetail({
   onNotCount?: () => void
 }) {
   const month = useMonthTxs(monthOf(tx.date))
+  const write = useWrite()
+  const { userId } = useAuth()
+  const categories = useCategories()
+  const toast = useToast()
+  const navigate = useNavigate()
   const accounts = useAccounts()
   const mv = movementOf(tx, accounts.raw)
   const out = mv.flow === 'saida'
@@ -89,6 +98,20 @@ export function BankDetail({
             </button>
           ) : null,
         )}
+      {!out && tx.type === 'extra' && userId && (
+        <button
+          type="button"
+          disabled={write.isPending}
+          onClick={async () => {
+            await write.mutateAsync((b) => applyAsSalary(b, tx, userId, (categories.data ?? []).find((c) => c.kind === 'income' && c.name === 'Salário')?.id ?? null))
+            toast('Pronto: é o salário do mês, no lugar do previsto (não soma)')
+            navigate(-1)
+          }}
+          className="mt-1 mb-3 w-full rounded-full bg-surface-2 px-4 py-2.5 text-left text-[0.9375rem] font-semibold active:bg-line"
+        >
+          Este é o meu salário <span className="font-normal text-muted">(fica no lugar do salário previsto)</span>
+        </button>
+      )}
       {pass && (
         <div className="mt-1 mb-3 rounded-[1rem] bg-warn-soft p-3.5">
           <p className="font-semibold">Parece um repasse</p>

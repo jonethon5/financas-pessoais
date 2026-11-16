@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { defaultCategories } from '../lib/categories'
 import { addMonths, compareYearMonth, currentYearMonth, firstDayISO, lastDayISO, monthKey, type YearMonth } from '../lib/dates'
 import { expectedMonthRows, missingRows } from '../lib/recurring'
+import { belongsToMonth, cardCycles } from '../lib/cardcycle'
 import { rulesForTransaction } from '../lib/psych'
 import { callFunction, supabase } from '../lib/supabase'
 import type { MonthPlan, NewRow, Profile, TableName, Tables, Transaction } from '../types'
@@ -38,10 +39,18 @@ export function useRecurrings() {
   return useQuery({ queryKey: tkey('recurrings'), queryFn: () => backend.list('recurrings', { order: 'day' }) })
 }
 
-/** Cria (se faltar) o salário e os fixos do mês atual. Meses futuros só mostram como "previsto". */
-async function loadMonth(backend: Backend, ym: YearMonth, userId: string, profile: Profile): Promise<MonthTx[]> {
+/**
+ * Cria (se faltar) o salário e os fixos do mês atual. Meses futuros só mostram como "previsto".
+ * `byInvoice`: o cartão de crédito conta no mês em que a fatura vence (Mês, Início, Balanço); sem ele, tudo pela
+ * data, como no extrato do banco (Extrato, painel da conta).
+ */
+async function loadMonth(backend: Backend, ym: YearMonth, userId: string, profile: Profile, byInvoice = false): Promise<MonthTx[]> {
   const range = { gte: ['date', firstDayISO(ym)] as [string, string], lte: ['date', lastDayISO(ym)] as [string, string], order: 'date' }
-  const existing = await backend.list('transactions', range)
+  const cycles = byInvoice ? cardCycles(await backend.list('bank_accounts')) : new Map()
+  // Com cartão: lê 2 meses para trás (compra de outubro pode estar na fatura que vence em novembro) e separa pelo mês da fatura
+  const wide = { ...range, gte: ['date', firstDayISO(addMonths(ym, -2))] as [string, string] }
+  const read = async () => (cycles.size ? belongsToMonth(await backend.list('transactions', wide), ym, cycles) : backend.list('transactions', range))
+  const existing = await read()
   const cmp = compareYearMonth(ym, currentYearMonth())
   if (cmp < 0) return existing
 
@@ -51,19 +60,20 @@ async function loadMonth(backend: Backend, ym: YearMonth, userId: string, profil
   if (!missing.length) return existing
   if (cmp === 0) {
     await backend.insert('transactions', missing, { ignoreDuplicates: true })
-    return backend.list('transactions', range)
+    return read()
   }
   const now = new Date().toISOString()
   return [...existing, ...missing.map((r) => ({ ...r, user_id: userId, created_at: now, virtual: true }))].sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function useMonthTxs(ym: YearMonth) {
+export function useMonthTxs(ym: YearMonth, opts: { byInvoice?: boolean } = {}) {
   const backend = useBackend()
   const { userId } = useAuth()
   const profile = useProfile()
+  const byInvoice = opts.byInvoice ?? false
   return useQuery({
-    queryKey: [...tkey('transactions', 'month', monthKey(ym)), profile.data?.salary_cents ?? 0, profile.data?.payday ?? 0],
-    queryFn: () => loadMonth(backend, ym, userId!, profile.data!),
+    queryKey: [...tkey('transactions', 'month', monthKey(ym)), profile.data?.salary_cents ?? 0, profile.data?.payday ?? 0, byInvoice ? 'fatura' : 'data'],
+    queryFn: () => loadMonth(backend, ym, userId!, profile.data!, byInvoice),
     enabled: Boolean(profile.data && userId),
   })
 }

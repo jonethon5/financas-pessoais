@@ -17,12 +17,13 @@ import { BankLogo } from '../components/BankLogo'
 import { useRecurrings, useTable } from '../data/finance'
 import { isBillDue, remindWindow } from '../lib/recurring'
 import { cardBills, dueText } from '../lib/bills'
+import { cardCycles, nextInvoices } from '../lib/cardcycle'
 import type { TodayBudget } from '../lib/budget'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { AnimatedMoney, Badge, ErrorBox, HelpButton, List, Money, Row, Spinner } from '../components/ui'
 import { useMonthView } from '../data/monthView'
-import { currentYearMonth, dayOf, daysBetweenISO, relativeDay } from '../lib/dates'
+import { currentYearMonth, dayOf, daysBetweenISO, monthLabel, relativeDay } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
 import { formatBRL } from '../lib/money'
 import { toggleHidden, useHiddenValues } from '../lib/privacy'
@@ -161,9 +162,11 @@ export function HomePage() {
   const upcoming = txs.filter((x) => !x.skipped && !x.paid && (x.type === 'fixo' || x.type === 'parcela') && isBillDue(daysBetweenISO(today, x.date), remindWindow(x.recurring_id ? recById.get(x.recurring_id) : null)))
   // Fatura de cartão perto de vencer (até 7 dias) ou vencida (a já paga não aparece)
   const allTxs = [...new Map([...history, ...txs].map((x) => [x.id, x])).values()]
+  // Últimos gastos pela data em que aconteceram (o cartão conta na fatura, mas a compra de hoje aparece hoje)
+  const recent = allTxs.filter((x) => !x.skipped && x.type === 'dia' && x.kind === 'expense' && x.date <= today).sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 3)
+  const nextCard = nextInvoices(allTxs, today, cardCycles(wallet.raw))
   const bills = cardBills(wallet.raw, today, allTxs)
   const urgentBills = bills.filter((b) => b.urgent)
-  const recent = [...txs].filter((x) => !x.skipped && x.type === 'dia').sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 3)
   const needsSplit = hasSalary && dayOf(today) >= Math.min(p.payday!, 28) && !plan?.split_done_at
   const readyWish = (wishes.data ?? []).find((w) => wishState(w, today).ready)
 
@@ -302,6 +305,11 @@ export function HomePage() {
 
       <Section title="Seu mês" to="/mes">
         <MonthGlance s={s} pending={unclassified.length > 0} />
+        {nextCard && nextCard.cents > 0 && (
+          <p className="mt-2 text-[0.875rem] text-muted">
+            Já gasto no cartão: <strong className="num text-ink">{hidden ? 'R$ ••••' : formatBRL(nextCard.cents)}</strong> (fatura de {monthLabel(nextCard.month).split(' ')[0].toLowerCase()})
+          </p>
+        )}
       </Section>
 
       {wallet.list.length > 0 && (
