@@ -207,6 +207,7 @@ export function methodShort(t: Pick<Transaction, 'bank_account_id' | 'descriptio
 export function notCountedShort(t: Pick<Transaction, 'kind' | 'skipped' | 'note' | 'type'>): string | null {
   if (!t.skipped) return null
   const n = t.note ?? ''
+  if (/pago com o cart/i.test(n)) return 'Pago no cartão'
   if (/fatura/i.test(n)) return 'Fatura'
   if (/estorno/i.test(n)) return 'Estorno'
   if (/dinheiro seu/i.test(n)) return 'Dinheiro seu'

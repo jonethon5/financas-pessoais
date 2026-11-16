@@ -15,7 +15,7 @@
 // No beta, as chaves do Meu Pluggy são pessoais (do dono do app): por isso só o administrador usa.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { UserError } from './common.ts'
-import { cleanDescription, countKey, ownKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from './bankmap.ts'
+import { cleanDescription, countKey, ownKey, pairOffsets, countsInMonth, findFixedMatch, findManualMatch, findVanished, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from './bankmap.ts'
 
 const API = Deno.env.get('PLUGGY_API_BASE') || 'https://api.pluggy.ai'
 export const CLIENT_ID = Deno.env.get('PLUGGY_CLIENT_ID') ?? ''
@@ -299,6 +299,8 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
     }
     const complete = !next
     const mapped = txs.map((t) => mapTransaction(t, acc.type, names)).filter((m) => m != null)
+    // boleto/Pix pago com o limite do cartão: o par entra/sai na conta não conta (a compra conta no cartão)
+    if (acc.type === 'BANK') pairOffsets(mapped)
 
     // O que veio do banco antes e não veio agora (dentro do período lido): a compra pendente que foi lançada
     // com outro id, ou algo que o banco desfez. Primeiro tenta reaproveitar; o que sobrar sai no fim.

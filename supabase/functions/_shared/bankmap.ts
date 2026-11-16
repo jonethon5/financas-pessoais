@@ -149,6 +149,31 @@ export const INTERNAL_REASON = {
   bill: 'Pagamento da fatura do cartão: o gasto já contou no dia da compra.',
   savings: 'Dinheiro guardado no banco (caixinha, poupança ou investimento) mudando de lugar: não é renda nem gasto.',
   refund: 'Estorno no cartão: o dinheiro da compra voltou.',
+  offset: 'Pago com o cartão de crédito (ou devolvido no mesmo dia): entrou e saiu o mesmo valor na conta. A compra conta uma vez só, no cartão.',
+}
+
+/**
+ * Boleto ou Pix pago com o limite do cartão ("Pix no crédito", "boleto no crédito"): na conta aparecem dois
+ * movimentos do mesmo valor no mesmo dia, um entrando (o cartão mandou o dinheiro) e um saindo (para quem
+ * recebeu), e a compra de verdade fica no cartão. Também vale para pagar e ter de volta no mesmo dia.
+ * Os dois lados viram "não conta" (sem isso, a mesma conta entrava como renda e como gasto duas vezes).
+ * O par é reconhecido pelo mesmo valor, até 1 dia de diferença e o mesmo destinatário ou o texto do cartão.
+ */
+export function pairOffsets(mapped: MappedTx[]): void {
+  const days = (a: string, b: string) => Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000
+  const fromCard = (m: MappedTx) => /cart[aã]o/i.test(m.info.original) && !/pagamento (de )?fatura/i.test(m.info.original)
+  const used = new Set<MappedTx>()
+  for (const inc of mapped) {
+    if (inc.kind !== 'income' || inc.internal || inc.own || used.has(inc)) continue
+    const key = learnKey(inc.description)
+    const out = mapped.find(
+      (e) => e.kind === 'expense' && !e.internal && !used.has(e) && e.amount_cents === inc.amount_cents && days(e.date, inc.date) <= 1 && ((key !== '' && learnKey(e.description) === key) || fromCard(inc)),
+    )
+    if (!out) continue
+    inc.internal = INTERNAL_REASON.offset
+    out.internal = INTERNAL_REASON.offset
+    used.add(inc).add(out)
+  }
 }
 
 /** Por que essa movimentação não conta (ou null se ela é gasto ou renda de verdade). */

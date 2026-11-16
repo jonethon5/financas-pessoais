@@ -186,6 +186,7 @@ describe('linha do extrato, como no app do banco', () => {
   })
   it('etiqueta curta do que não conta', () => {
     expect(notCountedShort(tx({ skipped: true, note: 'Pagamento da fatura do cartão: já contou' }))).toBe('Fatura')
+    expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Pago com o cartão de crédito (ou devolvido no mesmo dia)' }))).toBe('Pago no cartão')
     expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Dinheiro guardado no banco (caixinha, poupança)' }))).toBe('Caixinha')
     expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Dinheiro seu: veio da poupança' }))).toBe('Dinheiro seu')
     expect(notCountedShort(tx({ type: 'extra', skipped: true, note: 'Repasse: dinheiro que só passou por você.' }))).toBe('Repasse')

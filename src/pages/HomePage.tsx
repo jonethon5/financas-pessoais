@@ -301,7 +301,7 @@ export function HomePage() {
       </Section>
 
       <Section title="Seu mês" to="/mes">
-        <MonthGlance s={s} />
+        <MonthGlance s={s} pending={unclassified.length > 0} />
       </Section>
 
       {wallet.list.length > 0 && (

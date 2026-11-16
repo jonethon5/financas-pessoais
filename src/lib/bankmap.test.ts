@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INTERNAL_REASON, bankInfo, brazilDateTime, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
+import { INTERNAL_REASON, bankInfo, brazilDateTime, pairOffsets, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
 
 const tx = (p: Partial<PluggyTx>): PluggyTx => ({ id: 'abc', description: 'Compra', amount: -10, date: '2026-11-04T00:00:00.000Z', ...p })
 
@@ -52,6 +52,34 @@ describe('detalhes do banco (como no app do banco)', () => {
     expect(bankInfo(tx({ description: 'Tarifa' }), 'BANK', 'expense').method).toBe('outro')
     // "pix" dentro de outra palavra não conta
     expect(bankInfo(tx({ description: 'Pixel Store' }), 'BANK', 'expense').method).toBe('outro')
+  })
+})
+
+describe('boleto ou Pix pago com o cartão de crédito', () => {
+  it('o par entra/sai do mesmo valor (mesmo destinatário) não conta: a compra conta uma vez, no cartão', () => {
+    const m = [
+      mapTransaction(tx({ id: 'in', description: 'Boleto recebido|VIVO', amount: 124, date: '2026-11-10T13:00:00.000Z' }), 'BANK')!,
+      mapTransaction(tx({ id: 'out', description: 'Pagamento de boleto|VIVO', amount: -124, date: '2026-11-10T13:01:00.000Z' }), 'BANK')!,
+      mapTransaction(tx({ id: 'mercado', description: 'Mercado', amount: -124, date: '2026-11-10T15:00:00.000Z' }), 'BANK')!,
+    ]
+    pairOffsets(m)
+    expect(m.map((x) => x.internal)).toEqual([INTERNAL_REASON.offset, INTERNAL_REASON.offset, null])
+  })
+  it('"Crédito para Pix via cartão" casa com o Pix do mesmo valor, mesmo para outra pessoa', () => {
+    const m = [
+      mapTransaction(tx({ id: 'in', description: 'Crédito para Pix via cartão', amount: 40 }), 'BANK')!,
+      mapTransaction(tx({ id: 'out', description: 'Pix enviado|JOAO', amount: -40 }), 'BANK')!,
+    ]
+    pairOffsets(m)
+    expect(m.every((x) => x.internal === INTERNAL_REASON.offset)).toBe(true)
+  })
+  it('Pix recebido de uma pessoa e Pix enviado a outra (repasse) não é pareado aqui', () => {
+    const m = [
+      mapTransaction(tx({ id: 'in', description: 'Pix recebido|CAREN', amount: 260 }), 'BANK')!,
+      mapTransaction(tx({ id: 'out', description: 'Pix enviado|MARIA', amount: -260 }), 'BANK')!,
+    ]
+    pairOffsets(m)
+    expect(m.map((x) => x.internal)).toEqual([null, null])
   })
 })
 

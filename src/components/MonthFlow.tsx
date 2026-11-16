@@ -51,17 +51,24 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
     </div>
   )
 
+  // Enquanto tem dinheiro que entrou sem resposta, a conta ainda não está fechada: nada de vermelho, nada de dois totais
+  const pending = uncounted.count > 0
   return (
     <div>
-      {line('Entra no mês', 'salário e rendas que você marcou', s.income, '+')}
-      {uncounted.cents > 0 && (
-        <p className="-mt-1 mb-1 text-[0.8125rem] leading-snug text-muted">
-          Entraram mais {hidden ? 'R$ ••••' : formatBRL(uncounted.cents)} pelo banco ({uncounted.count} {uncounted.count === 1 ? 'Pix ou transferência' : 'Pix e transferências'}) que ainda não contam como renda.{' '}
-          <button type="button" onClick={() => setTriage(true)} className="font-semibold text-primary-strong">
-            Dizer o que é
+      {pending && (
+        <div className="mb-3 rounded-[1rem] bg-warn-soft p-3.5">
+          <p className="font-semibold">
+            {uncounted.count} {uncounted.count === 1 ? 'entrada para conferir' : 'entradas para conferir'}
+          </p>
+          <p className="mt-0.5 text-[0.9375rem] leading-snug">
+            {hidden ? 'R$ ••••' : formatBRL(uncounted.cents)} entraram pelo banco e o app ainda não sabe o que são: salário, dinheiro da poupança ou repasse. Até você dizer, a conta usa só o salário cadastrado.
+          </p>
+          <button type="button" onClick={() => setTriage(true)} className="press mt-2.5 rounded-full bg-ink px-4 py-2 text-[0.9375rem] font-semibold text-on-ink">
+            Conferir agora
           </button>
-        </p>
+        </div>
       )}
+      {line('Entra no mês', 'salário e o que você marcou como renda', s.income, '+')}
       {split ? (
         <>
           {split.fixed > 0 && line('Gastos fixos', 'aluguel, contas, assinaturas', split.fixed, '−')}
@@ -75,25 +82,22 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
       )}
       {s.save > 0 && line('Para as caixinhas', 'o que você combinou guardar', s.save, '−')}
       <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-line pt-2.5">
-        <span className="text-[0.9375rem] font-bold">{over ? 'Faltam no mês' : 'Sobra prevista'}</span>
-        <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${over ? 'text-danger-strong' : 'text-primary-strong'}`}>
+        <span className="text-[0.9375rem] font-bold">{pending ? (over ? 'Por enquanto, faltam' : 'Por enquanto, sobram') : over ? 'Faltam no mês' : 'Sobra prevista'}</span>
+        <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${pending ? 'text-ink' : over ? 'text-danger-strong' : 'text-primary-strong'}`}>
           <Money cents={Math.abs(s.free)} />
         </span>
       </div>
 
-      {uncounted.cents > 0 && (
-        <div className="mt-1 flex items-baseline justify-between gap-3 rounded-[0.75rem] bg-surface-2 px-3 py-2">
-          <span className="text-[0.875rem] leading-snug">
-            Somando também o que entrou pelo banco (<Money cents={uncounted.cents} />)
-          </span>
-          <span className={`num shrink-0 font-bold ${s.free + uncounted.cents < 0 ? 'text-danger-strong' : ''}`}>
-            {s.free + uncounted.cents < 0 ? 'faltam ' : 'sobram '}
-            <Money cents={Math.abs(s.free + uncounted.cents)} />
-          </span>
-        </div>
+      {over && !pending && (
+        <p className="mt-2 text-[0.9375rem] leading-snug">
+          Saiu mais do que entrou este mês.{' '}
+          <Link to="/saude" className="font-semibold text-primary-strong">
+            Ver onde dá para cortar
+          </Link>
+        </p>
       )}
 
-      {base > 0 && (
+      {base > 0 && !over && (
         <div className="mt-3.5">
           <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-surface-2" role="img" aria-label={PARTS.map((p) => `${p.label} ${pct(values[p.key])}%`).join(', ')}>
             {PARTS.map((p) =>
@@ -108,12 +112,6 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
               </li>
             ))}
           </ul>
-          {over && (
-            <p className="mt-2 text-[0.875rem] leading-snug text-danger-strong">
-              Faltam {hidden ? 'R$ ••••' : formatBRL(-s.free)}: o que saiu{s.save > 0 ? ' (gastos + caixinhas)' : ''} passa da renda que o app conhece ({hidden ? 'R$ ••••' : formatBRL(s.income)}).
-              {uncounted.cents > 0 ? ` Se parte do seu salário caiu separada (entraram mais ${hidden ? 'R$ ••••' : formatBRL(uncounted.cents)} pelo banco), toque em “Dizer o que é”: a conta muda.` : ''}
-            </p>
-          )}
         </div>
       )}
 
@@ -157,7 +155,7 @@ export function MonthFlow({ s, txs, current = false }: { s: MonthSummary; txs?: 
  * O mês em 3 números para a tela inicial: o que entrou, o que saiu e o que sobra (ou falta).
  * O detalhe (fixos, parcelas, cartão, Pix, faturas) fica na aba Mês.
  */
-export function MonthGlance({ s }: { s: MonthSummary }) {
+export function MonthGlance({ s, pending = false }: { s: MonthSummary; pending?: boolean }) {
   const out = s.committed + s.daily + s.save
   const over = s.free < 0
   const row = (label: string, cents: number, op: string) => (
@@ -174,8 +172,8 @@ export function MonthGlance({ s }: { s: MonthSummary }) {
       {row('Entrou', s.income, '+')}
       {row(s.save > 0 ? 'Saiu (gastos e caixinhas)' : 'Saiu', out, '−')}
       <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-line pt-2">
-        <span className="font-bold">{over ? 'Falta no mês' : 'Sobra no mês'}</span>
-        <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${over ? 'text-danger-strong' : 'text-primary-strong'}`}>
+        <span className="font-bold">{pending ? (over ? 'Por enquanto, falta' : 'Por enquanto, sobra') : over ? 'Falta no mês' : 'Sobra no mês'}</span>
+        <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${pending ? 'text-ink' : over ? 'text-danger-strong' : 'text-primary-strong'}`}>
           <Money cents={Math.abs(s.free)} />
         </span>
       </div>

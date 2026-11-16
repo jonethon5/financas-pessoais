@@ -140,10 +140,15 @@ function BalanceSheet({ onClose }: { onClose: () => void }) {
           <p className="mt-1.5 leading-snug">{h.text}</p>
         </div>
         {b.verdict !== 'sem-renda' && (
+          <p className="-mb-2 px-1 text-[0.8125rem] leading-snug text-muted">
+            “Sai por mês” = gastos fixos e parcelas deste mês + a <strong>média</strong> do dia a dia dos últimos 3 meses (não só este mês). O detalhe está logo abaixo.
+          </p>
+        )}
+        {b.verdict !== 'sem-renda' && (
           <div className="grid grid-cols-3 gap-2 text-center">
             {[
               ['Entra', b.incomeCents],
-              ['Sai (média)', b.spendCents],
+              ['Sai por mês', b.spendCents],
               ['Sobra p/ guardar', b.leftCents],
             ].map(([label, v]) => (
               <div key={label} className="rounded-[1rem] bg-surface px-2 py-2.5">
