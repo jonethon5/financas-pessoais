@@ -12,13 +12,14 @@ import { EXTRA_CATEGORIES, categoryRow, type CategoryDef } from '../lib/categori
 import { useToast } from '../components/Toast'
 import { Button, Chip, ErrorBox, Field, List, NavBar, NavButton, Notice, Row, Segmented, Spinner, Switch } from '../components/ui'
 import { useBackend } from '../data/backend'
-import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useWrite } from '../data/finance'
+import { insertTxWithRules, tkey, useCategories, useGoals, useHistory, useRecurrings, useWrite } from '../data/finance'
+import { StopFixedSheet } from '../components/StopFixedSheet'
 import { useProfile } from '../data/hooks'
 import { concreteText, workTime } from '../lib/psych'
 import { countKey, ignoreKey, learnKey } from '../../supabase/functions/_shared/bankmap.ts'
 import { partyOf, txText } from '../lib/statement'
 import { BankDetail } from '../components/BankDetail'
-import { addDaysISO, addMonths, compareYearMonth, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
+import { addDaysISO, compareYearMonth, currentYearMonth, dayOf, isValidISODate, monthKey, monthLabel, monthOf, parseMonthKey, relativeDay, todayISO } from '../lib/dates'
 import { startMonthOptions, stableId } from '../lib/recurring'
 import { StartMonthField } from '../components/StartMonthField'
 import { RemindDays } from '../components/RemindDays'
@@ -64,6 +65,7 @@ export function TxFormPage() {
 function TxForm({ tx, categories }: { tx: Transaction | null; categories: Category[] }) {
   const navigate = useNavigate()
   const toast = useToast()
+  const recurringsQ = useRecurrings()
   const write = useWrite()
   const [params] = useSearchParams()
   const history = useHistory(3)
@@ -262,22 +264,17 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
     }
   }
 
-  async function onDelete(kind: 'one' | 'skip' | 'stop' | 'group') {
+  async function onDelete(kind: 'one' | 'group') {
     if (!tx) return
     setConfirmDelete(false)
     try {
       await write.mutateAsync(async (b) => {
-        if (kind === 'skip') await b.update('transactions', tx.id, { skipped: true })
-        else if (kind === 'stop' && tx.recurring_id) {
-          // Para de repetir: este mês sai e os próximos não são criados
-          await b.update('recurrings', tx.recurring_id, { end_month: monthKey(addMonths(monthOf(tx.date), -1)) })
-          await b.update('transactions', tx.id, { skipped: true })
-        } else if (kind === 'group' && tx.installment_group) {
+        if (kind === 'group' && tx.installment_group) {
           const group = await b.list('transactions', { eq: { installment_group: tx.installment_group } })
           await b.remove('transactions', group.map((p) => p.id))
         } else await b.remove('transactions', [tx.id])
       })
-      toast(kind === 'skip' ? 'Pulado neste mês' : kind === 'stop' ? 'Não repete mais' : 'Apagado')
+      toast('Apagado')
       navigate(-1)
     } catch (err) {
       setError(friendlyError(err))
@@ -466,7 +463,7 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
         {/* O que veio do banco não se apaga (voltaria na próxima atualização): usa o "contar" lá em cima */}
         {tx && tx.type !== 'salario' && !fromBank && (
           <Button variant="danger" onClick={() => setConfirmDelete(true)}>
-            {tx.type === 'fixo' ? 'Tirar deste mês' : 'Apagar'}
+            {tx.type === 'fixo' ? 'Tirar este gasto fixo' : 'Apagar'}
           </Button>
         )}
         {tx?.type === 'salario' && <p className="px-1 text-center text-[0.875rem] text-muted">O salário entra sozinho todo mês. Para mudar o valor dos próximos meses, vá em Você › Salário.</p>}
@@ -525,23 +522,25 @@ function TxForm({ tx, categories }: { tx: Transaction | null; categories: Catego
       </Sheet>
       <CategorySheet category={creating ? 'new' : null} kind={income ? 'income' : 'expense'} onCreated={setCategoryId} onClose={() => setCreating(false)} />
 
-      {tx && (
+      {tx?.type === 'fixo' && (
+        <StopFixedSheet
+          recurring={confirmDelete ? (recurringsQ.data ?? []).find((r) => r.id === tx.recurring_id) ?? null : null}
+          skipMonth={monthOf(tx.date)}
+          stopFrom={monthOf(tx.date)}
+          onClose={() => setConfirmDelete(false)}
+          onDone={() => navigate(-1)}
+        />
+      )}
+      {tx && tx.type !== 'fixo' && (
         <ConfirmSheet
           open={confirmDelete}
-          title={tx.type === 'fixo' ? 'Tirar este gasto fixo' : tx.type === 'parcela' ? 'Apagar parcelamento?' : 'Apagar lançamento?'}
-          confirmLabel={tx.type === 'fixo' ? 'Só neste mês' : tx.type === 'parcela' ? 'Apagar todas as parcelas' : 'Apagar'}
+          title={tx.type === 'parcela' ? 'Apagar parcelamento?' : 'Apagar lançamento?'}
+          confirmLabel={tx.type === 'parcela' ? 'Apagar todas as parcelas' : 'Apagar'}
           destructive
-          onConfirm={() => onDelete(tx.type === 'fixo' ? 'skip' : tx.type === 'parcela' ? 'group' : 'one')}
+          onConfirm={() => onDelete(tx.type === 'parcela' ? 'group' : 'one')}
           onClose={() => setConfirmDelete(false)}
         >
-          {tx.type === 'fixo' ? (
-            <>
-              Escolha se ele sai só deste mês ou se para de repetir.
-              <Button variant="secondary" className="mt-4 w-full" onClick={() => onDelete('stop')}>
-                Parar de repetir
-              </Button>
-            </>
-          ) : tx.type === 'parcela' ? (
+          {tx.type === 'parcela' ? (
             `Apaga as ${tx.installment_total} parcelas de “${tx.description}”.`
           ) : (
             `“${tx.description}” · ${formatBRL(tx.amount_cents)}`

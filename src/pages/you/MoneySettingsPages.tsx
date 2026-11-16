@@ -6,6 +6,7 @@ import { Sheet } from '../../components/Sheet'
 import { StartMonthField } from '../../components/StartMonthField'
 import { RemindDays } from '../../components/RemindDays'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
+import { StopFixedSheet } from '../../components/StopFixedSheet'
 import { useToast } from '../../components/Toast'
 import { BackButton, Button, Chip, ErrorBox, Field, List, NavBar, Row, Segmented, Spinner, Switch } from '../../components/ui'
 import { useCategories, useRecurrings, useWrite } from '../../data/finance'
@@ -186,7 +187,7 @@ export function FixedPage() {
       {live.length === 0 ? (
         <p className="py-8 text-center text-muted">Nenhum gasto fixo. Aluguel, telefone e assinaturas entram aqui e são lançados sozinhos todo mês.</p>
       ) : (
-        <List footer="Mudanças valem a partir do próximo lançamento automático. Pausado = não entra nos próximos meses.">
+        <List footer="Mudanças valem a partir do próximo lançamento automático. Para parar, apagar ou pular um mês, toque no gasto.">
           {live.map((r) => (
             <Row
               key={r.id}
@@ -314,16 +315,7 @@ function RecurringForm({ recurring, onDone }: { recurring: Recurring; onDone: ()
     }
   }
 
-  async function stop() {
-    try {
-      const ym = currentYearMonth()
-      await write.mutateAsync((b) => b.update('recurrings', recurring.id, { end_month: monthKey({ year: ym.year, month: ym.month }) }))
-      toast('Não repete mais a partir do mês que vem')
-      onDone()
-    } catch (err) {
-      setError(friendlyError(err))
-    }
-  }
+  const [stopping, setStopping] = useState(false)
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -331,7 +323,7 @@ function RecurringForm({ recurring, onDone }: { recurring: Recurring; onDone: ()
       <Field label="Nome" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={60} />
       <Field label="Valor por mês" prefix="R$" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
       <Field label="Dia do vencimento" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value)} />
-      <StartMonthField value={start} onChange={setStart} hint="Colocou no mês errado? Escolha o mês certo: os meses antes dele ficam sem esse gasto." />
+      <StartMonthField value={start} onChange={setStart} hint="Só para quando o gasto ainda vai começar. Para parar de cobrar, use “Tirar este gasto fixo”, lá embaixo." />
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
         {(categories.data ?? []).filter((c) => c.kind === 'expense' && !c.archived).map((c) => (
           <Chip key={c.id} selected={categoryId === c.id} onClick={() => setCategoryId(categoryId === c.id ? null : c.id)}>
@@ -373,9 +365,10 @@ function RecurringForm({ recurring, onDone }: { recurring: Recurring; onDone: ()
       <Button type="submit" loading={write.isPending}>
         Salvar
       </Button>
-      <Button variant="danger" onClick={stop}>
-        Encerrar (último mês é este)
+      <Button variant="danger" onClick={() => setStopping(true)}>
+        Tirar este gasto fixo
       </Button>
+      <StopFixedSheet recurring={stopping ? recurring : null} skipMonth={currentYearMonth()} stopFrom={addMonths(currentYearMonth(), 1)} onClose={() => setStopping(false)} onDone={onDone} />
     </form>
   )
 }

@@ -108,3 +108,13 @@ export function missingRows<T extends { id: string }>(expected: T[], existing: P
   const have = new Set(existing.map((t) => t.id))
   return expected.filter((r) => !have.has(r.id))
 }
+
+/**
+ * Ao tirar um gasto fixo (de vez, ou a partir de um mês): os lançamentos automáticos dele saem; os que vieram do
+ * banco ficam, como gasto comum (são pagamentos que aconteceram de verdade). `from` = primeiro dia sem o gasto
+ * (null = todos os meses).
+ */
+export function fixedRowsToClear<T extends Pick<Transaction, 'id' | 'date' | 'source'>>(rows: T[], from: string | null): { remove: string[]; detach: string[] } {
+  const target = from ? rows.filter((t) => t.date >= from) : rows
+  return { remove: target.filter((t) => t.source !== 'banco').map((t) => t.id), detach: target.filter((t) => t.source === 'banco').map((t) => t.id) }
+}

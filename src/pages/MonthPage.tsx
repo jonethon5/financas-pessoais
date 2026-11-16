@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryIcon } from '../components/CategoryIcon'
@@ -12,6 +12,8 @@ import { Badge, Button, Card, ErrorBox, List, Money, NavBar, Row, Segmented, Spi
 import { MascotArt } from '../components/Pig'
 import {  ChartsPage } from './ChartsPage'
 import { useMonthView } from '../data/monthView'
+import { useRecurrings } from '../data/finance'
+import { StopFixedSheet } from '../components/StopFixedSheet'
 import type { CategoryStatus } from '../lib/budget'
 import { addMonths, compareYearMonth, currentYearMonth, monthKey, monthLabel, parseMonthKey, relativeDay, type YearMonth } from '../lib/dates'
 import { installmentLabel } from '../lib/installments'
@@ -167,6 +169,9 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
 
   const catOf = (id: string | null) => categories.find((c) => c.id === id)
   const accounts = useAccounts()
+  const recurrings = useRecurrings()
+  // Fixo previsto (mês que ainda não chegou): tocar abre "Tirar este gasto fixo" daquele mês
+  const [stopId, setStopId] = useState<string | null>(null)
   const incomes = live.filter((t) => t.kind === 'income')
   const fixed = live.filter((t) => t.type === 'fixo')
   const parcels = live.filter((t) => t.type === 'parcela')
@@ -181,10 +186,12 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
       subtitle={subtitle ?? (t.bank_account_id ? <FromAccount info={accounts.byId(t.bank_account_id)} extra={[isTransfer(t, accounts.raw) ? movementOf(t, accounts.raw).label : null, catOf(t.category_id)?.name].filter(Boolean).join(' · ') || null} /> : catOf(t.category_id)?.name)}
       trailing={<Money cents={t.amount_cents} className={`text-[1.0625rem] ${t.kind === 'income' ? 'text-primary-strong' : ''}`} />}
       as={t.virtual ? undefined : link(`/lancamento/${t.id}`)}
+      onClick={t.virtual && t.recurring_id ? () => setStopId(t.recurring_id) : undefined}
+      chevron={Boolean(t.virtual && t.recurring_id)}
     />
   )
   const billStatus = (t: MonthTx) =>
-    t.virtual ? 'Previsto' : t.paid ? 'Pago' : t.date < today ? <span className="font-medium text-danger-strong">Vencido dia {Number(t.date.slice(8))}</span> : `Vence dia ${Number(t.date.slice(8))}`
+    t.virtual ? 'Previsto · toque para tirar' : t.paid ? 'Pago' : t.date < today ? <span className="font-medium text-danger-strong">Vencido dia {Number(t.date.slice(8))}</span> : `Vence dia ${Number(t.date.slice(8))}`
 
   const filterCat = categories.find((c) => c.id === categoryFilter)
   return (
@@ -207,6 +214,7 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
           {fixed.map((t) => row(t, billStatus(t)))}
         </List>
       )}
+      <StopFixedSheet recurring={(recurrings.data ?? []).find((r) => r.id === stopId) ?? null} skipMonth={ym} stopFrom={ym} onClose={() => setStopId(null)} />
       {parcels.length > 0 && <List header="Parcelas">{parcels.map((t) => row(t, billStatus(t)))}</List>}
 
       {days.length === 0 ? (

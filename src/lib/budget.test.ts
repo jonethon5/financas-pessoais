@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { BudgetMove, Category, Recurring, Transaction } from '../types'
-import { categoryStatuses, coverOptions, levelOf, quickPicks, rule503020, spendToday, subscriptions, summarizeMonth, weekRange } from './budget'
+import { categoryStatuses, coverOptions, levelOf, quickPicks, rule503020, spendToday, subscriptions, summarizeMonth, spendUntilPayday, weekRange } from './budget'
 import { buildInstallments } from './installments'
-import { expectedMonthRows, fixedToInstallments, isBillDue, missingRows, monthsBeforeStart, recurringActiveIn, remindWindow, stableId, startMonthOptions } from './recurring'
+import { expectedMonthRows, fixedRowsToClear, fixedToInstallments, isBillDue, missingRows, monthsBeforeStart, recurringActiveIn, remindWindow, stableId, startMonthOptions } from './recurring'
 
 let n = 0
 function tx(p: Partial<Transaction>): Transaction {
@@ -219,5 +219,49 @@ describe('salário e fixos automáticos', () => {
     expect(missingRows(rows, [{ id: rows[0].id }])).toEqual([rows[1]])
     const semSalario = await expectedMonthRows({ year: 2027, month: 2 }, 'u', { salary_cents: null, payday: 5 }, [], null)
     expect(semSalario).toEqual([])
+  })
+})
+
+describe('tirar um gasto fixo', () => {
+  const rows = [
+    { id: 'out', date: '2026-10-10', source: 'manual' as const },
+    { id: 'nov', date: '2026-11-10', source: 'manual' as const },
+    { id: 'nov-banco', date: '2026-11-12', source: 'banco' as const },
+    { id: 'dez', date: '2026-12-10', source: 'manual' as const },
+  ]
+  it('apagar de vez: some de todos os meses, mas o que veio do banco fica como gasto comum', () => {
+    expect(fixedRowsToClear(rows, null)).toEqual({ remove: ['out', 'nov', 'dez'], detach: ['nov-banco'] })
+  })
+  it('parar a partir de um mês: os meses de antes ficam como estão', () => {
+    expect(fixedRowsToClear(rows, '2026-12-01')).toEqual({ remove: ['dez'], detach: [] })
+  })
+})
+
+describe('pode gastar até o salário (banco conectado)', () => {
+  const base = { today: '2026-11-16', payday: 30, accountIds: new Set(['nubank']), recurrings: [] }
+  const fixo = (date: string, amount_cents: number, paid = false) => ({ kind: 'expense' as const, type: 'fixo' as const, skipped: false, paid, source: 'manual' as const, date, amount_cents, bank_account_id: null })
+  it('usa o saldo de verdade: R$ 11,38 na conta, fatura depois do salário, nada vencendo → pouco por dia', () => {
+    const r = spendUntilPayday({ ...base, balance: 1138, txs: [], bills: [{ amountCents: 92200, dueDate: '2026-12-05' }] })
+    expect(r.payDate).toBe('2026-11-30')
+    expect(r.daysLeft).toBe(14)
+    expect(r.dailyAllowance).toBe(81)
+    expect(r.short).toBe(0)
+  })
+  it('conta que vence antes do salário sai do saldo; se não cobre, diz quanto falta', () => {
+    const r = spendUntilPayday({ ...base, balance: 1138, txs: [fixo('2026-11-20', 21400), fixo('2026-11-10', 5000), fixo('2026-11-22', 13000, true)], bills: [] })
+    expect(r.dueBeforePay).toBe(21400)
+    expect(r.dailyAllowance).toBe(0)
+    expect(r.short).toBe(20262)
+  })
+  it('fatura que vence antes do salário entra nas contas', () => {
+    const r = spendUntilPayday({ ...base, payday: 10, today: '2026-11-16', balance: 100000, txs: [], bills: [{ amountCents: 92200, dueDate: '2026-12-05' }], recurrings: [{ amount_cents: 3900, day: 7, active: true, start_month: '2026-01', end_month: null }] })
+    expect(r.payDate).toBe('2026-12-10')
+    expect(r.dueBeforePay).toBe(92200 + 3900)
+  })
+  it('gasto de hoje pela conta já saiu do saldo: volta para a conta do dia e sai do valor de hoje', () => {
+    const pix = { kind: 'expense' as const, type: 'dia' as const, skipped: false, paid: true, source: 'banco' as const, date: '2026-11-16', amount_cents: 1400, bank_account_id: 'nubank' }
+    const r = spendUntilPayday({ ...base, balance: 14000 - 1400, txs: [pix], bills: [] })
+    expect(r.dailyAllowance).toBe(1000)
+    expect(r.leftToday).toBe(-400)
   })
 })

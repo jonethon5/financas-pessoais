@@ -80,7 +80,7 @@ export const HELP: HelpGroup[] = [
     id: 'graficos',
     title: 'Números e indicadores',
     items: [
-      { q: 'Como é calculado o "Hoje você pode gastar"?', a: 'É o que sobra do mês dividido pelos dias que faltam: renda, menos fixos e parcelas, menos o que vai para as caixinhas, menos o que você já gastou no dia a dia até ontem. Se gastar menos hoje, o valor dos próximos dias aumenta.' },
+      { q: 'Como é calculado o "Hoje você pode gastar"?', a: 'Com o banco conectado: é o saldo da sua conta, menos as contas e a fatura que vencem antes do salário, dividido pelos dias até o salário. Limite do cartão não entra, porque não é dinheiro seu. Sem banco: é a renda do mês, menos fixos, parcelas e caixinhas, menos o que você já gastou, dividido pelos dias que faltam. Se gastar menos hoje, o valor dos próximos dias aumenta.' },
       { q: 'Onde vejo para onde foi o dinheiro?', a: 'Na aba Mês. Em Resumo: a conta do mês separada por gastos fixos, parcelas, cartão e Pix, e os gastos por categoria (com o limite de cada uma). Em Gráficos: ranking, evolução de 6 ou 12 meses e os dias em que você mais gasta.', to: { label: 'Abrir os gráficos', path: '/mes?aba=graficos' } },
       { q: 'O que é o painel de cada conta e cartão?', a: 'Em Contas e cartões, toque num cartãozinho: aparecem o gasto do mês, a compra média, a maior compra, as categorias, os dias da semana em que mais sai dinheiro, os lugares que mais se repetem e o que o mascote reparou.' },
       { q: 'O que é a Saúde financeira?', a: 'Uma nota de 0 a 100 feita com cinco partes: sobra no mês, reserva de emergência, controle dos gastos, dívidas e constância em guardar. Toque nela para ver o que mais ajuda a subir.', to: { label: 'Ver a Saúde', path: '/saude' } },

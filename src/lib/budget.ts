@@ -1,6 +1,7 @@
 // Regras do orçamento do mês. Tudo em centavos inteiros; o app calcula e a tela só mostra.
 import type { BudgetMove, Category, Recurring, Transaction } from '../types'
-import { addDaysISO, daysInMonth, dayOf, monthKey, monthOf, weekdayOf } from './dates'
+import { addDaysISO, addMonths, daysBetweenISO, daysInMonth, dayOf, isoDate, monthKey, monthOf, weekdayOf } from './dates'
+import { recurringActiveIn } from './recurring'
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 const counts = (t: Transaction) => !t.skipped
@@ -60,6 +61,65 @@ export function spendToday(monthTxs: Transaction[], save: number, today: string)
   const availableFromToday = s.income - s.committed - save - dailyBefore
   const dailyAllowance = availableFromToday > 0 ? Math.floor(availableFromToday / daysLeft) : 0
   return { daysLeft, dailyAllowance, spentToday, leftToday: dailyAllowance - spentToday, availableFromToday }
+}
+
+/** Próximo dia do salário depois de hoje (no próprio dia do pagamento, o salário já conta como recebido). */
+export function nextPayday(today: string, payday: number): string {
+  const ym = dayOf(today) >= payday ? addMonths(monthOf(today), 1) : monthOf(today)
+  return isoDate(ym, payday)
+}
+
+export type CashToday = TodayBudget & {
+  /** dia em que o próximo salário cai */
+  payDate: string
+  /** contas (fixos, parcelas, faturas) que vencem antes do salário e ainda não foram pagas */
+  dueBeforePay: number
+  /** quanto falta para cobrir essas contas (0 = cobre) */
+  short: number
+}
+
+type CashTx = Pick<Transaction, 'kind' | 'type' | 'skipped' | 'paid' | 'source' | 'date' | 'amount_cents' | 'bank_account_id'>
+
+/**
+ * "Quanto posso gastar hoje" com o banco conectado: o dinheiro que EXISTE, até o próximo salário.
+ *   (saldo da conta − contas que vencem antes do salário) ÷ dias até o salário
+ * Contas = fixos e parcelas não pagos que vencem até a véspera do salário (e os vencidos há até 3 dias, como em
+ * "Precisa da sua atenção") + faturas que vencem antes dele.
+ * O saldo do banco já tem o gasto de hoje feito pela conta; ele volta para a conta do dia (sai do valor de hoje, não
+ * do saldo). Limite do cartão não entra: não é dinheiro.
+ */
+export function spendUntilPayday(o: {
+  today: string
+  payday: number
+  balance: number
+  txs: CashTx[]
+  /** contas correntes conectadas (o gasto de hoje nelas já está no saldo) */
+  accountIds: Set<string>
+  bills: { amountCents: number; dueDate: string | null }[]
+  /** gastos fixos: os do mês seguinte que vencem antes do salário ainda não viraram lançamento */
+  recurrings: Pick<Recurring, 'amount_cents' | 'day' | 'active' | 'start_month' | 'end_month'>[]
+}): CashToday {
+  const { today } = o
+  const payDate = nextPayday(today, o.payday)
+  const daysLeft = Math.max(1, daysBetweenISO(today, payDate))
+  const thisMonth = monthOf(today)
+  let due = sum(
+    o.txs
+      .filter((t) => t.kind === 'expense' && !t.skipped && !t.paid && t.source !== 'banco' && (t.type === 'fixo' || t.type === 'parcela') && t.date >= addDaysISO(today, -3) && t.date < payDate)
+      .map((t) => t.amount_cents),
+  )
+  // Mês seguinte (salário no começo do mês): fixos de lá que vencem antes do salário
+  const next = addMonths(thisMonth, 1)
+  if (monthOf(payDate).month === next.month) {
+    for (const r of o.recurrings) if (recurringActiveIn(r, next) && isoDate(next, r.day) < payDate) due += r.amount_cents
+  }
+  due += sum(o.bills.filter((b) => b.dueDate && b.dueDate < payDate).map((b) => b.amountCents))
+  const dayTx = o.txs.filter((t) => t.kind === 'expense' && !t.skipped && t.type === 'dia' && t.date === today)
+  const spentToday = sum(dayTx.map((t) => t.amount_cents))
+  const fromAccountToday = sum(dayTx.filter((t) => t.bank_account_id && o.accountIds.has(t.bank_account_id)).map((t) => t.amount_cents))
+  const availableFromToday = o.balance + fromAccountToday - due
+  const dailyAllowance = availableFromToday > 0 ? Math.floor(availableFromToday / daysLeft) : 0
+  return { daysLeft, dailyAllowance, spentToday, leftToday: dailyAllowance - spentToday, availableFromToday, payDate, dueBeforePay: due, short: availableFromToday < 0 ? -availableFromToday : 0 }
 }
 
 // ---------------------------------------------------------------------------

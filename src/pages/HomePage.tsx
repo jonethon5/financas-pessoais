@@ -18,7 +18,7 @@ import { useRecurrings, useTable } from '../data/finance'
 import { isBillDue, remindWindow } from '../lib/recurring'
 import { cardBills, dueText } from '../lib/bills'
 import { cardCycles, nextInvoices } from '../lib/cardcycle'
-import type { TodayBudget } from '../lib/budget'
+import { spendUntilPayday, type CashToday, type TodayBudget } from '../lib/budget'
 import { ProfileAvatar, displayName } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { AnimatedMoney, Badge, ErrorBox, HelpButton, List, Money, Row, Spinner } from '../components/ui'
@@ -31,7 +31,7 @@ import { wishState } from '../lib/psych'
 import { friendlyError } from '../lib/supabase'
 
 const HOME_TOUR: TourStep[] = [
-  { target: 'hoje', title: 'Quanto você pode gastar hoje', text: 'O número mais importante: já desconta as contas fixas e o que você vai guardar. Gastou menos hoje? Sobra mais amanhã.' },
+  { target: 'hoje', title: 'Quanto você pode gastar hoje', text: 'O número mais importante: o dinheiro da conta, já sem as contas que vencem antes do salário, dividido pelos dias até ele. Gastou menos hoje? Sobra mais amanhã.' },
   { target: 'atencao', title: 'O que precisa da sua atenção', text: 'Contas e faturas perto de vencer aparecem aqui. Quando não tem nada, está tudo em dia.' },
   { target: 'mais', title: 'Lance em 2 toques', text: 'Toque no + para lançar um gasto, uma renda ou guardar dinheiro numa caixinha.' },
   { target: 'menu', title: 'Tudo do app', text: 'No menu ficam as outras telas: saúde financeira, desafios, aprender, porquinho e ajustes.' },
@@ -76,7 +76,7 @@ function Section({ title, to, children, tour, links }: { title: string; to?: str
  * "Hoje você pode gastar" dentro do topo azul (como o saldo nos apps de banco),
  * com o porquinho reagindo: feliz, preocupado perto do limite, aflito quando passa.
  */
-function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | null; hidden: boolean; onSetSalary: () => void }) {
+function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | CashToday | null; hidden: boolean; onSetSalary: () => void }) {
   const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
   if (!t) {
     return (
@@ -92,6 +92,8 @@ function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | null; hidden: 
       </div>
     )
   }
+  // Com banco conectado: a conta é o saldo de verdade até o salário (não o salário previsto)
+  const cash = 'payDate' in t ? t : null
   const over = t.leftToday < 0
   const ratio = t.dailyAllowance > 0 ? t.spentToday / t.dailyAllowance : 0
   const warn = !over && ratio >= 0.8
@@ -107,7 +109,7 @@ function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | null; hidden: 
             <AnimatedMoney cents={t.leftToday} className="block text-[2.5rem] leading-tight font-extrabold tracking-[-0.03em]" />
           )}
           <span className="mt-1 inline-flex rounded-full bg-black/15 px-2.5 py-0.5 text-[0.8125rem] font-semibold">
-            {t.daysLeft === 1 ? 'Último dia do mês' : `Faltam ${t.daysLeft} dias`}
+            {cash ? (t.daysLeft === 1 ? 'O salário cai amanhã' : `Faltam ${t.daysLeft} dias para o salário`) : t.daysLeft === 1 ? 'Último dia do mês' : `Faltam ${t.daysLeft} dias`}
           </span>
         </div>
         <Pig art={art} px={96} className="-mb-1" />
@@ -122,6 +124,12 @@ function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | null; hidden: 
             {over ? 'Amanhã o valor do dia se ajusta sozinho. Sem culpa: segue o plano.' : `${money(t.spentToday)} gastos hoje de ${money(t.dailyAllowance)}`}
           </p>
         </div>
+      ) : cash && cash.short > 0 ? (
+        <p className="mt-2 text-[0.875rem] leading-snug text-white">
+          O que tem na conta não cobre as contas que vencem até o salário. Faltam {money(cash.short)}: evite gastos até o dia {Number(cash.payDate.slice(8))}.
+        </p>
+      ) : cash ? (
+        <p className="mt-2 text-[0.875rem] leading-snug text-white">O saldo da conta só cobre as contas até o salário. Evite gastos até o dia {Number(cash.payDate.slice(8))}.</p>
       ) : (
         <p className="mt-2 text-[0.875rem] leading-snug text-white">O dinheiro do dia a dia deste mês acabou. Vamos ajustar: veja o Mês.</p>
       )}
@@ -167,6 +175,20 @@ export function HomePage() {
   const nextCard = nextInvoices(allTxs, today, cardCycles(wallet.raw))
   const bills = cardBills(wallet.raw, today, allTxs)
   const urgentBills = bills.filter((b) => b.urgent)
+  // "Hoje você pode gastar" com banco conectado: saldo das contas − contas até o salário, por dia até o salário
+  const contas = wallet.list.filter((a) => a.kind === 'conta')
+  const cash =
+    contas.length && p.payday
+      ? spendUntilPayday({
+          today,
+          payday: p.payday,
+          balance: contas.reduce((a, c) => a + (c.account.balance_cents ?? 0), 0),
+          txs: allTxs,
+          accountIds: new Set(contas.map((c) => c.account.id)),
+          bills,
+          recurrings: recurrings.data ?? [],
+        })
+      : null
   const needsSplit = hasSalary && dayOf(today) >= Math.min(p.payday!, 28) && !plan?.split_done_at
   const readyWish = (wishes.data ?? []).find((w) => wishState(w, today).ready)
 
@@ -279,7 +301,7 @@ export function HomePage() {
           </div>
         </div>
         <p className="mt-3 text-[1.125rem] font-semibold text-white">{name ? `Olá, ${name}` : 'Olá'}</p>
-        <TodayHero t={t && hasSalary ? t : null} hidden={hidden} onSetSalary={() => navigate('/voce')} />
+        <TodayHero t={cash ?? (t && hasSalary ? t : null)} hidden={hidden} onSetSalary={() => navigate('/voce')} />
       </header>
 
       <Section title="Precisa da sua atenção" tour="atencao">

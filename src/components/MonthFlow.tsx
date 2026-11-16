@@ -87,7 +87,7 @@ export function MonthFlow({ s, txs, current = false, history }: { s: MonthSummar
       )}
       {s.save > 0 && line('Para as caixinhas', 'o que você combinou guardar', s.save, '−')}
       <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-line pt-2.5">
-        <span className="text-[0.9375rem] font-bold">{pending ? (over ? 'Por enquanto, faltam' : 'Por enquanto, sobram') : over ? 'Faltam no mês' : 'Sobra prevista'}</span>
+        <span className="text-[0.9375rem] font-bold">{pending ? 'Resultado do mês, por enquanto' : 'Resultado do mês'}</span>
         <span className={`num text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] ${pending ? 'text-ink' : over ? 'text-danger-strong' : 'text-primary-strong'}`}>
           <Money cents={Math.abs(s.free)} />
         </span>
@@ -213,7 +213,7 @@ export function MoneyNow({ accounts, bills, payday, today }: { accounts: Account
     if (Number(today.slice(8, 10)) >= payday) [y, m] = m === 12 ? [y + 1, 1] : [y, m + 1]
     nextPay = `${y}-${String(m).padStart(2, '0')}-${String(payday).padStart(2, '0')}`
   }
-  const billBeforePay = bills.some((b) => b.dueDate && nextPay && b.dueDate <= nextPay)
+  const billBeforePay = bills.some((b) => b.dueDate && nextPay && b.dueDate < nextPay)
   const row = (label: string, hint: string | null, cents: number, tone = '') => (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <span className="min-w-0">
