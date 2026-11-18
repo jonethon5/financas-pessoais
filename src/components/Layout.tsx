@@ -11,7 +11,7 @@ import { MenuSheet } from './MenuSheet'
 import { RateScreen } from './RateScreen'
 import { screenOf } from '../lib/ratings'
 import { useDesktop } from '../lib/useDesktop'
-import { MAIN_TABS, Sidebar } from './Sidebar'
+import { DesktopHeader, MAIN_TABS } from './DesktopHeader'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
 
@@ -62,7 +62,7 @@ function TabItem({ to, label, icon: Icon }: Tab) {
 
 /**
  * Celular: uma coluna, com a barra de abas translúcida embaixo e o "+" no meio, que abre o menu de lançar.
- * Computador: menu fixo à esquerda (com o botão Lançar) e a tela numa coluna mais larga ao lado.
+ * Computador: barra azul no topo (abas, Mais, Lançar e perfil), como o internet banking, e a tela embaixo.
  */
 export function Layout() {
   const { mode, configured, exitDemo } = useAuth()
@@ -93,8 +93,7 @@ export function Layout() {
   return (
     // No computador o menu já está sempre à vista (na lateral): sem botão ☰
     <MenuContext.Provider value={fullScreen || desktop ? null : () => setMenuOpen(true)}>
-    {desktop && <Sidebar ref={addAnchor} onAdd={() => setAddOpen((v) => !v)} addOpen={addOpen} />}
-    <div className="mx-auto min-h-dvh w-full max-w-[30rem] bg-bg lg:max-w-none lg:pl-64">
+    <div className="desk mx-auto min-h-dvh w-full max-w-[30rem] bg-bg lg:max-w-none">
       {mode === 'demo' && (
         <p className="pt-safe px-4 pt-1.5 text-center text-[0.8125rem] font-medium text-muted">
           Demonstração · dados de exemplo só neste aparelho
@@ -121,8 +120,10 @@ export function Layout() {
         </div>
       )}
 
+      {desktop && <DesktopHeader ref={addAnchor} onAdd={() => setAddOpen((v) => !v)} addOpen={addOpen} />}
+
       <main className={`px-4 lg:overflow-x-clip lg:px-8 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-12'}`}>
-        <div key={pathname} className={`animate-page lg:mx-auto ${fullScreen ? 'lg:max-w-[36rem]' : wide ? 'lg:max-w-[44rem] xl:max-w-[66rem]' : 'lg:max-w-[44rem]'}`}>
+        <div key={pathname} className={`animate-page lg:mx-auto ${fullScreen ? 'lg:max-w-[38rem]' : wide ? 'lg:max-w-[72rem]' : 'lg:max-w-[52rem]'}`}>
           <Outlet />
           {screen && <RateScreen screen={screen} search={search} />}
         </div>

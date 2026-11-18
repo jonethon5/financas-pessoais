@@ -24,7 +24,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-0 z-50 lg:left-64">
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
         {toast && (
           <div className="absolute inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] flex justify-center px-4 lg:bottom-8">
           <div className="animate-toast flex max-w-full items-center gap-2 rounded-full bg-[#1b2430]/95 py-3 pr-3 pl-5 text-[0.9375rem] font-medium text-white shadow-lg backdrop-blur-xl">

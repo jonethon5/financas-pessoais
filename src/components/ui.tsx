@@ -6,6 +6,7 @@ import { useHiddenValues } from '../lib/privacy'
 import { Link, useLocation } from 'react-router'
 import { Question } from '@phosphor-icons/react'
 import { MenuButton } from './MenuContext'
+import { useDesktop } from '../lib/useDesktop'
 
 const variants = {
   primary: 'bg-primary text-on-primary active:bg-primary-strong disabled:opacity-40',
@@ -253,7 +254,7 @@ export function Row({
       </div>
     </>
   )
-  const cls = `flex w-full items-center gap-3 pl-4 text-left transition active:bg-surface-2 ${className}`
+  const cls = `flex w-full items-center gap-3 pl-4 text-left transition active:bg-surface-2 hover:bg-surface-2/50 ${className}`
   return (
     <li className="group">
       {as ? (
@@ -263,7 +264,7 @@ export function Row({
           {content}
         </button>
       ) : (
-        <div className={cls.replace('active:bg-surface-2', '')}>{content}</div>
+        <div className={cls.replace('active:bg-surface-2 hover:bg-surface-2/50', '')}>{content}</div>
       )}
     </li>
   )
@@ -377,6 +378,10 @@ export function NavBar({
 }) {
   const sentinel = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(!large)
+  // Computador: a barra do topo (abas, ajuda) já fica fixa. Com título grande, Voltar e os botões da tela
+  // vão para a faixa do título; a barrinha só aparece nos formulários (Cancelar, Salvar)
+  const desktop = useDesktop()
+  const inBand = desktop && large
 
   useEffect(() => {
     if (!large || !sentinel.current) return
@@ -388,23 +393,33 @@ export function NavBar({
   return (
     <>
       {/* Topo azul em todas as telas, igual ao da tela inicial (identidade do app, como o roxo do Nubank) */}
-      <div className={`brand-bar pt-safe sticky top-0 z-30 -mx-4 print:hidden ${compact ? 'shadow-[0_6px_16px_-10px_rgb(15_36_51/0.5)]' : ''}`}>
+      {!inBand && (
+      <div className={`brand-bar pt-safe sticky top-0 z-30 -mx-4 print:hidden lg:static lg:shadow-none ${compact ? 'shadow-[0_6px_16px_-10px_rgb(15_36_51/0.5)]' : ''}`}>
         <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex min-w-0 justify-start overflow-hidden">{left}</div>
           <p className={`max-w-[42vw] truncate px-2 text-[1.0625rem] font-semibold transition-opacity duration-200 ${compact ? 'opacity-100' : 'opacity-0'}`}>{title}</p>
           <div className="flex min-w-0 items-center justify-end gap-0.5 overflow-hidden">
             {right}
-            {help && <HelpButton />}
+            {help && (
+              <span className="contents lg:hidden">
+                <HelpButton />
+              </span>
+            )}
             {menu && <MenuButton />}
           </div>
         </div>
       </div>
+      )}
       {large && (
-        <header className="brand-band -mx-4 mb-5 px-5 pt-0.5 pb-5">
+        <header className="brand-band -mx-4 mb-5 px-5 pt-0.5 pb-5 lg:mb-8 lg:px-4 lg:pt-6 lg:pb-9">
+          {inBand && left && <div className="-ml-2 mb-1 flex">{left}</div>}
           {subtitle && <p className="text-[0.9375rem]">{subtitle}</p>}
-          <h1 ref={sentinel} className="text-[1.875rem] leading-[1.15] font-extrabold tracking-[-0.025em]">
-            {title}
-          </h1>
+          <div className="flex items-end justify-between gap-4">
+            <h1 ref={sentinel} className="text-[1.875rem] leading-[1.15] font-extrabold tracking-[-0.025em] lg:text-[2.5rem]">
+              {title}
+            </h1>
+            {inBand && right && <div className="brand-actions flex shrink-0 items-center gap-1 pb-1">{right}</div>}
+          </div>
           {children}
         </header>
       )}

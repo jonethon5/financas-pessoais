@@ -195,7 +195,7 @@ export function AssistantPage() {
         <p className="px-1 text-center text-[0.75rem] leading-snug text-faint">Dicas de orçamento e hábitos. Não é recomendação de investimento.</p>
       </div>
 
-      <form onSubmit={submit} className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 lg:left-[calc(50%+8rem)] lg:max-w-[44rem] border-t border-line bg-bg/95 px-4 pt-2.5 backdrop-blur-xl">
+      <form onSubmit={submit} className="pb-safe fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 lg:max-w-[52rem] border-t border-line bg-bg/95 px-4 pt-2.5 backdrop-blur-xl">
         <div className="mb-2.5 flex items-center gap-2 rounded-full bg-surface py-1.5 pr-1.5 pl-4">
           <input
             value={text}

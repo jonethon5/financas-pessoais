@@ -29,6 +29,8 @@ import { formatBRL } from '../lib/money'
 import { toggleHidden, useHiddenValues } from '../lib/privacy'
 import { wishState } from '../lib/psych'
 import { friendlyError } from '../lib/supabase'
+import { useDesktop } from '../lib/useDesktop'
+import { CARD_ICONS, DesktopHome, type ProductCardData } from './HomeDesktop'
 
 const HOME_TOUR: TourStep[] = [
   { target: 'hoje', title: 'Quanto você pode gastar hoje', text: 'O número mais importante: o dinheiro da conta, já sem as contas que vencem antes do salário, dividido pelos dias até ele. Gastou menos hoje? Sobra mais amanhã.' },
@@ -76,7 +78,7 @@ function Section({ title, to, children, tour, links }: { title: string; to?: str
  * "Hoje você pode gastar" dentro do topo azul (como o saldo nos apps de banco),
  * com o porquinho reagindo: feliz, preocupado perto do limite, aflito quando passa.
  */
-function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | CashToday | null; hidden: boolean; onSetSalary: () => void }) {
+function TodayHero({ t, hidden, onSetSalary, big = false }: { t: TodayBudget | CashToday | null; hidden: boolean; onSetSalary: () => void; big?: boolean }) {
   const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
   if (!t) {
     return (
@@ -106,13 +108,13 @@ function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | CashToday | nu
           {over ? (
             <p className="mt-0.5 text-[1.875rem] leading-tight font-extrabold tracking-tight text-[#FFD9CF]">Passou {money(-t.leftToday)}</p>
           ) : (
-            <AnimatedMoney cents={t.leftToday} className="block text-[2.5rem] leading-tight font-extrabold tracking-[-0.03em]" />
+            <AnimatedMoney cents={t.leftToday} className={`block leading-tight font-extrabold tracking-[-0.03em] ${big ? 'text-[3.5rem]' : 'text-[2.5rem]'}`} />
           )}
           <span className="mt-1 inline-flex rounded-full bg-black/15 px-2.5 py-0.5 text-[0.8125rem] font-semibold">
             {cash ? (t.daysLeft === 1 ? 'O salário cai amanhã' : `Faltam ${t.daysLeft} dias para o salário`) : t.daysLeft === 1 ? 'Último dia do mês' : `Faltam ${t.daysLeft} dias`}
           </span>
         </div>
-        <Pig art={art} px={96} className="-mb-1" />
+        <Pig art={art} px={big ? 136 : 96} className="-mb-1" />
       </div>
 
       {t.dailyAllowance > 0 ? (
@@ -157,6 +159,7 @@ export function HomePage() {
   const [showAll, setShowAll] = useState(false)
   const [triage, setTriage] = useState(false)
   const openMenu = useOpenMenu()
+  const desktop = useDesktop()
   // As metas do dia do porquinho continuam valendo moedas (a seção dele saiu do Início; ele fica no topo)
   usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   if (view.isPending) return <Spinner />
@@ -283,10 +286,95 @@ export function HomePage() {
   }
   const visible = showAll ? attention : attention.slice(0, 3)
 
+  const attentionList =
+    attention.length === 0 ? (
+      <p className="flex items-center gap-2 text-[0.9375rem] text-muted">
+        <CheckCircle2 className="size-5 shrink-0 text-grow" aria-hidden /> Tudo em dia: nada vence nos próximos dias.
+      </p>
+    ) : (
+      <>
+        <List>
+          {visible.map((a) => (
+            <Fragment key={a.key}>{a.node}</Fragment>
+          ))}
+        </List>
+        {attention.length > 3 && (
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 px-1 text-[0.9375rem] font-semibold text-primary-strong">
+            {showAll ? 'Mostrar menos' : `Ver mais ${attention.length - 3}`}
+          </button>
+        )}
+      </>
+    )
+  const recentList =
+    recent.length === 0 ? (
+      <p className="text-muted">Nenhum gasto do dia a dia neste mês. Toque no + para lançar.</p>
+    ) : (
+      <ul className="divide-y divide-line">
+        {recent.map((x) => (
+          <StatementRow key={x.id} t={x} category={catOf(x.category_id)} accounts={wallet.raw} account={wallet.byId(x.bank_account_id)} />
+        ))}
+      </ul>
+    )
+
+  if (desktop) {
+    const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
+    const naConta = contas.reduce((a, c) => a + (c.account.balance_cents ?? 0), 0)
+    const fatura = bills.reduce((a, b) => a + b.amountCents, 0)
+    const nextBill = [...bills].sort((a, b) => (a.daysUntil ?? 99) - (b.daysUntil ?? 99))[0]
+    const goals = view.data.goals
+    const saved = goals.reduce((a, g) => a + g.status.saved, 0)
+    const planned = goals.filter((g) => !g.status.done).reduce((a, g) => a + (g.status.perMonth ?? 0), 0)
+    const thisMonth = goals.reduce((a, g) => a + Math.max(0, g.status.savedThisMonth), 0)
+    const pending = unclassified.length > 0
+    const cards: ProductCardData[] = [
+      contas.length
+        ? { to: '/voce/bancos', title: 'Conta', icon: CARD_ICONS.Bank, label: 'Na conta agora', cents: naConta, sub: contas.map((c) => c.short).join(' e ') }
+        : { to: '/voce/bancos', title: 'Conta', icon: CARD_ICONS.Bank, label: 'Banco', cents: null, empty: 'Conecte seu banco', sub: 'Os gastos entram sozinhos' },
+      bills.length
+        ? { to: `/voce/bancos/${nextBill.accountId}`, title: 'Cartão de crédito', icon: CARD_ICONS.CreditCard, label: 'Fatura a pagar', cents: fatura, tone: nextBill.daysUntil != null && nextBill.daysUntil < 0 ? 'bad' : 'ink', sub: dueText(nextBill.daysUntil).replace(/^./, (c) => c.toUpperCase()) }
+        : nextCard && nextCard.cents > 0
+          ? { to: '/mes', title: 'Cartão de crédito', icon: CARD_ICONS.CreditCard, label: 'Já gasto no cartão', cents: nextCard.cents, sub: `Fatura de ${monthLabel(nextCard.month).split(' ')[0].toLowerCase()}` }
+          : { to: '/voce/bancos', title: 'Cartão de crédito', icon: CARD_ICONS.CreditCard, label: 'Fatura', cents: null, empty: 'Nenhum cartão', sub: 'Conecte o banco para ver a fatura' },
+      {
+        to: '/caixinhas',
+        title: 'Caixinhas',
+        icon: CARD_ICONS.PiggyBank,
+        label: 'Guardado nas caixinhas',
+        cents: saved,
+        progress: planned > 0 ? thisMonth / planned : null,
+        sub: planned > 0 ? `${money(thisMonth)} de ${money(planned)} este mês` : goals.length ? undefined : 'Crie a primeira caixinha',
+      },
+      {
+        to: '/mes',
+        title: 'Mês',
+        icon: CARD_ICONS.CalendarDots,
+        label: s.free < 0 ? 'Faltou no mês' : pending ? 'Resultado do mês, por enquanto' : 'Resultado do mês',
+        cents: Math.abs(s.free),
+        tone: pending ? 'ink' : s.free < 0 ? 'bad' : 'good',
+        sub: `Entrou ${money(s.income)} · saiu ${money(s.committed + s.daily + s.save)}`,
+      },
+    ]
+    return (
+      <>
+        <DesktopHome
+          greeting={name ? `Olá, ${name}` : 'Olá'}
+          hero={<TodayHero t={cash ?? (t && hasSalary ? t : null)} hidden={hidden} onSetSalary={() => navigate('/voce')} big />}
+          cards={cards}
+          hidden={hidden}
+          hasBank={contas.length > 0}
+          attention={attentionList}
+          recent={recentList}
+        />
+        {triage && <IncomeTriage txs={txs} onClose={() => setTriage(false)} />}
+        <Tour id="inicio-v2" steps={HOME_TOUR} />
+      </>
+    )
+  }
+
   return (
     <div className="flex flex-col">
       {/* Topo azul, como nos apps de banco: foto, olho para esconder valores e ajustes */}
-      <header className="brand-bleed pt-safe -mx-4 bg-gradient-to-b from-[#2F6FEB] to-[#1D5FD6] px-4 pb-5 text-white lg:pb-7">
+      <header className="pt-safe -mx-4 bg-gradient-to-b from-[#2F6FEB] to-[#1D5FD6] px-4 pb-5 text-white">
         <div className="flex items-center justify-between pt-4">
           <Link to="/voce" aria-label="Você" className="rounded-full ring-2 ring-white/25">
             <ProfileAvatar profile={p} size="md" />
@@ -307,27 +395,8 @@ export function HomePage() {
         <TodayHero t={cash ?? (t && hasSalary ? t : null)} hidden={hidden} onSetSalary={() => navigate('/voce')} />
       </header>
 
-      <div className="xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-12">
-      <div className="flex flex-col">
       <Section title="Precisa da sua atenção" tour="atencao">
-        {attention.length === 0 ? (
-          <p className="flex items-center gap-2 text-[0.9375rem] text-muted">
-            <CheckCircle2 className="size-5 shrink-0 text-grow" aria-hidden /> Tudo em dia: nada vence nos próximos dias.
-          </p>
-        ) : (
-          <>
-            <List>
-              {visible.map((a) => (
-                <Fragment key={a.key}>{a.node}</Fragment>
-              ))}
-            </List>
-            {attention.length > 3 && (
-              <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 px-1 text-[0.9375rem] font-semibold text-primary-strong">
-                {showAll ? 'Mostrar menos' : `Ver mais ${attention.length - 3}`}
-              </button>
-            )}
-          </>
-        )}
+        {attentionList}
       </Section>
 
       {wallet.list.some((a) => a.kind === 'conta') && (
@@ -345,8 +414,6 @@ export function HomePage() {
         )}
       </Section>
 
-      </div>
-      <div className="flex flex-col">
       {wallet.list.length > 0 && (
         <Section title="Contas e cartões" to="/voce/bancos" links>
           <Wallet accounts={wallet.list} dueOf={(id) => bills.find((b) => b.accountId === id)?.dueDate ?? null} />
@@ -354,19 +421,8 @@ export function HomePage() {
       )}
 
       <Section title="Últimos gastos" to="/extrato" links>
-        {recent.length === 0 ? (
-          <p className="text-muted">Nenhum gasto do dia a dia neste mês. Toque no + para lançar.</p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {recent.map((x) => (
-              <StatementRow key={x.id} t={x} category={catOf(x.category_id)} accounts={wallet.raw} account={wallet.byId(x.bank_account_id)} />
-            ))}
-          </ul>
-        )}
+        {recentList}
       </Section>
-
-      </div>
-      </div>
 
       {triage && <IncomeTriage txs={txs} onClose={() => setTriage(false)} />}
       <Tour id="inicio-v2" steps={HOME_TOUR} />

@@ -105,9 +105,14 @@ function AddMenu({ anchor, shown, onClose, go }: { anchor: RefObject<HTMLElement
 
   useLayoutEffect(() => {
     const r = anchor.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 8, left: r.left, width: Math.max(r.width, 224) })
-    list.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    if (!r) return
+    // Abre alinhado ao botão; perto da borda direita da tela, alinha pela direita do botão
+    const width = Math.max(r.width, 240)
+    setPos({ top: r.bottom + 10, left: r.left + width > window.innerWidth - 16 ? r.right - width : r.left, width })
   }, [anchor])
+  useEffect(() => {
+    if (pos) list.current?.querySelector<HTMLButtonElement>('button')?.focus()
+  }, [pos])
 
   const onKey = (e: ReactKeyboardEvent) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
@@ -118,13 +123,13 @@ function AddMenu({ anchor, shown, onClose, go }: { anchor: RefObject<HTMLElement
   }
 
   return (
-    <div className="fixed inset-0 z-40" onClick={onClose}>
+    <div className="fixed inset-0 z-40" onMouseDown={onClose}>
       <div
         ref={list}
         role="menu"
         aria-label="Lançar"
         onKeyDown={onKey}
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={pos ? { top: pos.top, left: pos.left, width: pos.width } : { visibility: 'hidden' }}
         className={`absolute origin-top rounded-[1rem] border border-line bg-bg p-1.5 shadow-[0_18px_40px_-16px_rgb(15_36_51/0.35)] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ${shown ? 'scale-100 opacity-100' : 'scale-[0.97] -translate-y-1 opacity-0'}`}
       >
