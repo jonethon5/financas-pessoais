@@ -734,3 +734,25 @@ body {
 .brand-bar :is(button, a):active {
   background-color: rgb(255 255 255 / 0.15);
 }
+
+/* Computador: o topo azul vai de ponta a ponta da área da tela (o conteúdo continua na coluna).
+   O border-image pinta o mesmo fundo para os lados sem mudar o tamanho da barra; o <main> corta nas bordas. */
+@media (min-width: 64rem) {
+  .brand-bar {
+    border-image: linear-gradient(#2f6feb, #2f6feb) fill 0 / 0 / 0 100vmax;
+  }
+  .brand-band,
+  .brand-bleed {
+    border-image: linear-gradient(#2f6feb, #1d5fd6) fill 0 / 0 / 0 100vmax;
+  }
+  /* As folhas viram janelas no meio da tela: aparecem no lugar, sem subir de baixo */
+  @keyframes sheet-pop {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+  }
+  dialog.sheet[open] {
+    animation: sheet-pop 240ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}

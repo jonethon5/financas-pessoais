@@ -118,7 +118,8 @@ function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string
   const i = (n: number) => ({ '--i': n }) as CSSProperties
 
   return (
-    <div className="stagger flex flex-col gap-5">
+    // Computador largo: a conta do mês ao lado de "para onde foi o dinheiro"
+    <div className="stagger flex flex-col gap-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-8">
       <div style={i(0)}>
         <Card className="p-4">
           <MonthFlow s={s} txs={txs} current={isCurrent} history={data.history} />
@@ -208,6 +209,9 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
       )}
       {future && <p className="px-1 text-[0.875rem] text-muted">Mês que ainda não chegou: salário e fixos aparecem como previstos.</p>}
 
+      {/* Computador largo: à esquerda o que é previsto (rendas, fixos, parcelas); à direita o dia a dia */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-8">
+      <div className="flex flex-col gap-6">
       {incomes.length > 0 && <List header="Rendas">{incomes.map((t) => row(t, t.type === 'salario' ? 'Salário' : 'Renda extra'))}</List>}
       {fixed.length > 0 && (
         <List header="Gastos fixos" footer={<Link to="/voce/fixos" className="font-medium text-primary">Gerenciar gastos fixos</Link>}>
@@ -216,6 +220,8 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
       )}
       <StopFixedSheet recurring={(recurrings.data ?? []).find((r) => r.id === stopId) ?? null} skipMonth={ym} stopFrom={ym} onClose={() => setStopId(null)} />
       {parcels.length > 0 && <List header="Parcelas">{parcels.map((t) => row(t, billStatus(t)))}</List>}
+      </div>
+      <div className="flex flex-col gap-6">
 
       {days.length === 0 ? (
         <Card className="flex flex-col items-center gap-2 text-center text-muted">
@@ -235,6 +241,8 @@ function Entries({ ym, data, categoryFilter, onClearFilter }: { ym: YearMonth; d
           {out.length > 0 && <Row title="Não contam no mês" trailing={String(out.length)} chevron as={link(`/extrato?mes=${monthKey(ym)}&ver=fora`)} />}
         </List>
       )}
+      </div>
+      </div>
     </div>
   )
 }

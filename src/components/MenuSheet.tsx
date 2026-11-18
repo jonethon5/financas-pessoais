@@ -3,10 +3,10 @@ import { Bank, BookOpenText, Brain, ChartBar, ChatCircleText, Heartbeat, Hourgla
 import { AI_ENABLED } from '../lib/features'
 import { Sheet } from './Sheet'
 
-type Item = { label: string; icon: PhosphorIcon; to?: string; soon?: boolean }
+export type MenuItem = { label: string; icon: PhosphorIcon; to?: string; soon?: boolean }
 
 // Só o que não está na barra de baixo (Início, Extrato, Mês e Caixinhas já estão lá), sem repetir e sem "em breve"
-const GROUPS: { title: string; items: Item[] }[] = [
+export const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: 'Seu dinheiro',
     items: [
@@ -41,7 +41,7 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <Sheet open={open} onClose={onClose} title="Menu">
       <div className="flex flex-col gap-6">
-        {GROUPS.map((g) => (
+        {MENU_GROUPS.map((g) => (
           <section key={g.title}>
             <h2 className="mb-2 px-1 text-[0.8125rem] font-semibold tracking-wide text-muted uppercase">{g.title}</h2>
             <div className="grid grid-cols-3 gap-2.5">

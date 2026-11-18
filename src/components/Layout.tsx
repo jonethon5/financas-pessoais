@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Plus, WifiOff } from 'lucide-react'
-import { CalendarDots, House, PiggyBank, Receipt, type Icon as PhosphorIcon } from '@phosphor-icons/react'
+import { type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useAuth } from '../auth/AuthProvider'
 import { useBankAutoSync, useRealtime } from '../data/finance'
 import { useToast } from './Toast'
@@ -10,16 +10,16 @@ import { MenuContext } from './MenuContext'
 import { MenuSheet } from './MenuSheet'
 import { RateScreen } from './RateScreen'
 import { screenOf } from '../lib/ratings'
+import { useDesktop } from '../lib/useDesktop'
+import { MAIN_TABS, Sidebar } from './Sidebar'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
 
 // As 4 coisas que a pessoa olha todo dia: hoje, o extrato (como no banco), o mês e o que guardou
-const TABS: Tab[] = [
-  { to: '/', label: 'Início', icon: House },
-  { to: '/extrato', label: 'Extrato', icon: Receipt },
-  { to: '/mes', label: 'Mês', icon: CalendarDots },
-  { to: '/caixinhas', label: 'Caixinhas', icon: PiggyBank },
-]
+const TABS: Tab[] = MAIN_TABS
+
+/** No computador, telas com bastante coisa para ver lado a lado ganham uma coluna mais larga (duas colunas). */
+const WIDE = [/^\/$/, /^\/mes$/, /^\/caixinhas$/]
 
 /** Telas de formulário ocupam a tela toda, sem a barra de abas (como as telas de "Novo" do iPhone). */
 const FULL_SCREEN = [/^\/voce\/(perfil|senha|email|excluir|sugestao)$/, /^\/lancar/, /^\/lancamento\//, /^\/separar/, /^\/caixinhas\/(nova|.+\/editar)$/, /^\/(termos|privacidade)$/, /^\/assistente$/]
@@ -61,11 +61,13 @@ function TabItem({ to, label, icon: Icon }: Tab) {
 }
 
 /**
- * Estrutura de app de celular (também no computador: uma coluna com largura de celular).
- * Barra de abas translúcida embaixo com o "+" no meio, que abre o menu de lançar.
+ * Celular: uma coluna, com a barra de abas translúcida embaixo e o "+" no meio, que abre o menu de lançar.
+ * Computador: menu fixo à esquerda (com o botão Lançar) e a tela numa coluna mais larga ao lado.
  */
 export function Layout() {
   const { mode, configured, exitDemo } = useAuth()
+  const desktop = useDesktop()
+  const addAnchor = useRef<HTMLButtonElement>(null)
   const online = useOnline()
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
@@ -81,6 +83,7 @@ export function Layout() {
   const toast = useToast()
   useBankAutoSync((n) => toast(`${n} ${n === 1 ? 'lançamento novo' : 'lançamentos novos'} do banco`))
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
+  const wide = WIDE.some((re) => re.test(pathname))
   // "Avalie esta tela" no fim de cada tela (formulários e painel do beta ficam de fora)
   const screen = fullScreen ? null : screenOf(pathname)
   // Vidro sob a aba ativa: posição na grade de 5 (o "+" fica no meio)
@@ -88,8 +91,10 @@ export function Layout() {
   const slot = activeTab < 0 ? -1 : [0, 1, 3, 4][activeTab]
 
   return (
-    <MenuContext.Provider value={fullScreen ? null : () => setMenuOpen(true)}>
-    <div className="mx-auto min-h-dvh w-full max-w-[30rem] bg-bg">
+    // No computador o menu já está sempre à vista (na lateral): sem botão ☰
+    <MenuContext.Provider value={fullScreen || desktop ? null : () => setMenuOpen(true)}>
+    {desktop && <Sidebar ref={addAnchor} onAdd={() => setAddOpen((v) => !v)} addOpen={addOpen} />}
+    <div className="mx-auto min-h-dvh w-full max-w-[30rem] bg-bg lg:max-w-none lg:pl-64">
       {mode === 'demo' && (
         <p className="pt-safe px-4 pt-1.5 text-center text-[0.8125rem] font-medium text-muted">
           Demonstração · dados de exemplo só neste aparelho
@@ -116,14 +121,14 @@ export function Layout() {
         </div>
       )}
 
-      <main className={`px-4 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))]'}`}>
-        <div key={pathname} className="animate-page">
+      <main className={`px-4 lg:overflow-x-clip lg:px-8 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-12'}`}>
+        <div key={pathname} className={`animate-page lg:mx-auto ${fullScreen ? 'lg:max-w-[36rem]' : wide ? 'lg:max-w-[44rem] xl:max-w-[66rem]' : 'lg:max-w-[44rem]'}`}>
           <Outlet />
           {screen && <RateScreen screen={screen} search={search} />}
         </div>
       </main>
 
-      {!fullScreen && (
+      {!fullScreen && !desktop && (
         <nav
           aria-label="Principal"
           className="pointer-events-none fixed bottom-0 left-1/2 z-30 w-full max-w-[30rem] -translate-x-1/2 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] print:hidden"
@@ -164,7 +169,7 @@ export function Layout() {
         </nav>
       )}
 
-      <RadialAdd open={addOpen} onClose={closeAdd} />
+      <RadialAdd open={addOpen} onClose={closeAdd} anchor={desktop ? addAnchor : null} />
       <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
     </div>
     </MenuContext.Provider>

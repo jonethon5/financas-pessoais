@@ -402,7 +402,7 @@ export function ChartsPage({ embeddedYm }: { embeddedYm?: YearMonth } = {}) {
           { target: 'graficos-periodo', title: '6 ou 12 meses', text: 'Escolha quantos meses aparecem nos gráficos de evolução.' },
         ]}
       />
-      <div key={`${key}-${tab}`} className="stagger mt-5 flex flex-col gap-4 pb-4">
+      <div key={`${key}-${tab}`} className="stagger mt-5 flex flex-col gap-4 pb-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6">
         {tab === 'despesas' && (
           <>
             <ChartCard title="Ranking das categorias" hint="Onde o dinheiro mais foi neste mês.">

@@ -17,10 +17,10 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="sheet m-0 mx-auto mt-auto max-h-[92dvh] w-full max-w-[30rem] rounded-t-[1.75rem] bg-bg p-0 text-ink backdrop:bg-black/35"
+      className="sheet m-0 mx-auto mt-auto max-h-[92dvh] w-full max-w-[30rem] rounded-t-[1.75rem] bg-bg p-0 text-ink backdrop:bg-black/35 lg:my-auto lg:max-h-[85dvh] lg:max-w-[32rem] lg:rounded-[1.5rem] lg:shadow-[0_30px_80px_-30px_rgb(15_36_51/0.5)]"
     >
-      <div className="sticky top-0 z-10 bg-bg/90 px-4 pt-2 pb-3 backdrop-blur-xl">
-        <div className="mx-auto mb-2 h-[5px] w-9 rounded-full bg-faint/40" aria-hidden />
+      <div className="sticky top-0 z-10 bg-bg/90 px-4 pt-2 pb-3 backdrop-blur-xl lg:pt-4">
+        <div className="mx-auto mb-2 h-[5px] w-9 rounded-full bg-faint/40 lg:hidden" aria-hidden />
         <div className="grid grid-cols-[2.25rem_1fr_2.25rem] items-center">
           <span />
           <h2 className="text-center text-[1.0625rem] font-semibold">{title}</h2>
@@ -29,7 +29,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
           </button>
         </div>
       </div>
-      <div className="pb-safe px-4 pt-1 pb-6">{children}</div>
+      <div className="pb-safe px-4 pt-1 pb-6 lg:px-5">{children}</div>
     </dialog>
   )
 }

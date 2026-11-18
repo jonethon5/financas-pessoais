@@ -7,7 +7,7 @@ import { IncomeTriage, unclassifiedIncome } from '../components/IncomeTriage'
 import { MoneyNow, MonthGlance } from '../components/MonthFlow'
 import { Wallet } from '../components/Wallet'
 import { useAccounts } from '../data/accounts'
-import { MenuButton } from '../components/MenuContext'
+import { MenuButton, useOpenMenu } from '../components/MenuContext'
 import { Tour, type TourStep } from '../components/Tour'
 import { Reveal } from '../components/Reveal'
 import { Pig } from '../components/Pig'
@@ -33,7 +33,7 @@ import { friendlyError } from '../lib/supabase'
 const HOME_TOUR: TourStep[] = [
   { target: 'hoje', title: 'Quanto você pode gastar hoje', text: 'O número mais importante: o dinheiro da conta, já sem as contas que vencem antes do salário, dividido pelos dias até ele. Gastou menos hoje? Sobra mais amanhã.' },
   { target: 'atencao', title: 'O que precisa da sua atenção', text: 'Contas e faturas perto de vencer aparecem aqui. Quando não tem nada, está tudo em dia.' },
-  { target: 'mais', title: 'Lance em 2 toques', text: 'Toque no + para lançar um gasto, uma renda ou guardar dinheiro numa caixinha.' },
+  { target: 'mais', title: 'Lance em 2 toques', text: 'Use o + para lançar um gasto, uma renda ou guardar dinheiro numa caixinha.' },
   { target: 'menu', title: 'Tudo do app', text: 'No menu ficam as outras telas: saúde financeira, desafios, aprender, porquinho e ajustes.' },
 ]
 
@@ -156,6 +156,7 @@ export function HomePage() {
   const toast = useToast()
   const [showAll, setShowAll] = useState(false)
   const [triage, setTriage] = useState(false)
+  const openMenu = useOpenMenu()
   // As metas do dia do porquinho continuam valendo moedas (a seção dele saiu do Início; ele fica no topo)
   usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   if (view.isPending) return <Spinner />
@@ -285,7 +286,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Topo azul, como nos apps de banco: foto, olho para esconder valores e ajustes */}
-      <header className="pt-safe -mx-4 bg-gradient-to-b from-[#2F6FEB] to-[#1D5FD6] px-4 pb-5 text-white">
+      <header className="brand-bleed pt-safe -mx-4 bg-gradient-to-b from-[#2F6FEB] to-[#1D5FD6] px-4 pb-5 text-white lg:pb-7">
         <div className="flex items-center justify-between pt-4">
           <Link to="/voce" aria-label="Você" className="rounded-full ring-2 ring-white/25">
             <ProfileAvatar profile={p} size="md" />
@@ -295,15 +296,19 @@ export function HomePage() {
               {hidden ? <EyeSlash size={24} /> : <Eye size={24} />}
             </button>
             <HelpButton className="size-11 text-white active:bg-white/15" />
-            <span data-tour="menu">
-              <MenuButton className="size-11 text-white active:bg-white/15" />
-            </span>
+            {openMenu && (
+              <span data-tour="menu">
+                <MenuButton className="size-11 text-white active:bg-white/15" />
+              </span>
+            )}
           </div>
         </div>
         <p className="mt-3 text-[1.125rem] font-semibold text-white">{name ? `Olá, ${name}` : 'Olá'}</p>
         <TodayHero t={cash ?? (t && hasSalary ? t : null)} hidden={hidden} onSetSalary={() => navigate('/voce')} />
       </header>
 
+      <div className="xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-12">
+      <div className="flex flex-col">
       <Section title="Precisa da sua atenção" tour="atencao">
         {attention.length === 0 ? (
           <p className="flex items-center gap-2 text-[0.9375rem] text-muted">
@@ -340,6 +345,8 @@ export function HomePage() {
         )}
       </Section>
 
+      </div>
+      <div className="flex flex-col">
       {wallet.list.length > 0 && (
         <Section title="Contas e cartões" to="/voce/bancos" links>
           <Wallet accounts={wallet.list} dueOf={(id) => bills.find((b) => b.accountId === id)?.dueDate ?? null} />
@@ -357,6 +364,9 @@ export function HomePage() {
           </ul>
         )}
       </Section>
+
+      </div>
+      </div>
 
       {triage && <IncomeTriage txs={txs} onClose={() => setTriage(false)} />}
       <Tour id="inicio-v2" steps={HOME_TOUR} />

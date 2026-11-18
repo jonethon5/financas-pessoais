@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { ArrowCircleDown, CalendarCheck, PiggyBank, Receipt, Stack, type Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { Plus } from 'lucide-react'
@@ -18,8 +18,9 @@ const ANGLES = [168, 129, 90, 51, 12] // graus (90 = bem em cima do "+")
 
 /**
  * Menu do "+": escurece a tela e abre as opções em arco acima do botão (que vira um X).
+ * No computador (`anchor`: o botão Lançar do menu lateral) vira uma lista logo abaixo do botão.
  */
-export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function RadialAdd({ open, onClose, anchor }: { open: boolean; onClose: () => void; anchor?: RefObject<HTMLElement | null> | null }) {
   const navigate = useNavigate()
   const { pathname, search } = useLocation()
   const [shown, setShown] = useState(false)
@@ -44,6 +45,8 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
     const viewing = pathname === '/mes' ? new URLSearchParams(search).get('mes') : null
     navigate(to === '/lancar?tipo=fixo' && viewing ? `${to}&mes=${viewing}` : to)
   }
+
+  if (anchor) return <AddMenu anchor={anchor} shown={shown} onClose={onClose} go={go} />
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Lançar" className="fixed inset-0 z-40">
@@ -90,6 +93,55 @@ export function RadialAdd({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/** Lista do botão Lançar no computador: abre logo abaixo do botão, navegável pelo teclado (setas, Esc). */
+function AddMenu({ anchor, shown, onClose, go }: { anchor: RefObject<HTMLElement | null>; shown: boolean; onClose: () => void; go: (to: string) => void }) {
+  const list = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const r = anchor.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 8, left: r.left, width: Math.max(r.width, 224) })
+    list.current?.querySelector<HTMLButtonElement>('button')?.focus()
+  }, [anchor])
+
+  const onKey = (e: ReactKeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    e.preventDefault()
+    const items = [...(list.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])]
+    const i = items.indexOf(document.activeElement as HTMLButtonElement)
+    items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus()
+  }
+
+  return (
+    <div className="fixed inset-0 z-40" onClick={onClose}>
+      <div
+        ref={list}
+        role="menu"
+        aria-label="Lançar"
+        onKeyDown={onKey}
+        onClick={(e) => e.stopPropagation()}
+        style={pos ? { top: pos.top, left: pos.left, width: pos.width } : { visibility: 'hidden' }}
+        className={`absolute origin-top rounded-[1rem] border border-line bg-bg p-1.5 shadow-[0_18px_40px_-16px_rgb(15_36_51/0.35)] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ${shown ? 'scale-100 opacity-100' : 'scale-[0.97] -translate-y-1 opacity-0'}`}
+      >
+        {ITEMS.map((it) => (
+          <button
+            key={it.label}
+            type="button"
+            role="menuitem"
+            onClick={() => go(it.to)}
+            className="flex h-11 w-full items-center gap-3 rounded-[0.7rem] px-2.5 text-left text-[0.9375rem] font-semibold outline-none hover:bg-surface focus-visible:bg-surface"
+          >
+            <span className="grid size-8 place-items-center rounded-full bg-surface" style={{ color: it.color }}>
+              <it.icon size={20} weight="duotone" />
+            </span>
+            {it.label}
+          </button>
+        ))}
       </div>
     </div>
   )

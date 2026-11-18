@@ -93,8 +93,9 @@ export function GoalsPage() {
           Separe o dinheiro de cada objetivo: viagem, reserva, aquela compra. Toque no + lá em cima para criar. Dica: comece pela reserva de emergência.
         </EmptyState>
       ) : (
-        <div className="stagger flex flex-col gap-5">
-          <Reveal>
+        // Computador largo: o resumo em cima e as caixinhas lado a lado, duas por linha
+        <div className="stagger flex flex-col gap-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6">
+          <Reveal className="xl:col-span-2">
           <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#12A876] to-[#0A6E4E] p-5 text-white shadow-[0_18px_40px_-20px_rgb(10_110_78/0.8)]">
             <span aria-hidden className="absolute -top-14 -right-10 size-44 rounded-full bg-white/10" />
             <span aria-hidden className="absolute -bottom-16 left-16 size-32 rounded-full bg-white/[0.06]" />
@@ -150,19 +151,19 @@ export function GoalsPage() {
             </Reveal>
           ))}
           {open.length > 1 && (
-            <Button variant="ghost" size="sm" className="self-center" onClick={() => setOrdering((o) => !o)}>
+            <Button variant="ghost" size="sm" className="self-center xl:col-span-2 xl:justify-self-center" onClick={() => setOrdering((o) => !o)}>
               {ordering ? 'Pronto' : 'Mudar a ordem de prioridade'}
             </Button>
           )}
 
           {done.length > 0 && (
-            <List header="Concluídas">
+            <List header="Concluídas" className="xl:col-span-2">
               {done.map((g) => (
                 <Row key={g.goal.id} icon={<GoalBadgeIcon goal={g.goal} size={36} />} title={g.goal.name} subtitle="Meta batida" trailing={<Money cents={g.status.saved} />} as={(c, cls) => <Link to={`/caixinhas/${g.goal.id}`} className={cls}>{c}</Link>} />
               ))}
             </List>
           )}
-          <p className="px-1 text-center text-[0.8125rem] leading-snug text-muted">O dinheiro continua no seu banco. Aqui você controla quanto é de cada objetivo. A primeira da lista recebe a sobra primeiro.</p>
+          <p className="px-1 text-center text-[0.8125rem] leading-snug text-muted xl:col-span-2">O dinheiro continua no seu banco. Aqui você controla quanto é de cada objetivo. A primeira da lista recebe a sobra primeiro.</p>
         </div>
       )}
 
