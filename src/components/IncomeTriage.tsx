@@ -3,7 +3,8 @@ import { useAuth } from '../auth/AuthProvider'
 import { stableId } from '../lib/recurring'
 import { useCategories, useWrite } from '../data/finance'
 import type { Backend } from '../data/backend'
-import { countKey, ownKey } from '../../supabase/functions/_shared/bankmap.ts'
+import { countKey, ownKey, payerSalaryMonth, paydayIn, salaryKey } from '../../supabase/functions/_shared/bankmap.ts'
+import { useProfile } from '../data/hooks'
 import { formatDateShort } from '../lib/dates'
 import { friendlyError } from '../lib/supabase'
 import { partyOf, txTitle } from '../lib/statement'
@@ -21,14 +22,26 @@ const PASS = 'Repasse: dinheiro que só passou por você. Não é renda.'
 /**
  * O salário que caiu no banco SUBSTITUI o previsto do cadastro naquele mês (não soma): fica um salário só, com o
  * valor e a data reais. O lançamento do banco vira o próprio salário do mês (mesmo vínculo com o banco).
+ * Se o salário do mês já caiu (outro Pix da mesma empresa), esse SOMA nele: salário em dois Pix, vale-transporte.
+ * E o app aprende quem paga o salário: os próximos Pix dessa origem, perto do dia do pagamento, já entram como salário.
  */
-export async function applyAsSalary(b: Backend, t: Transaction, userId: string, salaryCat: string | null) {
-  const id = await stableId(`salario:${userId}:${t.date.slice(0, 7)}`)
-  await b.remove('transactions', [t.id])
-  const real = { amount_cents: t.amount_cents, date: t.date, source: 'banco' as const, external_id: t.external_id ?? null, bank_account_id: t.bank_account_id ?? null, bank_info: t.bank_info ?? null, skipped: false, paid: true, note: null }
+export async function applyAsSalary(b: Backend, t: Transaction, userId: string, salaryCat: string | null, payday: number | null): Promise<'replaced' | 'added'> {
+  const payer = salaryKey(t.bank_info?.original ?? t.description)
+  if (payer && salaryCat) await b.upsert('category_rules', { pattern: payer, category_id: salaryCat }, 'user_id,pattern')
+  // De que mês é esse salário: o do dia do pagamento mais perto (pagamento dia 30, Pix em 02/12 → novembro)
+  const month = (payday ? payerSalaryMonth(t.date, payday) : null) ?? t.date.slice(0, 7)
+  const id = await stableId(`salario:${userId}:${month}`)
   const forecast = (await b.list('transactions', { eq: { id } }))[0]
+  if (forecast?.external_id) {
+    await b.update('transactions', t.id, { type: 'salario', skipped: false, note: null, category_id: salaryCat })
+    return 'added'
+  }
+  await b.remove('transactions', [t.id])
+  const date = t.date.slice(0, 7) === month || !payday ? t.date : paydayIn(month, payday)
+  const real = { amount_cents: t.amount_cents, date, source: 'banco' as const, external_id: t.external_id ?? null, bank_account_id: t.bank_account_id ?? null, bank_info: t.bank_info ?? null, skipped: false, paid: true, note: null }
   if (forecast) await b.update('transactions', id, real)
   else await b.insert('transactions', [{ id, kind: 'income', type: 'salario', description: 'Salário', category_id: salaryCat, recurring_id: null, installment_group: null, installment_no: null, installment_total: null, emotion: null, ...real }])
+  return 'replaced'
 }
 
 type Choice = 'salario' | 'renda' | 'meu' | 'repasse'
@@ -43,6 +56,7 @@ export function IncomeTriage({ txs, onClose }: { txs: Transaction[]; onClose: ()
   const { userId } = useAuth()
   const toast = useToast()
   const categories = useCategories()
+  const profile = useProfile()
   const [done, setDone] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const list = unclassifiedIncome(txs).filter((t) => !done.has(t.id))
@@ -52,10 +66,11 @@ export function IncomeTriage({ txs, onClose }: { txs: Transaction[]; onClose: ()
     const bankDesc = t.bank_info?.original ?? t.description
     const income = (categories.data ?? []).filter((x) => x.kind === 'income' && !x.archived)
     const category = t.category_id ?? income.find((x) => x.name === 'Renda extra')?.id ?? income[0]?.id ?? null
+    let how = 'replaced' as 'replaced' | 'added'
     try {
       await write.mutateAsync(async (b) => {
         if (c === 'salario') {
-          await applyAsSalary(b, t, userId!, income.find((x) => x.name === 'Salário')?.id ?? category)
+          how = await applyAsSalary(b, t, userId!, income.find((x) => x.name === 'Salário')?.id ?? category, profile.data?.payday ?? null)
         } else if (c === 'renda') {
           await b.update('transactions', t.id, { skipped: false, category_id: category })
           // os próximos dessa origem (a empresa do salário, por exemplo) já entram contando
@@ -68,7 +83,7 @@ export function IncomeTriage({ txs, onClose }: { txs: Transaction[]; onClose: ()
         }
       })
       setDone((d) => new Set(d).add(t.id))
-      toast(c === 'salario' ? 'Pronto: é o salário do mês, no lugar do previsto (não soma)' : c === 'renda' ? 'Agora conta como renda. Os próximos dessa origem também.' : c === 'meu' ? 'Marcado como dinheiro seu' : 'Marcado como repasse')
+      toast(c === 'salario' ? (how === 'added' ? 'Somado ao salário do mês. Os próximos dessa empresa já entram como salário.' : 'É o salário do mês, no lugar do previsto. Os próximos dessa empresa já entram como salário.') : c === 'renda' ? 'Agora conta como renda. Os próximos dessa origem também.' : c === 'meu' ? 'Marcado como dinheiro seu' : 'Marcado como repasse')
     } catch (err) {
       setError(friendlyError(err))
     }
@@ -99,7 +114,7 @@ export function IncomeTriage({ txs, onClose }: { txs: Transaction[]; onClose: ()
                 </div>
                 <div className="mt-3 flex flex-col gap-2">
                   <button type="button" disabled={write.isPending} onClick={() => choose(t, 'salario')} className="press rounded-full bg-primary px-4 py-2.5 text-left text-[0.9375rem] font-semibold text-on-primary disabled:opacity-60">
-                    É o meu salário <span className="font-normal opacity-90">(no lugar do previsto)</span>
+                    É o meu salário <span className="font-normal opacity-90">(ou parte dele)</span>
                   </button>
                   <button type="button" disabled={write.isPending} onClick={() => choose(t, 'renda')} className="press rounded-full bg-surface-2 px-4 py-2.5 text-left text-[0.9375rem] font-semibold disabled:opacity-60">
                     É outra renda (bico, extra)

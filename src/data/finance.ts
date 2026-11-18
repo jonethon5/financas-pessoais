@@ -101,7 +101,7 @@ export function useGoalMoves() {
 }
 
 /** Leitura simples de uma tabela inteira da pessoa (hábitos: desafios, regras, desejos, planos). */
-export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans' | 'bank_connections' | 'bank_accounts' | 'pig_coins' | 'pig_purchases'>(table: K) {
+export function useTable<K extends 'challenges' | 'rules' | 'wishes' | 'if_then_plans' | 'bank_connections' | 'bank_accounts' | 'pig_coins' | 'pig_purchases' | 'category_rules'>(table: K) {
   const backend = useBackend()
   return useQuery({ queryKey: tkey(table), queryFn: () => backend.list(table) })
 }

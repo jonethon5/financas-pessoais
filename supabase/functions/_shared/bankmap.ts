@@ -336,6 +336,32 @@ export const ownKey = (description: string) => {
 }
 
 /**
+ * A pessoa disse que essa origem (a empresa, o patrão) paga o salário dela. Todo dinheiro que vem dela perto do dia
+ * do pagamento é salário (salário dividido em dois Pix, vale-transporte junto: tudo soma no salário do mês).
+ */
+export const salaryKey = (description: string) => {
+  const k = learnKey(description)
+  return k ? `salario:${k}` : ''
+}
+
+/** Até quantos dias do dia do pagamento o dinheiro de quem paga o salário conta como salário. */
+export const PAYER_WINDOW_DAYS = 10
+
+/**
+ * De que mês é o salário que caiu nesse dia: o mês cujo dia do pagamento está mais perto (até 10 dias).
+ * Ex.: pagamento dia 30, Pix em 02/12 → salário de novembro. Longe do dia do pagamento: null (não é salário).
+ */
+export function payerSalaryMonth(date: string, payday: number | null | undefined): string | null {
+  if (!payday) return null
+  const month = date.slice(0, 7)
+  const near = [month, shiftMonth(month, -1), shiftMonth(month, 1)]
+    .map((m) => ({ m, d: daysApart(date, paydayIn(m, payday)) }))
+    .filter((x) => x.d <= PAYER_WINDOW_DAYS)
+    .sort((a, b) => a.d - b.d)
+  return near[0]?.m ?? null
+}
+
+/**
  * O lançamento que veio do banco entra na conta do mês?
  *  - transferência entre contas próprias: não;
  *  - entrada (Pix recebido etc.): só se a pessoa já disse que as entradas daquela origem contam.

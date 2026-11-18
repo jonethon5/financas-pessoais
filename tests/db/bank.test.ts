@@ -264,7 +264,8 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
     const { data } = await owner.client.functions.invoke('bank-sync', { body: { action: 'reconcile' } })
     expect(data).toMatchObject({ ok: true, changed: 1 })
     const { data: salaries } = await owner.client.from('transactions').select('id, amount_cents, date, external_id').eq('type', 'salario').gte('date', `${prevYm}-01`).lte('date', `${prevYm}-28`)
-    expect(salaries).toEqual([{ id: await stableId(`salario:${owner.id}:${prevYm}`), amount_cents: 211300, date: `${prevYm}-05`, external_id: 'pluggy:antigo' }])
+    // o salário que caiu fica no lugar do previsto: valor e dia de verdade
+    expect(salaries).toEqual([{ id: await stableId(`salario:${owner.id}:${prevYm}`), amount_cents: 205000, date: `${prevYm}-06`, external_id: 'pluggy:antigo' }])
     expect((await owner.client.from('transactions').select('id').eq('type', 'extra').gte('date', `${prevYm}-01`).lte('date', `${prevYm}-28`)).data).toEqual([])
   })
 
@@ -327,5 +328,42 @@ describe('conexão com o banco (Pluggy de mentira)', () => {
     expect((await tester.client.from('bank_accounts').select('id')).data).toEqual([])
     // A pessoa não grava conta bancária nem conexão "na mão" (só a função)
     expect((await owner.client.from('bank_accounts').insert({ user_id: owner.id, connection_id: salaryId, external_id: 'x', type: 'BANK', name: 'x' })).error).toBeTruthy()
+  })
+  it('quem paga o salário: os Pix dessa empresa perto do dia do pagamento somam no salário do mês (valor de verdade)', async () => {
+    const { data: salCat } = await owner.client.from('categories').select('id').eq('name', 'Salário').single()
+    await owner.client.from('category_rules').insert({ pattern: 'salario:empresa chefe', category_id: salCat!.id })
+    const { data: account } = await admin.from('bank_accounts').select('id').eq('user_id', owner.id).eq('type', 'BANK').single()
+    // Um mês sem salário ainda: salário dividido (1.656 + 413 do vale) e um Pix da mesma empresa longe do dia do pagamento
+    const old = new Date(base.getFullYear(), base.getMonth() - 2, 5)
+    const mm = `${old.getFullYear()}-${String(old.getMonth() + 1).padStart(2, '0')}`
+    const pix = 'Transferência recebida pelo Pix|EMPRESA DO CHEFE LTDA'
+    const row = (id: string, amount_cents: number, d: string, skipped: boolean) => ({ user_id: owner.id, kind: 'income', type: 'extra', amount_cents, date: `${mm}-${d}`, description: pix, skipped, source: 'banco', external_id: `pluggy:${id}`, bank_account_id: account!.id })
+    // o 413 a pessoa já tinha marcado como "outra renda" (conta): também vira parte do salário, sem contar duas vezes
+    await admin.from('transactions').insert([row('s1', 165600, '04', true), row('s2', 41300, '06', false), row('s3', 10000, '20', true)])
+    const { data } = await owner.client.functions.invoke('bank-sync', { body: { action: 'reconcile' } })
+    expect(data).toMatchObject({ ok: true, changed: 2 })
+    const salaries = async () => (await owner.client.from('transactions').select('id, amount_cents, external_id, skipped').eq('type', 'salario').gte('date', `${mm}-01`).lte('date', `${mm}-28`).order('amount_cents', { ascending: false })).data
+    expect(await salaries()).toEqual([
+      { id: await stableId(`salario:${owner.id}:${mm}`), amount_cents: 165600, external_id: 'pluggy:s1', skipped: false },
+      { id: expect.any(String), amount_cents: 41300, external_id: 'pluggy:s2', skipped: false },
+    ])
+    // longe do dia do pagamento: não é salário
+    expect((await owner.client.from('transactions').select('type, skipped').eq('external_id', 'pluggy:s3').single()).data).toEqual({ type: 'extra', skipped: true })
+    // arrumar de novo não desfaz nada
+    expect((await owner.client.functions.invoke('bank-sync', { body: { action: 'reconcile' } })).data).toMatchObject({ ok: true, changed: 0 })
+    expect((await salaries())!.map((r) => r.amount_cents)).toEqual([165600, 41300])
+  })
+
+  it('quem paga o salário: na sincronização, o segundo Pix do mês soma no salário que já caiu', async () => {
+    TXS['acc-bank'].page1.push({ id: 's4', description: 'Transferência recebida pelo Pix|EMPRESA DO CHEFE LTDA', amount: 413, date: `${day(6)}T00:00:00.000Z`, type: 'CREDIT', status: 'POSTED' })
+    await readAll()
+    expect((await sync()).data).toMatchObject({ ok: true, imported: 1, errors: [] })
+    expect((await owner.client.from('transactions').select('type, skipped, amount_cents').eq('external_id', 'pluggy:s4').single()).data).toEqual({ type: 'salario', skipped: false, amount_cents: 41300 })
+    const { data: month } = await owner.client.from('transactions').select('amount_cents').eq('type', 'salario').eq('skipped', false).gte('date', day(1)).lte('date', day(28))
+    expect(month!.map((r) => r.amount_cents).sort()).toEqual([211300, 41300].sort())
+    // de novo: não duplica e não desfaz
+    await readAll()
+    expect((await sync()).data).toMatchObject({ ok: true, imported: 0, errors: [] })
+    expect((await owner.client.from('transactions').select('type').eq('external_id', 'pluggy:s4').single()).data).toEqual({ type: 'salario' })
   })
 })

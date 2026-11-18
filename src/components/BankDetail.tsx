@@ -4,6 +4,7 @@ import { useAccounts } from '../data/accounts'
 import { useCategories, useMonthTxs, useWrite } from '../data/finance'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
+import { useProfile } from '../data/hooks'
 import { applyAsSalary } from './IncomeTriage'
 import { useToast } from './Toast'
 import { formatDayLong, monthOf } from '../lib/dates'
@@ -38,6 +39,7 @@ export function BankDetail({
 }) {
   const month = useMonthTxs(monthOf(tx.date))
   const write = useWrite()
+  const profile = useProfile()
   const { userId } = useAuth()
   const categories = useCategories()
   const toast = useToast()
@@ -103,13 +105,16 @@ export function BankDetail({
           type="button"
           disabled={write.isPending}
           onClick={async () => {
-            await write.mutateAsync((b) => applyAsSalary(b, tx, userId, (categories.data ?? []).find((c) => c.kind === 'income' && c.name === 'Salário')?.id ?? null))
-            toast('Pronto: é o salário do mês, no lugar do previsto (não soma)')
+            let how = 'replaced' as 'replaced' | 'added'
+            await write.mutateAsync(async (b) => {
+              how = await applyAsSalary(b, tx, userId, (categories.data ?? []).find((c) => c.kind === 'income' && c.name === 'Salário')?.id ?? null, profile.data?.payday ?? null)
+            })
+            toast(how === 'added' ? 'Somado ao salário do mês. Os próximos dessa empresa já entram como salário.' : 'É o salário do mês, no lugar do previsto. Os próximos dessa empresa já entram como salário.')
             navigate(-1)
           }}
           className="mt-1 mb-3 w-full rounded-full bg-surface-2 px-4 py-2.5 text-left text-[0.9375rem] font-semibold active:bg-line"
         >
-          Este é o meu salário <span className="font-normal text-muted">(fica no lugar do salário previsto)</span>
+          Este é o meu salário <span className="font-normal text-muted">(ou parte dele)</span>
         </button>
       )}
       {pass && (

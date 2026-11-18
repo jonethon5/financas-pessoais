@@ -16,7 +16,7 @@ import { useToast } from '../../components/Toast'
 import { BackButton, BetaBadge, Button, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
 import { useProfile, useUpdateProfile } from '../../data/hooks'
 import { FONTS, getFontPref, getThemePref, setFontPref, setThemePref, type FontPref, type ThemePref } from '../../lib/theme'
-import { useWrite } from '../../data/finance'
+import { useTable, useWrite } from '../../data/finance'
 import { currentYearMonth, isoDate, monthKey } from '../../lib/dates'
 import { stableId } from '../../lib/recurring'
 import { centsToInput, formatBRL, parseBRL } from '../../lib/money'
@@ -104,6 +104,10 @@ export function YouPage({ section }: { section?: string }) {
   const [sheet, setSheet] = useState<SheetName>(null)
   const [confirmExit, setConfirmExit] = useState(false)
   const [confirmRestart, setConfirmRestart] = useState(false)
+  // Quem paga o salário (o app aprendeu quando a pessoa tocou em "É o meu salário")
+  const rules = useTable('category_rules')
+  const payers = (rules.data ?? []).filter((r) => r.pattern.startsWith('salario:'))
+  const [removePayer, setRemovePayer] = useState<{ id: string; name: string } | null>(null)
   const [theme, setTheme] = useState<ThemePref>(getThemePref)
   const [font, setFont] = useState<FontPref>(getFontPref)
   const hidden = useHiddenValues()
@@ -167,6 +171,10 @@ export function YouPage({ section }: { section?: string }) {
           <List header="Seu dinheiro" footer="O salário entra sozinho todo mês no dia do pagamento.">
             <Row title="Salário" trailing={p.salary_cents != null ? formatBRL(p.salary_cents) : 'Definir'} chevron onClick={() => setSheet('salary')} />
             <Row title="Dia do pagamento" trailing={p.payday ? `Dia ${p.payday}` : 'Definir'} chevron onClick={() => setSheet('payday')} />
+            {payers.map((r) => {
+              const name = r.pattern.slice('salario:'.length).replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+              return <Row key={r.id} title="Quem paga seu salário" subtitle="Pix daqui perto do dia do pagamento entram como salário" trailing={name} chevron onClick={() => setRemovePayer({ id: r.id, name })} />
+            })}
             <Row title="Horas de trabalho por semana" trailing={`${p.work_hours_week} h`} chevron onClick={() => setSheet('hours')} />
             <Row title="Bancos e cartões" chevron as={link('/voce/bancos')} />
             <Row title="Gastos fixos" chevron as={link('/voce/fixos')} />
@@ -286,6 +294,26 @@ export function YouPage({ section }: { section?: string }) {
         </div>
       )}
 
+      <ConfirmSheet
+        open={removePayer != null}
+        title="Parar de contar como salário?"
+        confirmLabel="Parar"
+        destructive
+        onClose={() => setRemovePayer(null)}
+        onConfirm={async () => {
+          const r = removePayer
+          setRemovePayer(null)
+          if (!r) return
+          try {
+            await write.mutateAsync((b) => b.remove('category_rules', [r.id]))
+            toast(`${r.name} não conta mais como salário automaticamente`)
+          } catch (err) {
+            toast(friendlyError(err))
+          }
+        }}
+      >
+        {removePayer ? `Os próximos Pix de ${removePayer.name} voltam a perguntar "O que é esse dinheiro?". O que já entrou como salário continua.` : ''}
+      </ConfirmSheet>
       <PaydaySheet open={sheet === 'payday'} value={p.payday} onClose={() => setSheet(null)} onSave={(payday) => save({ payday }, 'Dia do pagamento salvo')} />
       <SalarySheet open={sheet === 'salary'} value={p.salary_cents} onClose={() => setSheet(null)} onSave={(salary_cents) => save({ salary_cents }, 'Salário salvo')} />
       <HoursSheet open={sheet === 'hours'} value={p.work_hours_week} onClose={() => setSheet(null)} onSave={(work_hours_week) => save({ work_hours_week }, 'Horas salvas')} />

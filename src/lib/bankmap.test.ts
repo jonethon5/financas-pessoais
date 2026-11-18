@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INTERNAL_REASON, bankInfo, brazilDateTime, pairOffsets, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
+import { INTERNAL_REASON, bankInfo, brazilDateTime, pairOffsets, categoryHint, cleanDescription, countKey, countsInMonth, findFixedMatch, findManualMatch, findVanished, ignoreKey, isOwnTransfer, isSalaryMatch, learnKey, mapTransaction, mentionsName, paydayIn, payerSalaryMonth, salaryKey, salaryMonths, type PluggyTx } from '../../supabase/functions/_shared/bankmap.ts'
 
 const tx = (p: Partial<PluggyTx>): PluggyTx => ({ id: 'abc', description: 'Compra', amount: -10, date: '2026-11-04T00:00:00.000Z', ...p })
 
@@ -218,5 +218,20 @@ describe('sem duplicar com o que o app já lança sozinho', () => {
     ]
     expect(findFixedMatch({ kind: 'expense', amount_cents: 3990, date: '2026-11-13' }, fixed)?.id).toBe('tel')
     expect(findFixedMatch({ kind: 'expense', amount_cents: 7000, date: '2026-11-13' }, fixed)).toBeNull()
+  })
+})
+
+describe('quem paga o salário', () => {
+  it('a chave é a empresa, venha o Pix escrito de que jeito vier', () => {
+    expect(salaryKey('Transferência recebida pelo Pix|EMPRESA DO CHEFE LTDA')).toBe('salario:empresa chefe')
+    expect(salaryKey('Pix de Empresa do Chefe Ltda')).toBe('salario:empresa chefe')
+  })
+  it('o salário é do mês cujo dia do pagamento está mais perto (até 10 dias)', () => {
+    expect(payerSalaryMonth('2026-11-30', 30)).toBe('2026-11')
+    expect(payerSalaryMonth('2026-12-02', 30)).toBe('2026-11')
+    expect(payerSalaryMonth('2026-11-27', 30)).toBe('2026-11')
+    expect(payerSalaryMonth('2026-11-15', 30)).toBeNull()
+    expect(payerSalaryMonth('2026-11-03', 5)).toBe('2026-11')
+    expect(payerSalaryMonth('2026-11-03', null)).toBeNull()
   })
 })

@@ -15,7 +15,7 @@
 // No beta, as chaves do Meu Pluggy são pessoais (do dono do app): por isso só o administrador usa.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { UserError } from './common.ts'
-import { cleanDescription, countKey, ownKey, pairOffsets, countsInMonth, findFixedMatch, findManualMatch, findVanished, learnKey, mapTransaction, paydayIn, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from './bankmap.ts'
+import { cleanDescription, countKey, ownKey, pairOffsets, countsInMonth, findFixedMatch, findManualMatch, findVanished, learnKey, mapTransaction, payerSalaryMonth, paydayIn, salaryKey, salaryMonths, shiftMonth, type AccountType, type MappedTx, type PluggyTx } from './bankmap.ts'
 
 const API = Deno.env.get('PLUGGY_API_BASE') || 'https://api.pluggy.ai'
 export const CLIENT_ID = Deno.env.get('PLUGGY_CLIENT_ID') ?? ''
@@ -126,33 +126,55 @@ export async function loadCtx(admin: SupabaseClient, uid: string): Promise<Ctx> 
   }
 }
 
+type SalaryIn = Pick<MappedTx, 'kind' | 'amount_cents' | 'date' | 'external_id'> & { info?: unknown }
+
 /**
- * A entrada é o depósito do salário? Então só confirma o salário daquele mês (valor e dia continuam os do cadastro).
- * Cada mês tem um salário só: a segunda entrada parecida no mesmo mês não vira salário.
+ * O depósito vira o salário daquele mês: o salário que caiu NO LUGAR do previsto (valor e dia de verdade; um salário
+ * só por mês). Se o salário do mês já foi confirmado por outro depósito, devolve false.
  */
-async function linkSalary(admin: SupabaseClient, ctx: Ctx, m: Pick<MappedTx, 'kind' | 'amount_cents' | 'date' | 'external_id'>, bankAccountId: string | null): Promise<boolean> {
+async function linkSalaryTo(admin: SupabaseClient, ctx: Ctx, m: SalaryIn, month: string, bankAccountId: string | null): Promise<boolean> {
+  const id = await salaryId(ctx.uid, month)
+  // O salário daquele mês: o que o app lançou (id previsível) ou qualquer outro "Salário" que esteja no mês
+  const { data: rows, error: readError } = await admin
+    .from('transactions')
+    .select('id, external_id')
+    .eq('user_id', ctx.uid)
+    .eq('type', 'salario')
+    .or(`id.eq.${id},and(date.gte.${month}-01,date.lte.${paydayIn(month, 31)})`)
+  if (readError) throw readError
+  ctx.salaryLinked.add(month)
+  if ((rows ?? []).some((r) => r.external_id)) return false
+  // O dia do depósito, se for no próprio mês; senão o dia do pagamento (o salário de cada mês fica no mês dele)
+  const date = m.date.slice(0, 7) === month ? m.date : paydayIn(month, ctx.payday ?? 1)
+  const real = { external_id: m.external_id, source: 'banco', bank_account_id: bankAccountId, amount_cents: m.amount_cents, date, bank_info: m.info ?? null, skipped: false, paid: true, note: null }
+  const target = (rows ?? []).find((r) => r.id === id) ?? rows?.[0]
+  const { error } = target
+    ? await admin.from('transactions').update(real).eq('id', target.id)
+    : await admin.from('transactions').insert({ id, user_id: ctx.uid, kind: 'income', type: 'salario', description: 'Salário', category_id: ctx.catByName.get('Salário') ?? null, ...real })
+  if (error) throw error
+  return true
+}
+
+/** A entrada parece o salário (valor e dia parecidos com os do cadastro)? Então é o salário do mês. */
+async function linkSalary(admin: SupabaseClient, ctx: Ctx, m: SalaryIn, bankAccountId: string | null): Promise<boolean> {
   for (const month of salaryMonths(m, ctx.salaryCents, ctx.payday)) {
     if (ctx.salaryLinked.has(month)) continue
-    ctx.salaryLinked.add(month)
-    const id = await salaryId(ctx.uid, month)
-    // O salário daquele mês: o que o app lançou (id previsível) ou qualquer outro "Salário" que esteja no mês
-    const { data: rows, error: readError } = await admin
-      .from('transactions')
-      .select('id, external_id')
-      .eq('user_id', ctx.uid)
-      .eq('type', 'salario')
-      .or(`id.eq.${id},and(date.gte.${month}-01,date.lte.${paydayIn(month, 31)})`)
-    if (readError) throw readError
-    if ((rows ?? []).some((r) => r.external_id)) continue
-    const link = { external_id: m.external_id, source: 'banco', bank_account_id: bankAccountId }
-    const target = (rows ?? []).find((r) => r.id === id) ?? rows?.[0]
-    const { error } = target
-      ? await admin.from('transactions').update(link).eq('id', target.id)
-      : await admin.from('transactions').insert({ id, user_id: ctx.uid, kind: 'income', type: 'salario', amount_cents: ctx.salaryCents, date: paydayIn(month, ctx.payday!), description: 'Salário', category_id: ctx.catByName.get('Salário') ?? null, paid: true, ...link })
-    if (error) throw error
-    return true
+    if (await linkSalaryTo(admin, ctx, m, month, bankAccountId)) return true
   }
   return false
+}
+
+/**
+ * Veio de quem paga o salário, perto do dia do pagamento? 'linked': virou o salário do mês (no lugar do previsto);
+ * 'more': o salário do mês já tinha caído, então esse soma nele (salário em dois Pix, vale-transporte);
+ * null: não é salário.
+ */
+async function payerSalary(admin: SupabaseClient, ctx: Ctx, m: SalaryIn & { description: string }, bankAccountId: string | null): Promise<'linked' | 'more' | null> {
+  const key = salaryKey(m.description)
+  if (m.kind !== 'income' || !key || !ctx.rules.has(key)) return null
+  const month = payerSalaryMonth(m.date, ctx.payday)
+  if (!month) return null
+  return (await linkSalaryTo(admin, ctx, m, month, bankAccountId)) ? 'linked' : 'more'
 }
 
 /**
@@ -161,9 +183,11 @@ async function linkSalary(admin: SupabaseClient, ctx: Ctx, m: Pick<MappedTx, 'ki
  *  - salário do mês que tinha ido parar na data (e no mês) do depósito volta para o dia do pagamento.
  */
 export async function tidySalary(admin: SupabaseClient, ctx: Ctx): Promise<number> {
-  const { data: rows } = await admin.from('transactions').select('id, date').eq('user_id', ctx.uid).eq('type', 'salario').eq('source', 'banco')
+  const { data: rows } = await admin.from('transactions').select('id, date, description, bank_info').eq('user_id', ctx.uid).eq('type', 'salario').eq('source', 'banco')
   let changed = 0
   for (const r of rows ?? []) {
+    // Parte do salário que veio de quem paga o salário (o segundo Pix do mês): está certo
+    if (ctx.rules.has(salaryKey((r.bank_info as { original?: string } | null)?.original ?? r.description))) continue
     const month = r.date.slice(0, 7)
     let home: string | null = null
     for (const m of [month, shiftMonth(month, -1), shiftMonth(month, 1)]) if (r.id === (await salaryId(ctx.uid, m))) home = m
@@ -180,13 +204,13 @@ export async function tidySalary(admin: SupabaseClient, ctx: Ctx): Promise<numbe
  * o salário do mês (acontece quando o salário foi cadastrado, ou corrigido, depois de conectar o banco).
  */
 export async function relinkSalary(admin: SupabaseClient, ctx: Ctx): Promise<number> {
-  if (!ctx.salaryCents || !ctx.payday) return 0
+  if (!ctx.payday) return 0
   const since = addDays(todayBR(), -400)
   const [{ data: rows }, { data: confirmed }] = await Promise.all([
     admin
       .from('transactions')
-      .select('id, amount_cents, date, external_id, bank_account_id')
-      .eq('user_id', ctx.uid).eq('source', 'banco').eq('type', 'extra').eq('skipped', true).not('external_id', 'is', null)
+      .select('id, amount_cents, date, external_id, bank_account_id, description, bank_info, note, skipped')
+      .eq('user_id', ctx.uid).eq('source', 'banco').eq('type', 'extra').not('external_id', 'is', null)
       .gte('date', since)
       .order('date'),
     admin.from('transactions').select('date').eq('user_id', ctx.uid).eq('type', 'salario').not('external_id', 'is', null).gte('date', since),
@@ -195,7 +219,19 @@ export async function relinkSalary(admin: SupabaseClient, ctx: Ctx): Promise<num
   for (const r of confirmed ?? []) ctx.salaryLinked.add(r.date.slice(0, 7))
   let changed = 0
   for (const t of rows ?? []) {
-    const m = { kind: 'income' as const, amount_cents: t.amount_cents, date: t.date, external_id: t.external_id as string }
+    if (t.note) continue // a pessoa (ou o app) já disse o que é: dinheiro dela, repasse, fatura
+    const m = { kind: 'income' as const, amount_cents: t.amount_cents, date: t.date, external_id: t.external_id as string, info: t.bank_info, description: (t.bank_info as { original?: string } | null)?.original ?? t.description }
+    // De quem paga o salário: vira o salário do mês, ou soma nele
+    const key = salaryKey(m.description)
+    const month = key && ctx.rules.has(key) ? payerSalaryMonth(m.date, ctx.payday) : null
+    if (month) {
+      await admin.from('transactions').update({ external_id: null }).eq('id', t.id)
+      if (await linkSalaryTo(admin, ctx, m, month, t.bank_account_id)) await admin.from('transactions').delete().eq('id', t.id)
+      else await admin.from('transactions').update({ external_id: t.external_id, type: 'salario', skipped: false, category_id: ctx.catByName.get('Salário') ?? null }).eq('id', t.id)
+      changed++
+      continue
+    }
+    if (!t.skipped) continue // a pessoa marcou como renda extra: fica como está
     if (!salaryMonths(m, ctx.salaryCents, ctx.payday).some((month) => !ctx.salaryLinked.has(month))) continue
     // O id do banco é único por pessoa: sai da entrada antes de ir para o salário
     await admin.from('transactions').update({ external_id: null }).eq('id', t.id)
@@ -363,9 +399,21 @@ export async function syncConnection(admin: SupabaseClient, ctx: Ctx, conn: Conn
         continue
       }
 
-      if (m.kind === 'income' && !m.own && !m.internal && (await linkSalary(admin, ctx, m, saved.id))) {
-        matched++
-        continue
+      if (m.kind === 'income' && !m.own && !m.internal) {
+        const paid = await payerSalary(admin, ctx, m, saved.id)
+        if (paid === 'linked') {
+          matched++
+          continue
+        }
+        if (paid === 'more') {
+          // O salário do mês já caiu: esse soma nele (segundo Pix do salário, vale-transporte)
+          rows.push({ user_id: uid, kind: 'income', type: 'salario', amount_cents: m.amount_cents, date: m.date, description: m.description, category_id: ctx.catByName.get('Salário') ?? null, installment_group: null, installment_no: null, installment_total: null, paid: true, skipped: false, note: null, ...link })
+          continue
+        }
+        if (await linkSalary(admin, ctx, m, saved.id)) {
+          matched++
+          continue
+        }
       }
       // Conta fixa em aberto: marca como paga, com o valor de verdade.
       // O dia só muda dentro do mesmo mês: o fixo de cada mês tem que continuar no mês dele.
