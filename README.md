@@ -29,13 +29,14 @@ As imagens acompanham o tema do seu GitHub (claro ou escuro), como o próprio ap
 
 ### No computador
 
-No computador o app vira um internet banking: barra no topo com as abas e o botão Lançar, o valor do dia com
-atalhos, cartões de conta, cartão, caixinhas e mês, e banners com dicas. No celular continua como app.
+No computador o app vira um internet banking: menu lateral azul com o botão Lançar, o valor do dia num cartão,
+o dinheiro de verdade (conta, fatura, caixinhas), banners com dicas e, à direita, o mês em gráfico e por categoria.
+No celular continua como app.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/desktop-escuro.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/img/desktop-claro.png">
-  <img alt="Poupei no computador: barra azul no topo, quanto dá para gastar hoje com atalhos, cartões de conta, cartão, caixinhas e mês, e banners com o porquinho" src="docs/img/desktop-claro.png">
+  <img alt="Poupei no computador: menu lateral azul, quanto dá para gastar hoje num cartão, o dinheiro de verdade, banners com o porquinho e o painel do mês à direita" src="docs/img/desktop-claro.png">
 </picture>
 
 <picture>

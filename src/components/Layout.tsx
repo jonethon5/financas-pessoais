@@ -11,7 +11,7 @@ import { MenuSheet } from './MenuSheet'
 import { RateScreen } from './RateScreen'
 import { screenOf } from '../lib/ratings'
 import { useDesktop } from '../lib/useDesktop'
-import { DesktopHeader, MAIN_TABS } from './DesktopHeader'
+import { DesktopSidebar, MAIN_TABS } from './DesktopSidebar'
 
 type Tab = { to: string; label: string; icon: PhosphorIcon }
 
@@ -62,7 +62,7 @@ function TabItem({ to, label, icon: Icon }: Tab) {
 
 /**
  * Celular: uma coluna, com a barra de abas translúcida embaixo e o "+" no meio, que abre o menu de lançar.
- * Computador: barra azul no topo (abas, Mais, Lançar e perfil), como o internet banking, e a tela embaixo.
+ * Computador: menu lateral azul (perfil, Lançar, abas e o resto do app), como o internet banking, e a tela ao lado.
  */
 export function Layout() {
   const { mode, configured, exitDemo } = useAuth()
@@ -84,6 +84,8 @@ export function Layout() {
   useBankAutoSync((n) => toast(`${n} ${n === 1 ? 'lançamento novo' : 'lançamentos novos'} do banco`))
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
   const wide = WIDE.some((re) => re.test(pathname))
+  // O Início do computador ocupa a área toda (coluna principal + painel cinza à direita, de cima a baixo)
+  const home = desktop && pathname === '/'
   // "Avalie esta tela" no fim de cada tela (formulários e painel do beta ficam de fora)
   const screen = fullScreen ? null : screenOf(pathname)
   // Vidro sob a aba ativa: posição na grade de 5 (o "+" fica no meio)
@@ -93,7 +95,8 @@ export function Layout() {
   return (
     // No computador o menu já está sempre à vista (na lateral): sem botão ☰
     <MenuContext.Provider value={fullScreen || desktop ? null : () => setMenuOpen(true)}>
-    <div className="desk mx-auto min-h-dvh w-full max-w-[30rem] bg-bg lg:max-w-none">
+    {desktop && <DesktopSidebar ref={addAnchor} onAdd={() => setAddOpen((v) => !v)} addOpen={addOpen} />}
+    <div className="mx-auto min-h-dvh w-full max-w-[30rem] bg-bg lg:max-w-none lg:pl-60">
       {mode === 'demo' && (
         <p className="pt-safe px-4 pt-1.5 text-center text-[0.8125rem] font-medium text-muted">
           Demonstração · dados de exemplo só neste aparelho
@@ -120,12 +123,10 @@ export function Layout() {
         </div>
       )}
 
-      {desktop && <DesktopHeader ref={addAnchor} onAdd={() => setAddOpen((v) => !v)} addOpen={addOpen} />}
-
-      <main className={`px-4 lg:overflow-x-clip lg:px-8 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-12'}`}>
-        <div key={pathname} className={`animate-page lg:mx-auto ${fullScreen ? 'lg:max-w-[38rem]' : wide ? 'lg:max-w-[72rem]' : 'lg:max-w-[52rem]'}`}>
+      <main className={home ? '' : `px-4 lg:px-12 lg:pt-4 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-12'}`}>
+        <div key={pathname} className={`animate-page ${home ? '' : `lg:mx-auto ${fullScreen ? 'lg:max-w-[40rem]' : wide ? 'lg:max-w-[76rem]' : 'lg:max-w-[56rem]'}`}`}>
           <Outlet />
-          {screen && <RateScreen screen={screen} search={search} />}
+          {screen && !home && <RateScreen screen={screen} search={search} />}
         </div>
       </main>
 

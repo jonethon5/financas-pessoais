@@ -30,7 +30,8 @@ import { toggleHidden, useHiddenValues } from '../lib/privacy'
 import { wishState } from '../lib/psych'
 import { friendlyError } from '../lib/supabase'
 import { useDesktop } from '../lib/useDesktop'
-import { CARD_ICONS, DesktopHome, type ProductCardData } from './HomeDesktop'
+import { DesktopHome, type Detail, type MoneyLine } from './HomeDesktop'
+import { byCategory, monthlySeries, salaryFlow, type CatShare } from '../lib/charts'
 
 const HOME_TOUR: TourStep[] = [
   { target: 'hoje', title: 'Quanto você pode gastar hoje', text: 'O número mais importante: o dinheiro da conta, já sem as contas que vencem antes do salário, dividido pelos dias até ele. Gastou menos hoje? Sobra mais amanhã.' },
@@ -78,7 +79,7 @@ function Section({ title, to, children, tour, links }: { title: string; to?: str
  * "Hoje você pode gastar" dentro do topo azul (como o saldo nos apps de banco),
  * com o porquinho reagindo: feliz, preocupado perto do limite, aflito quando passa.
  */
-function TodayHero({ t, hidden, onSetSalary, big = false }: { t: TodayBudget | CashToday | null; hidden: boolean; onSetSalary: () => void; big?: boolean }) {
+function TodayHero({ t, hidden, onSetSalary }: { t: TodayBudget | CashToday | null; hidden: boolean; onSetSalary: () => void }) {
   const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
   if (!t) {
     return (
@@ -108,13 +109,13 @@ function TodayHero({ t, hidden, onSetSalary, big = false }: { t: TodayBudget | C
           {over ? (
             <p className="mt-0.5 text-[1.875rem] leading-tight font-extrabold tracking-tight text-[#FFD9CF]">Passou {money(-t.leftToday)}</p>
           ) : (
-            <AnimatedMoney cents={t.leftToday} className={`block leading-tight font-extrabold tracking-[-0.03em] ${big ? 'text-[3.5rem]' : 'text-[2.5rem]'}`} />
+            <AnimatedMoney cents={t.leftToday} className="block text-[2.5rem] leading-tight font-extrabold tracking-[-0.03em]" />
           )}
           <span className="mt-1 inline-flex rounded-full bg-black/15 px-2.5 py-0.5 text-[0.8125rem] font-semibold">
             {cash ? (t.daysLeft === 1 ? 'O salário cai amanhã' : `Faltam ${t.daysLeft} dias para o salário`) : t.daysLeft === 1 ? 'Último dia do mês' : `Faltam ${t.daysLeft} dias`}
           </span>
         </div>
-        <Pig art={art} px={big ? 136 : 96} className="-mb-1" />
+        <Pig art={art} px={96} className="-mb-1" />
       </div>
 
       {t.dailyAllowance > 0 ? (
@@ -317,53 +318,57 @@ export function HomePage() {
     )
 
   if (desktop) {
-    const money = (c: number) => (hidden ? 'R$ ••••' : formatBRL(c))
     const naConta = contas.reduce((a, c) => a + (c.account.balance_cents ?? 0), 0)
     const fatura = bills.reduce((a, b) => a + b.amountCents, 0)
     const nextBill = [...bills].sort((a, b) => (a.daysUntil ?? 99) - (b.daysUntil ?? 99))[0]
-    const goals = view.data.goals
-    const saved = goals.reduce((a, g) => a + g.status.saved, 0)
-    const planned = goals.filter((g) => !g.status.done).reduce((a, g) => a + (g.status.perMonth ?? 0), 0)
-    const thisMonth = goals.reduce((a, g) => a + Math.max(0, g.status.savedThisMonth), 0)
-    const pending = unclassified.length > 0
-    const cards: ProductCardData[] = [
-      contas.length
-        ? { to: '/voce/bancos', title: 'Conta', icon: CARD_ICONS.Bank, label: 'Na conta agora', cents: naConta, sub: contas.map((c) => c.short).join(' e ') }
-        : { to: '/voce/bancos', title: 'Conta', icon: CARD_ICONS.Bank, label: 'Banco', cents: null, empty: 'Conecte seu banco', sub: 'Os gastos entram sozinhos' },
+    const saved = view.data.goals.reduce((a, g) => a + g.status.saved, 0)
+    const moneyLines: MoneyLine[] = [
+      contas.length ? { label: 'Na conta agora', cents: naConta, hint: contas.map((c) => c.short).join(' e ') } : { label: 'Na conta agora', cents: null, hint: 'Conecte o banco para ver' },
       bills.length
-        ? { to: `/voce/bancos/${nextBill.accountId}`, title: 'Cartão de crédito', icon: CARD_ICONS.CreditCard, label: 'Fatura a pagar', cents: fatura, tone: nextBill.daysUntil != null && nextBill.daysUntil < 0 ? 'bad' : 'ink', sub: dueText(nextBill.daysUntil).replace(/^./, (c) => c.toUpperCase()) }
+        ? { label: 'Fatura a pagar', cents: fatura, hint: dueText(nextBill.daysUntil).replace(/^./, (c) => c.toUpperCase()), tone: nextBill.daysUntil != null && nextBill.daysUntil < 0 ? 'bad' : undefined }
         : nextCard && nextCard.cents > 0
-          ? { to: '/mes', title: 'Cartão de crédito', icon: CARD_ICONS.CreditCard, label: 'Já gasto no cartão', cents: nextCard.cents, sub: `Fatura de ${monthLabel(nextCard.month).split(' ')[0].toLowerCase()}` }
-          : { to: '/voce/bancos', title: 'Cartão de crédito', icon: CARD_ICONS.CreditCard, label: 'Fatura', cents: null, empty: 'Nenhum cartão', sub: 'Conecte o banco para ver a fatura' },
-      {
-        to: '/caixinhas',
-        title: 'Caixinhas',
-        icon: CARD_ICONS.PiggyBank,
-        label: 'Guardado nas caixinhas',
-        cents: saved,
-        progress: planned > 0 ? thisMonth / planned : null,
-        sub: planned > 0 ? `${money(thisMonth)} de ${money(planned)} este mês` : goals.length ? undefined : 'Crie a primeira caixinha',
-      },
-      {
-        to: '/mes',
-        title: 'Mês',
-        icon: CARD_ICONS.CalendarDots,
-        label: s.free < 0 ? 'Faltou no mês' : pending ? 'Resultado do mês, por enquanto' : 'Resultado do mês',
-        cents: Math.abs(s.free),
-        tone: pending ? 'ink' : s.free < 0 ? 'bad' : 'good',
-        sub: `Entrou ${money(s.income)} · saiu ${money(s.committed + s.daily + s.save)}`,
-      },
+          ? { label: 'Já gasto no cartão', cents: nextCard.cents, hint: `Fatura de ${monthLabel(nextCard.month).split(' ')[0].toLowerCase()}` }
+          : { label: 'Fatura do cartão', cents: null, hint: 'Nenhum cartão conectado' },
+      { label: 'Guardado nas caixinhas', cents: saved },
     ]
+    // Painel da direita: 6 meses em linha e o detalhe do mês
+    const series = monthlySeries(allTxs, currentYearMonth(), 6)
+    const share = (list: CatShare[]): Detail[] => list.map((c) => ({ key: c.id, label: c.name, color: c.color, cents: c.cents, pct: c.pct }))
+    const FLOW = ['#2F6FEB', '#E8590C', '#0F9D6B', '#7C5CE0', '#94A3B8']
+    const details = {
+      gastos: share(byCategory(txs, 'expense', categories)),
+      renda: share(byCategory(txs, 'income', categories)),
+      resultado: salaryFlow(s)
+        .filter((x) => x.cents > 0)
+        .map((x, i) => ({ key: x.key, label: x.label, color: FLOW[i % FLOW.length], cents: x.cents, pct: x.pct })),
+    }
+    const recentMore = allTxs.filter((x) => !x.skipped && x.type === 'dia' && x.kind === 'expense' && x.date <= today).sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)).slice(0, 6)
     return (
       <>
         <DesktopHome
           greeting={name ? `Olá, ${name}` : 'Olá'}
-          hero={<TodayHero t={cash ?? (t && hasSalary ? t : null)} hidden={hidden} onSetSalary={() => navigate('/voce')} big />}
-          cards={cards}
+          t={cash ?? (t && hasSalary ? t : null)}
           hidden={hidden}
+          onSetSalary={() => navigate('/voce')}
+          moneyLines={moneyLines}
+          cashInfo={cash != null}
           hasBank={contas.length > 0}
           attention={attentionList}
-          recent={recentList}
+          attentionCount={attention.length}
+          recent={
+            recentMore.length === 0 ? (
+              <p className="text-muted">Nenhum gasto do dia a dia neste mês. Use o Lançar para registrar.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {recentMore.map((x) => (
+                  <StatementRow key={x.id} t={x} category={catOf(x.category_id)} accounts={wallet.raw} account={wallet.byId(x.bank_account_id)} />
+                ))}
+              </ul>
+            )
+          }
+          series={series}
+          details={details}
+          monthName={monthLabel(currentYearMonth()).split(' ')[0].toLowerCase()}
         />
         {triage && <IncomeTriage txs={txs} onClose={() => setTriage(false)} />}
         <Tour id="inicio-v2" steps={HOME_TOUR} />

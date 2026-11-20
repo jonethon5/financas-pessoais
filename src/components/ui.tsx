@@ -411,11 +411,11 @@ export function NavBar({
       </div>
       )}
       {large && (
-        <header className="brand-band -mx-4 mb-5 px-5 pt-0.5 pb-5 lg:mb-8 lg:px-4 lg:pt-6 lg:pb-9">
+        <header className="brand-band -mx-4 mb-5 px-5 pt-0.5 pb-5 lg:mb-7 lg:px-4 lg:pt-6 lg:pb-0">
           {inBand && left && <div className="-ml-2 mb-1 flex">{left}</div>}
           {subtitle && <p className="text-[0.9375rem]">{subtitle}</p>}
           <div className="flex items-end justify-between gap-4">
-            <h1 ref={sentinel} className="text-[1.875rem] leading-[1.15] font-extrabold tracking-[-0.025em] lg:text-[2.5rem]">
+            <h1 ref={sentinel} className="text-[1.875rem] leading-[1.15] font-extrabold tracking-[-0.025em] lg:text-[2.125rem]">
               {title}
             </h1>
             {inBand && right && <div className="brand-actions flex shrink-0 items-center gap-1 pb-1">{right}</div>}

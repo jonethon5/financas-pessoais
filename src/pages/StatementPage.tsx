@@ -40,7 +40,8 @@ export function StatementPage() {
   const viewParam = params.get('ver')
   const view: StatementView = viewParam === 'gastos' || viewParam === 'entradas' || viewParam === 'fora' ? viewParam : 'tudo'
   const accountId = params.get('conta')
-  const [query, setQuery] = useState('')
+  // A busca do painel do Início (computador) chega pelo endereço: /extrato?busca=mercado
+  const [query, setQuery] = useState(() => params.get('busca') ?? '')
   const [exporting, setExporting] = useState(false)
   const txs = useMonthTxs(ym)
   const categories = useCategories()

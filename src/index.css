@@ -735,16 +735,38 @@ body {
   background-color: rgb(255 255 255 / 0.15);
 }
 
-/* Computador: o topo azul vai de ponta a ponta da área da tela (o conteúdo continua na coluna).
-   O border-image pinta o mesmo fundo para os lados sem mudar o tamanho da barra; o <main> corta nas bordas. */
+/* Computador: o azul fica no menu lateral; o topo de cada tela é branco com o título escuro
+   (como no internet banking). Desfaz as cores do topo azul do celular. */
 @media (min-width: 64rem) {
+  .brand-bar,
+  .brand-band {
+    background: none;
+    color: var(--ink);
+  }
   .brand-bar {
-    border-image: linear-gradient(#2f6feb, #2f6feb) fill 0 / 0 / 0 100vmax;
+    border-bottom: 1px solid var(--line);
   }
-  .brand-band,
-  .brand-bleed {
-    border-image: linear-gradient(#2f6feb, #1d5fd6) fill 0 / 0 / 0 100vmax;
+  :is(.brand-bar, .brand-band) .text-primary {
+    color: var(--primary);
   }
+  :is(.brand-bar, .brand-band) .text-ink {
+    color: var(--ink);
+  }
+  :is(.brand-bar, .brand-band) .text-muted {
+    color: var(--muted);
+  }
+  :is(.brand-bar, .brand-actions) .bg-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  :is(.brand-bar, .brand-actions) .bg-surface {
+    background: var(--surface);
+  }
+  :is(.brand-bar, .brand-actions) :is(button, a):active {
+    background-color: var(--surface-2);
+  }
+}
+@media (min-width: 64rem) {
   /* As folhas viram janelas no meio da tela: aparecem no lugar, sem subir de baixo */
   @keyframes sheet-pop {
     from {
@@ -757,26 +779,4 @@ body {
   }
 }
 
-/* Computador, como nos apps de banco na web: fundo cinza-claro e os blocos em cartões brancos com sombra suave.
-   Só troca as cores dentro da área do app (.desk); no celular nada muda. */
-@media (min-width: 64rem) {
-  .desk {
-    --bg: #f2f4f7;
-    --surface: #ffffff;
-    --line: #edf0f3;
-    --seg: #e6e9ee;
-    --card-shadow: 0 1px 2px rgb(15 36 51 / 0.04), 0 12px 32px -18px rgb(15 36 51 / 0.22);
-  }
-  :root[data-theme='dark'] .desk {
-    --bg: #000000;
-    --surface: #121316;
-    --line: #1f2226;
-    --seg: #1b1d21;
-    --card-shadow: none;
-  }
-}
-/* Barra do topo do computador: o mesmo azul do topo das telas, sem emenda */
-.desk-top {
-  background: #2f6feb;
-  color: #fff;
-}
+
