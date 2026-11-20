@@ -29,9 +29,6 @@ jobs:
             echo "::notice::Avisos ainda não configurados (falta NOTIFY_CRON_SECRET). Nada a fazer."
             exit 0
           fi
-          curl --fail-with-body --silent --show-error --max-time 120 \
-            -X POST "$SUPABASE_URL/functions/v1/notify" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "x-cron-secret: $NOTIFY_CRON_SECRET" \
-            -H "Content-Type: application/json" \
-            -d '{"action":"run"}' | python3 -c 'import json,sys; r=json.load(sys.stdin); print(f"ok={r.get(\"ok\")} pessoas={r.get(\"users\")} avisos={r.get(\"sent\")} {r.get(\"reason\") or \"\"}")'
+          RESP=$(curl --fail-with-body --silent --show-error --max-time 120             -X POST "$SUPABASE_URL/functions/v1/notify"             -H "apikey: $SUPABASE_ANON_KEY"             -H "x-cron-secret: $NOTIFY_CRON_SECRET"             -H "Content-Type: application/json"             -d '{"action":"run"}')
+          # Só o resumo (sem o texto dos avisos, que fala da vida financeira de cada pessoa)
+          echo "$RESP" | python3 -c 'import json, sys; r = json.load(sys.stdin); print("ok=%s pessoas=%s avisos=%s %s" % (r.get("ok"), r.get("users"), r.get("sent"), r.get("reason") or ""))'
