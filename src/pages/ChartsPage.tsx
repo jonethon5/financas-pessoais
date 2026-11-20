@@ -280,7 +280,7 @@ function PartsPie({ parts, colors = SERIES }: { parts: Part[]; colors?: string[]
                 <Cell key={p.key} fill={p.color} />
               ))}
             </Pie>
-            <Tooltip content={({ active, payload }) => (active && payload?.[0] ? <TipBox title={String(payload[0].name)} rows={[{ label: pct((payload[0].payload as Part).pct), value: money(payload[0].value as number), color: (payload[0].payload as { color: string }).color }]} /> : null)} />
+            {/* Sem caixinha ao passar o mouse: a legenda ao lado já mostra valor e % de cada parte (a caixinha cobria a pizza) */}
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -402,7 +402,7 @@ export function ChartsPage({ embeddedYm }: { embeddedYm?: YearMonth } = {}) {
           { target: 'graficos-periodo', title: '6 ou 12 meses', text: 'Escolha quantos meses aparecem nos gráficos de evolução.' },
         ]}
       />
-      <div key={`${key}-${tab}`} className="stagger mt-5 flex flex-col gap-4 pb-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6">
+      <div key={`${key}-${tab}`} className="stagger mt-5 flex flex-col gap-4 pb-4 xl:block xl:columns-2 xl:gap-6 xl:*:mb-6 xl:*:break-inside-avoid">
         {tab === 'despesas' && (
           <>
             <ChartCard title="Ranking das categorias" hint="Onde o dinheiro mais foi neste mês.">

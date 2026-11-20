@@ -84,7 +84,7 @@ function banners(hasBank: boolean): Banner[] {
   return [
     { title: 'Guarde primeiro, gaste depois', text: 'Quando o salário cair, separe o das caixinhas. O que sobra é o do mês.', cta: 'Separar salário', to: '/separar', art: 'tela-economia', bg: 'linear-gradient(135deg,#0B8A5F,#065A3E)', ink: '#065A3E' },
     hasBank
-      ? { title: 'Como está sua saúde financeira?', text: 'Um resumo de como anda o seu dinheiro e por onde começar.', cta: 'Ver minha saúde', to: '/saude', art: 'tela-resumo', bg: 'linear-gradient(135deg,#1B4A9C,#0F2B66)', ink: '#0F2B66' }
+      ? { title: 'Como está sua saúde financeira?', text: 'Um resumo de como anda o seu dinheiro e por onde começar.', cta: 'Ver minha saúde', to: '/saude', art: 'modo-moderado', bg: 'linear-gradient(135deg,#1B4A9C,#0F2B66)', ink: '#0F2B66' }
       : { title: 'Conecte seu banco', text: 'Pelo Open Finance os gastos entram sozinhos, sem digitar nada.', cta: 'Conectar', to: '/voce/bancos', art: 'tela-conexao', bg: 'linear-gradient(135deg,#1B4A9C,#0F2B66)', ink: '#0F2B66' },
     { title: 'Desafios curtos, dinheiro guardado', text: 'Metas de poucos dias para segurar os gastos, como as 52 semanas.', cta: 'Ver desafios', to: '/habitos', art: 'tela-metas', bg: 'linear-gradient(135deg,#5B45D6,#3B2A9E)', ink: '#3B2A9E' },
     { title: 'Quer comprar algo? Espere 30 dias', text: 'Anote na lista de desejos. Se a vontade passar, o dinheiro fica com você.', cta: 'Lista de desejos', to: '/habitos', art: 'rosto-pensativo', bg: 'linear-gradient(135deg,#C2410C,#8F2F08)', ink: '#8F2F08' },

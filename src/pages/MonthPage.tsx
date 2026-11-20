@@ -120,7 +120,8 @@ function Summary({ data, onCategory }: { data: ViewData; onCategory: (id: string
   return (
     // Computador largo: a conta do mês ao lado de "para onde foi o dinheiro"
     <div className="stagger flex flex-col gap-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-8">
-      <div style={i(0)}>
+      {/* Computador: a conta do mês acompanha a rolagem enquanto a lista do lado desce (sem buraco embaixo) */}
+      <div style={i(0)} className="xl:sticky xl:top-24">
         <Card className="p-4">
           <MonthFlow s={s} txs={txs} current={isCurrent} history={data.history} />
         </Card>

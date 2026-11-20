@@ -31,7 +31,8 @@ function MoreMenu() {
   const { pathname, search } = useLocation()
   const box = useRef<HTMLDivElement>(null)
   const here = `${pathname}${search}`
-  const active = MENU_GROUPS.some((g) => g.items.some((it) => it.to && (it.to.includes('?') ? here === it.to : pathname === it.to)))
+  // Só fica marcado quando a tela aberta não é uma das abas (Gráficos mora dentro do Mês, que já fica marcado)
+  const active = !MAIN_TABS.some((t) => tabActive(pathname, t.to)) && MENU_GROUPS.some((g) => g.items.some((it) => it.to && (it.to.includes('?') ? here === it.to : pathname === it.to)))
 
   useEffect(() => setOpen(false), [pathname, search])
   useEffect(() => {
