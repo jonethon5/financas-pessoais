@@ -1,0 +1,31 @@
+<template>
+  <style>
+    @font-face { font-family: 'Maven Pro'; src: url('assets/fonts/maven-pro.woff2') format('woff2'); font-weight: 400 900; }
+    #root { position: absolute; inset: 0; font-family: 'Maven Pro', sans-serif; color: #fff; }
+    #extrato-phone { position: absolute; left: 250px; top: 50px; width: 468px; height: 980px; border-radius: 62px; background: #05080d; padding: 14px; box-shadow: 0 50px 100px -34px rgb(0 0 0 / 0.8), 0 0 0 2px rgb(255 255 255 / 0.09); }
+    #extrato-phone img { display: block; width: 440px; height: 952px; border-radius: 48px; }
+    #extrato-title { position: absolute; left: 840px; top: 170px; width: 1000px; font-size: 64px; white-space: nowrap; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+    #extrato-sub { position: absolute; left: 840px; top: 266px; width: 900px; font-size: 32px; font-weight: 500; line-height: 1.35; color: #c9d8ff; }
+    #extrato-zoom { position: absolute; left: 840px; top: 400px; width: 600px; height: 560px; }
+    #extrato-zoom img { display: block; width: 100%; height: 100%; border-radius: 26px; transform-origin: 0 0; }
+    #extrato-ring { position: absolute; inset: -7px; border-radius: 33px; box-shadow: 0 0 0 4px rgb(110 168 254 / 0.6); }
+  </style>
+  <div id="root" data-composition-id="extrato" data-width="1920" data-height="1080">
+    <div id="extrato-phone" class="clip" data-start="0" data-duration="4.6"><img id="extrato-screen" src="assets/escuro-extrato.png" alt="" /></div>
+    <h2 id="extrato-title" class="clip" data-start="0" data-duration="4.6"><span id="extrato-title-in" data-var-text="extratoTitle">Tudo o que entrou e saiu</span></h2>
+    <p id="extrato-sub" class="clip" data-start="0" data-duration="4.6"><span id="extrato-sub-in" data-var-text="extratoSub">Com o logo de cada lugar e direto do banco. No modo escuro também.</span></p>
+    <div id="extrato-zoom" class="clip" data-start="1.05" data-duration="3.55" data-layout-allow-overflow><img id="extrato-zoom-img" src="assets/escuro-extrato-zoom.png" alt="" /><span id="extrato-ring"></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#extrato-phone", { y: 70 }, { y: 0, duration: 0.75, ease: "power3.out" }, 0);
+    tl.fromTo("#extrato-screen", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 0);
+    tl.fromTo("#extrato-title-in", { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.4);
+    tl.fromTo("#extrato-sub-in", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.62);
+    // o cartão sai do lugar dele no celular e cresce ao lado (a interface de verdade, recortada do app)
+    tl.fromTo("#extrato-zoom-img", { x: -576.0, y: 84.9, scale: 0.7333, boxShadow: "0 0 0 0 rgb(0 0 0 / 0)" }, { x: 0, y: 0, scale: 1, boxShadow: "0 34px 80px -26px rgb(0 0 0 / 0.75)", duration: 0.85, ease: "expo.inOut" }, 1.05);
+    tl.fromTo("#extrato-ring", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.9);
+    tl.to(["#extrato-screen", "#extrato-title-in", "#extrato-sub-in", "#extrato-zoom-img", "#extrato-ring"], { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.15);
+    window.__timelines["extrato"] = tl;
+  </script>
+</template>

@@ -5,9 +5,9 @@ hoje, ajuda a guardar dinheiro com objetivo e ensina, com um porquinho que reage
 científica, com exemplos para quem ganha por volta de R$ 3.000.
 
 **[Abrir a demonstração](https://jonethon5.github.io/financas-pessoais/)** (funciona no celular e no computador, sem criar conta)
-· **[Vídeo de 26 s (MP4)](docs/img/poupei.mp4)**
+· **[Vídeo de 31 s (MP4, 1080p)](docs/img/poupei.mp4)**
 
-[![Vídeo de apresentação do Poupei: quanto dá para gastar hoje, a conta do mês, banco e cartão juntos e caixinhas](docs/img/video.webp)](docs/img/poupei.mp4)
+[![Vídeo de apresentação do Poupei: quanto dá para gastar hoje, a conta do mês, o extrato, as caixinhas e a versão de computador](docs/img/video.webp)](docs/img/poupei.mp4)
 
 > Projeto em beta fechado. Os dados das imagens e da demonstração são de exemplo e ficam só no aparelho de quem abre.
 

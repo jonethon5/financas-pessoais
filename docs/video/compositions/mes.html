@@ -2,30 +2,29 @@
   <style>
     @font-face { font-family: 'Maven Pro'; src: url('assets/fonts/maven-pro.woff2') format('woff2'); font-weight: 400 900; }
     #root { position: absolute; inset: 0; font-family: 'Maven Pro', sans-serif; color: #fff; }
-    #mes-phone { position: absolute; left: 316px; top: 112px; width: 418px; height: 855px; border-radius: 58px; background: #05080d; padding: 14px; box-shadow: 0 40px 90px -30px rgb(0 0 0 / 0.75), 0 0 0 2px rgb(255 255 255 / 0.08); }
-    #mes-phone img { display: block; width: 390px; height: 827px; border-radius: 44px; }
-    #mes-title { position: absolute; left: 860px; top: 190px; width: 964px; font-size: 60px; white-space: nowrap; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
-    #mes-sub { position: absolute; left: 860px; top: 282px; width: 900px; font-size: 32px; font-weight: 500; line-height: 1.35; color: #c9d8ff; }
-    #mes-zoom { position: absolute; left: 860px; top: 430px; width: 576px; height: 408px; transform-origin: 0 0; }
-    #mes-zoom img { display: block; width: 100%; height: 100%; border-radius: 28px; transform-origin: 0 0; }
-    #mes-ring { position: absolute; inset: -6px; border-radius: 34px; box-shadow: 0 0 0 4px rgb(110 168 254 / 0.6); }
+    #mes-phone { position: absolute; left: 250px; top: 50px; width: 468px; height: 980px; border-radius: 62px; background: #05080d; padding: 14px; box-shadow: 0 50px 100px -34px rgb(0 0 0 / 0.8), 0 0 0 2px rgb(255 255 255 / 0.09); }
+    #mes-phone img { display: block; width: 440px; height: 952px; border-radius: 48px; }
+    #mes-title { position: absolute; left: 840px; top: 170px; width: 1000px; font-size: 64px; white-space: nowrap; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+    #mes-sub { position: absolute; left: 840px; top: 266px; width: 900px; font-size: 32px; font-weight: 500; line-height: 1.35; color: #c9d8ff; }
+    #mes-zoom { position: absolute; left: 840px; top: 400px; width: 538px; height: 560px; }
+    #mes-zoom img { display: block; width: 100%; height: 100%; border-radius: 30px; transform-origin: 0 0; }
+    #mes-ring { position: absolute; inset: -7px; border-radius: 37px; box-shadow: 0 0 0 4px rgb(110 168 254 / 0.6); }
   </style>
   <div id="root" data-composition-id="mes" data-width="1920" data-height="1080">
     <div id="mes-phone" class="clip" data-start="0" data-duration="4.6"><img id="mes-screen" src="assets/claro-mes.png" alt="" /></div>
-    <h2 id="mes-title" class="clip" data-start="0" data-duration="4.6"><span id="mes-title-in">A conta do mês, sem mistério</span></h2>
-    <p id="mes-sub" class="clip" data-start="0" data-duration="4.6"><span id="mes-sub-in">Renda − gastos − caixinhas = sobra. A mesma conta em todo o app.</span></p>
+    <h2 id="mes-title" class="clip" data-start="0" data-duration="4.6"><span id="mes-title-in" data-var-text="mesTitle">A conta do mês, sem mistério</span></h2>
+    <p id="mes-sub" class="clip" data-start="0" data-duration="4.6"><span id="mes-sub-in" data-var-text="mesSub">Entrou, saiu e o que sobrou, separado por fixos, parcelas e dia a dia.</span></p>
     <div id="mes-zoom" class="clip" data-start="1.05" data-duration="3.55" data-layout-allow-overflow><img id="mes-zoom-img" src="assets/claro-mes-zoom.png" alt="" /><span id="mes-ring"></span></div>
   </div>
   <script>
     const tl = gsap.timeline({ paused: true });
-    tl.fromTo("#mes-phone", { y: 60 }, { y: 0, duration: 0.7, ease: "power3.out" }, 0);
+    tl.fromTo("#mes-phone", { y: 70 }, { y: 0, duration: 0.75, ease: "power3.out" }, 0);
     tl.fromTo("#mes-screen", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 0);
-    tl.fromTo("#mes-title-in", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.45);
-    tl.fromTo("#mes-sub-in", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.7);
-    // o pedaço da tela sai do celular e cresce ao lado (a interface de verdade, maior)
-    tl.fromTo("#mes-zoom-img", { x: -515.0, y: -67.0, scale: 0.6250, opacity: 1, boxShadow: "0 0 0 0 rgb(0 0 0 / 0)" }, { x: 0, y: 0, scale: 1, opacity: 1, boxShadow: "0 30px 70px -24px rgb(0 0 0 / 0.7)", duration: 0.8, ease: "expo.inOut" }, 1.05);
-    tl.fromTo("#mes-ring", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.85);
-    // saída
+    tl.fromTo("#mes-title-in", { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.4);
+    tl.fromTo("#mes-sub-in", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.62);
+    // o cartão sai do lugar dele no celular e cresce ao lado (a interface de verdade, recortada do app)
+    tl.fromTo("#mes-zoom-img", { x: -559.1, y: -70.6, scale: 0.7549, boxShadow: "0 0 0 0 rgb(0 0 0 / 0)" }, { x: 0, y: 0, scale: 1, boxShadow: "0 34px 80px -26px rgb(0 0 0 / 0.75)", duration: 0.85, ease: "expo.inOut" }, 1.05);
+    tl.fromTo("#mes-ring", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.9);
     tl.to(["#mes-screen", "#mes-title-in", "#mes-sub-in", "#mes-zoom-img", "#mes-ring"], { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.15);
     window.__timelines["mes"] = tl;
   </script>
