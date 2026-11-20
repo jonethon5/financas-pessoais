@@ -4,7 +4,7 @@
 hoje, ajuda a guardar dinheiro com objetivo e ensina, com um porquinho que reage ao seu dia, métodos que têm base
 científica, com exemplos para quem ganha por volta de R$ 3.000.
 
-**[Abrir a demonstração](https://jonethon5.github.io/financas-pessoais/)** (funciona no navegador do celular, sem criar conta)
+**[Abrir a demonstração](https://jonethon5.github.io/financas-pessoais/)** (funciona no celular e no computador, sem criar conta)
 · **[Vídeo de 26 s (MP4)](docs/img/poupei.mp4)**
 
 [![Vídeo de apresentação do Poupei: quanto dá para gastar hoje, a conta do mês, banco e cartão juntos e caixinhas](docs/img/video.webp)](docs/img/poupei.mp4)
@@ -25,6 +25,23 @@ As imagens acompanham o tema do seu GitHub (claro ou escuro), como o próprio ap
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/telas2-escuro.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/img/telas2-claro.png">
   <img alt="Telas do Poupei: contas e cartões juntos, ranking de gastos por categoria e o porquinho com as metas do dia" src="docs/img/telas2-claro.png">
+</picture>
+
+### No computador
+
+No computador o app vira um internet banking: barra no topo com as abas e o botão Lançar, o valor do dia com
+atalhos, cartões de conta, cartão, caixinhas e mês, e banners com dicas. No celular continua como app.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/desktop-escuro.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/img/desktop-claro.png">
+  <img alt="Poupei no computador: barra azul no topo, quanto dá para gastar hoje com atalhos, cartões de conta, cartão, caixinhas e mês, e banners com o porquinho" src="docs/img/desktop-claro.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/desktop2-escuro.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/img/desktop2-claro.png">
+  <img alt="Poupei no computador: gráficos do mês em duas colunas e as caixinhas lado a lado" src="docs/img/desktop2-claro.png">
 </picture>
 
 ## O problema
