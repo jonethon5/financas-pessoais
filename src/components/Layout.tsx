@@ -18,8 +18,6 @@ type Tab = { to: string; label: string; icon: PhosphorIcon }
 // As 4 coisas que a pessoa olha todo dia: hoje, o extrato (como no banco), o mês e o que guardou
 const TABS: Tab[] = MAIN_TABS
 
-/** No computador, telas com bastante coisa para ver lado a lado ganham uma coluna mais larga (duas colunas). */
-const WIDE = [/^\/$/, /^\/mes$/, /^\/caixinhas$/]
 
 /** Telas de formulário ocupam a tela toda, sem a barra de abas (como as telas de "Novo" do iPhone). */
 const FULL_SCREEN = [/^\/voce\/(perfil|senha|email|excluir|sugestao)$/, /^\/lancar/, /^\/lancamento\//, /^\/separar/, /^\/caixinhas\/(nova|.+\/editar)$/, /^\/(termos|privacidade)$/, /^\/assistente$/]
@@ -83,7 +81,6 @@ export function Layout() {
   const toast = useToast()
   useBankAutoSync((n) => toast(`${n} ${n === 1 ? 'lançamento novo' : 'lançamentos novos'} do banco`))
   const fullScreen = FULL_SCREEN.some((re) => re.test(pathname))
-  const wide = WIDE.some((re) => re.test(pathname))
   // O Início do computador ocupa a área toda (coluna principal + painel cinza à direita, de cima a baixo)
   const home = desktop && pathname === '/'
   // "Avalie esta tela" no fim de cada tela (formulários e painel do beta ficam de fora)
@@ -124,7 +121,8 @@ export function Layout() {
       )}
 
       <main className={home ? '' : `px-4 lg:px-12 lg:pt-4 ${fullScreen ? 'pb-10' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-12'}`}>
-        <div key={pathname} className={`animate-page ${home ? '' : `lg:mx-auto ${fullScreen ? 'lg:max-w-[40rem]' : wide ? 'lg:max-w-[76rem]' : 'lg:max-w-[56rem]'}`}`}>
+        {/* Computador: as telas usam a largura (sem coluna estreita com branco dos lados); formulários um pouco mais estreitos */}
+        <div key={pathname} className={`animate-page ${home ? '' : `lg:mx-auto ${fullScreen ? 'lg:max-w-[52rem]' : 'lg:max-w-[76rem] 2xl:max-w-[88rem]'}`}`}>
           <Outlet />
           {screen && !home && <RateScreen screen={screen} search={search} />}
         </div>

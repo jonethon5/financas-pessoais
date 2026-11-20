@@ -286,7 +286,7 @@ export function DesktopHome({
   return (
     <div className="flex min-h-dvh">
       <div className="min-w-0 flex-1 px-12 pt-10 pb-12">
-        <div className="mx-auto max-w-[52rem]">
+        <div className="mx-auto max-w-[64rem]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-[2.125rem] leading-tight font-extrabold tracking-[-0.025em]">{greeting}</h1>
