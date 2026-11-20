@@ -18,13 +18,13 @@ As imagens acompanham o tema do seu GitHub (claro ou escuro), como o próprio ap
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/telas-escuro.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/img/telas-claro.png">
-  <img alt="Telas do Poupei: início com quanto dá para gastar hoje, a conta do mês, extrato com logos das empresas e caixinhas" src="docs/img/telas-claro.png">
+  <img alt="Telas do Poupei no celular: início com quanto dá para gastar hoje, o resumo do mês, o extrato com logos das empresas e as caixinhas" src="docs/img/telas-claro.png">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/telas2-escuro.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/img/telas2-claro.png">
-  <img alt="Telas do Poupei: contas e cartões juntos, ranking de gastos por categoria e o porquinho com as metas do dia" src="docs/img/telas2-claro.png">
+  <img alt="Telas do Poupei no celular: ranking de gastos por categoria, o porquinho com as metas do dia e a saúde financeira" src="docs/img/telas2-claro.png">
 </picture>
 
 ### No computador
