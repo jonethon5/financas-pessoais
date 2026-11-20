@@ -13,7 +13,8 @@ import { ProfileAvatar } from '../../components/Avatar'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
-import { BackButton, BetaBadge, Button, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
+import { BackButton, BetaBadge, Button, Chip, ErrorBox, Field, List, NavBar, Row, Spinner, Switch } from '../../components/ui'
+import { PushCard } from '../../components/PushCard'
 import { useProfile, useUpdateProfile } from '../../data/hooks'
 import { FONTS, getFontPref, getThemePref, setFontPref, setThemePref, type FontPref, type ThemePref } from '../../lib/theme'
 import { useTable, useWrite } from '../../data/finance'
@@ -29,14 +30,19 @@ export const TONES: { value: AiTone; label: string; hint: string }[] = [
   { value: 'agressivo', label: 'Agressivo', hint: 'Sem rodeios: cortes fortes para chegar mais rápido nas metas.' },
 ]
 
+// O que vira aviso no celular (o servidor manda: supabase/functions/notify). Limite por categoria ainda não sai
+// como aviso: a conta do limite depende do mês da fatura do cartão, que só o app calcula.
 export const NOTIFY: { kind: NotifyKind; label: string; hint: string }[] = [
-  { kind: 'vencimentos', label: 'Contas a vencer', hint: 'Antes do vencimento e no dia' },
-  { kind: 'pagamento', label: 'Lembrete do salário', hint: 'No dia do pagamento: separar o das caixinhas' },
-  { kind: 'limite', label: 'Limite perto de estourar', hint: 'Quando uma categoria passa de 80%' },
-  { kind: 'revisao', label: 'Revisão da semana', hint: 'Domingo, leva 2 minutos' },
+  { kind: 'lembrete', label: 'Lembrete do dia', hint: 'O porquinho chama se você não abriu o app' },
+  { kind: 'vencimentos', label: 'Contas a vencer', hint: 'Antes do vencimento, no dia e se atrasar' },
+  { kind: 'pagamento', label: 'Dia do salário', hint: 'Lembra de separar o das caixinhas' },
   { kind: 'desejos', label: 'Lista de desejos', hint: 'Quando a espera de 30 dias termina' },
   { kind: 'metas', label: 'Marcos das caixinhas', hint: '25%, 50%, 75% e 100%' },
+  { kind: 'revisao', label: 'Revisão da semana', hint: 'Domingo à noite, leva 2 minutos' },
 ]
+
+/** Horários do lembrete da noite */
+const HOURS = [18, 19, 20, 21, 22]
 
 export const notifyOn = (p: Profile, kind: NotifyKind) => p.prefs.notify?.[kind] ?? true
 
@@ -241,11 +247,25 @@ export function YouPage({ section }: { section?: string }) {
             </>
           )}
           {section === 'avisos' && (
-            <List footer="Escolha o que pode virar notificação no celular.">
-              {NOTIFY.map((n) => (
-                <Row key={n.kind} title={n.label} subtitle={n.hint} trailing={<Switch label={n.label} checked={notifyOn(p, n.kind)} onChange={(on) => save({ prefs: { ...p.prefs, notify: { ...p.prefs.notify, [n.kind]: on } } })} />} />
-              ))}
-            </List>
+            <div className="flex flex-col gap-5">
+              <PushCard onEnabled={() => save({ prefs: { ...p.prefs, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } })} />
+              <section>
+                <h2 className="mb-1.5 px-4 text-[0.8125rem] font-medium tracking-wide text-muted uppercase">Horário do lembrete</h2>
+                <div className="flex flex-wrap gap-2 px-1" role="radiogroup" aria-label="Horário do lembrete">
+                  {HOURS.map((h) => (
+                    <Chip key={h} selected={(p.prefs.notify_hour ?? 20) === h} onClick={() => save({ prefs: { ...p.prefs, notify_hour: h } }, `Lembrete às ${h}h`)}>
+                      {h}h
+                    </Chip>
+                  ))}
+                </div>
+                <p className="mt-1.5 px-4 text-[0.8125rem] leading-snug text-muted">À noite: o lembrete do dia, marcos das caixinhas e a revisão de domingo. Contas e salário chegam de manhã, a partir das 9h.</p>
+              </section>
+              <List footer={`Escolha o que pode virar aviso. Quem fala é o ${mascotName(p.prefs.pig?.color)}, no modo que você escolheu em Porquinho e dicas.`}>
+                {NOTIFY.map((n) => (
+                  <Row key={n.kind} title={n.label} subtitle={n.hint} trailing={<Switch label={n.label} checked={notifyOn(p, n.kind)} onChange={(on) => save({ prefs: { ...p.prefs, notify: { ...p.prefs.notify, [n.kind]: on } } })} />} />
+                ))}
+              </List>
+            </div>
           )}
           {section === 'dinheiro' && (
             <>

@@ -1,0 +1,37 @@
+name: Avisos do porquinho
+
+# De hora em hora, chama a função notify: ela decide quem recebe aviso agora (contas, salário, lembrete do
+# dia…) no fuso de cada pessoa e manda pelo Web Push. O GitHub pode atrasar alguns minutos; tudo bem, porque
+# cada aviso tem uma janela de horário e nunca sai duas vezes.
+on:
+  schedule:
+    - cron: '5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notify
+  cancel-in-progress: false
+
+jobs:
+  avisos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar a função notify
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          NOTIFY_CRON_SECRET: ${{ secrets.NOTIFY_CRON_SECRET }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$NOTIFY_CRON_SECRET" ]; then
+            echo "::notice::Avisos ainda não configurados (falta NOTIFY_CRON_SECRET). Nada a fazer."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -X POST "$SUPABASE_URL/functions/v1/notify" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "x-cron-secret: $NOTIFY_CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"run"}' | python3 -c 'import json,sys; r=json.load(sys.stdin); print(f"ok={r.get(\"ok\")} pessoas={r.get(\"users\")} avisos={r.get(\"sent\")} {r.get(\"reason\") or \"\"}")'

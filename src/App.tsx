@@ -23,7 +23,8 @@ import { HelpPage } from './pages/HelpPage'
 import { BanksPage } from './pages/you/BanksPage'
 import { AccountPage } from './pages/you/AccountPage'
 import { StoriesPage } from './pages/StoriesPage'
-import { useProfile } from './data/hooks'
+import { useProfile, useUpdateProfile } from './data/hooks'
+import { todayISO } from './lib/dates'
 import { PrivacyPage, TermsPage } from './pages/legal/LegalPages'
 import { GoalDetailPage, GoalFormPage, GoalsPage } from './pages/goals/GoalsPages'
 import { MonthPage } from './pages/MonthPage'
@@ -54,6 +55,18 @@ function LoggedIn() {
   const { linkEvent, clearLinkEvent } = useAuth()
   const toast = useToast()
   const profile = useProfile()
+  const updateProfile = useUpdateProfile()
+  const seenId = profile.data?.id
+  const seenOn = profile.data?.last_seen_on
+  const onboarded = Boolean(profile.data?.onboarded_at)
+
+  // Abriu o app hoje: guarda o dia (o lembrete do porquinho só chama quem não abriu)
+  useEffect(() => {
+    if (!seenId || !onboarded) return
+    const today = todayISO()
+    if (seenOn !== today) updateProfile.mutate({ last_seen_on: today })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seenId, seenOn, onboarded])
 
   // Voltou de um link do e-mail: avisa o que aconteceu
   useEffect(() => {

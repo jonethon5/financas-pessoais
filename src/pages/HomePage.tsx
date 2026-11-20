@@ -1,6 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowCircleDown, Eye, EyeSlash, Hourglass, SplitHorizontal } from '@phosphor-icons/react'
+import { ArrowCircleDown, Bell, Eye, EyeSlash, Hourglass, SplitHorizontal } from '@phosphor-icons/react'
 import { CheckCircle2, ChevronRight } from 'lucide-react'
 import { StatementRow } from '../components/StatementRow'
 import { IncomeTriage, unclassifiedIncome } from '../components/IncomeTriage'
@@ -10,7 +10,9 @@ import { useAccounts } from '../data/accounts'
 import { MenuButton, useOpenMenu } from '../components/MenuContext'
 import { Tour, type TourStep } from '../components/Tour'
 import { Reveal } from '../components/Reveal'
-import { Pig } from '../components/Pig'
+import { Pig, mascotName } from '../components/Pig'
+import { useAuth } from '../auth/AuthProvider'
+import { usePushState } from '../lib/push'
 import { useToast } from '../components/Toast'
 import { usePig } from '../data/pig'
 import { BankLogo } from '../components/BankLogo'
@@ -161,6 +163,16 @@ export function HomePage() {
   const [triage, setTriage] = useState(false)
   const openMenu = useOpenMenu()
   const desktop = useDesktop()
+  // Convite para ligar os avisos (uma vez: some depois que a pessoa toca nele ou liga os avisos)
+  const { mode } = useAuth()
+  const [pushState] = usePushState()
+  const [pushAsked, setPushAsked] = useState(() => {
+    try {
+      return localStorage.getItem('poupei:avisos-convite') === '1'
+    } catch {
+      return true
+    }
+  })
   // As metas do dia do porquinho continuam valendo moedas (a seção dele saiu do Início; ele fica no topo)
   usePig((n) => toast(`+${n} ${n === 1 ? 'moeda ganha' : 'moedas ganhas'} com as metas do dia`))
   if (view.isPending) return <Spinner />
@@ -281,6 +293,28 @@ export function HomePage() {
           subtitle="A espera de 30 dias acabou"
           chevron
           as={(c, cls) => <Link to="/habitos" className={cls}>{c}</Link>}
+        />
+      ),
+    })
+  }
+  if (mode === 'supabase' && pushState === 'desligado' && !pushAsked) {
+    attention.push({
+      key: 'avisos',
+      node: (
+        <Row
+          icon={<Bell size={26} weight="duotone" className="text-primary" />}
+          title={`Quer que o ${mascotName(p.prefs.pig?.color)} te lembre?`}
+          subtitle="Contas vencendo, dia do salário e o lembrete do dia"
+          chevron
+          onClick={() => {
+            try {
+              localStorage.setItem('poupei:avisos-convite', '1')
+            } catch {
+              /* tudo bem */
+            }
+            setPushAsked(true)
+            navigate('/ajustes/avisos')
+          }}
         />
       ),
     })

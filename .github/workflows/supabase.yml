@@ -80,8 +80,16 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PLUGGY_CLIENT_ID: ${{ secrets.PLUGGY_CLIENT_ID }}
           PLUGGY_CLIENT_SECRET: ${{ secrets.PLUGGY_CLIENT_SECRET }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          NOTIFY_CRON_SECRET: ${{ secrets.NOTIFY_CRON_SECRET }}
         run: |
           supabase secrets set SETUP_CODE="$SETUP_CODE" --yes
+          if [ -n "$VAPID_PUBLIC_KEY" ] && [ -n "$VAPID_PRIVATE_KEY" ] && [ -n "$NOTIFY_CRON_SECRET" ]; then
+            supabase secrets set VAPID_PUBLIC_KEY="$VAPID_PUBLIC_KEY" VAPID_PRIVATE_KEY="$VAPID_PRIVATE_KEY" NOTIFY_CRON_SECRET="$NOTIFY_CRON_SECRET" --yes
+          else
+            echo "::notice::Sem as chaves dos avisos (VAPID): as notificações ficam desligadas."
+          fi
           if [ -n "$PLUGGY_CLIENT_ID" ] && [ -n "$PLUGGY_CLIENT_SECRET" ]; then
             supabase secrets set PLUGGY_CLIENT_ID="$PLUGGY_CLIENT_ID" PLUGGY_CLIENT_SECRET="$PLUGGY_CLIENT_SECRET" --yes
           else

@@ -452,3 +452,6 @@ verify_jwt = false
 
 [functions.ask]
 verify_jwt = false
+
+[functions.notify]
+verify_jwt = false

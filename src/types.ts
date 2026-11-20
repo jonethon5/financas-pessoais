@@ -3,10 +3,14 @@
 export type AiTone = 'suave' | 'equilibrado' | 'agressivo'
 
 /** Tipos de aviso que a pessoa liga/desliga em Você › Avisos */
-export type NotifyKind = 'vencimentos' | 'pagamento' | 'limite' | 'revisao' | 'desejos' | 'metas'
+export type NotifyKind = 'vencimentos' | 'pagamento' | 'limite' | 'revisao' | 'desejos' | 'metas' | 'lembrete'
 
 export type Prefs = {
   notify?: Partial<Record<NotifyKind, boolean>>
+  /** Hora do lembrete da noite (padrão 20) */
+  notify_hour?: number
+  /** Fuso do aparelho (ex.: America/Sao_Paulo), para os avisos saírem na hora certa */
+  tz?: string
   /** Porquinho: item da loja que ele está usando */
   pig?: { wear?: string | null; color?: 'azul' | 'rosa' }
 }
@@ -25,6 +29,8 @@ export type Profile = {
   about: About
   prefs: Prefs
   onboarded_at: string | null
+  /** Último dia em que abriu o app (o lembrete do dia só sai se não abriu) */
+  last_seen_on?: string | null
   is_admin: boolean
   beta_code: string | null
   created_at: string
@@ -32,7 +38,7 @@ export type Profile = {
 }
 
 export type ProfilePatch = Partial<
-  Pick<Profile, 'name' | 'nickname' | 'avatar_path' | 'birthday' | 'payday' | 'salary_cents' | 'work_hours_week' | 'ai_tone' | 'money_profile' | 'about' | 'prefs' | 'onboarded_at'>
+  Pick<Profile, 'name' | 'nickname' | 'avatar_path' | 'birthday' | 'payday' | 'salary_cents' | 'work_hours_week' | 'ai_tone' | 'money_profile' | 'about' | 'prefs' | 'onboarded_at' | 'last_seen_on'>
 >
 
 export type FeedbackKind = 'sugestao' | 'problema' | 'elogio'
