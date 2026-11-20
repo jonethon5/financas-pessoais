@@ -86,15 +86,17 @@
 /*
   Modo escuro (Você › Aparência). Mesma paleta, com tons ajustados para contraste no fundo escuro:
   o verde fica mais claro e os botões verdes ganham texto escuro.
+  Fundos no padrão do modo escuro do GitHub: grafite azulado em vez de preto puro (cansa menos a vista),
+  com cada camada um tom acima e bordas que aparecem.
 */
 :root[data-theme='dark'] {
-  --bg: #000000;
-  --surface: #121316;
-  --surface-2: #23262b;
-  --ink: #eceff3;
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface-2: #262c36;
+  --ink: #e6edf3;
   --muted: #9aa3ad;
   --faint: #6c7480;
-  --line: #1f2226;
+  --line: #262c36;
   --primary: #6ea8fe;
   --primary-strong: #9cc3ff;
   --primary-soft: #0f2547;
@@ -113,9 +115,9 @@
   --danger-strong: #ff8085;
   --danger-soft: #3a1a1c;
   --on-ink: #0b1016;
-  --seg: #1b1d21;
-  --seg-on: #34383f;
-  --switch-off: #34383f;
+  --seg: #161b22;
+  --seg-on: #30363d;
+  --switch-off: #30363d;
   --card-shadow: none;
   color-scheme: dark;
 }
@@ -354,9 +356,9 @@ body {
   --viz-2: #d95926;
   --viz-3: #199e70;
   --viz-4: #c98500;
-  --viz-grid: #23262b;
+  --viz-grid: #262c36;
   --viz-axis: #9aa5b1;
-  --viz-seq-0: #15191f;
+  --viz-seq-0: #161b22;
   --viz-seq-1: #1c3152;
   --viz-seq-2: #24508a;
   --viz-seq-3: #3274c9;
@@ -392,7 +394,7 @@ body {
   -webkit-backdrop-filter: blur(22px) saturate(180%);
 }
 :root[data-theme='dark'] .tab-bar-glass {
-  background: rgb(30 30 32 / 0.72);
+  background: rgb(22 27 34 / 0.78);
   border-color: rgb(255 255 255 / 0.09);
   box-shadow:
     0 12px 32px -14px rgb(0 0 0 / 0.9),
